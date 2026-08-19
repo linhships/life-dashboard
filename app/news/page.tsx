@@ -10,7 +10,7 @@ export default async function NewsPage() {
 
   if (!briefing) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="text-2xl font-bold text-slate-900">Daily briefing</h1>
         <p className="mt-4 text-sm text-slate-500">
           No briefing found yet. Run the daily-news task, or set{" "}
@@ -23,7 +23,7 @@ export default async function NewsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+    <main className="mx-auto max-w-6xl space-y-6 px-6 py-10">
       <header>
         <div className="flex items-center gap-2 text-sm text-slate-400">
           <Newspaper className="h-4 w-4" />

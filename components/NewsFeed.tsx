@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChevronDown, Flame, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { NewsItem, Rating } from "@/lib/news";
@@ -57,8 +57,8 @@ function NewsCard({
   onRate: (item: NewsItem, rating: Rating) => void;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-      <div className="text-sm leading-relaxed text-slate-700">
+    <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex-1 text-sm leading-relaxed text-slate-700">
         <ReactMarkdown
           components={{
             p: ({ ...props }) => <p className="m-0" {...props} />,
@@ -183,19 +183,19 @@ export function NewsFeed({
             </button>
 
             {!isCollapsed && (
-              <div className="mt-4 space-y-4">
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {section.items.map((item) => {
                   const showSubheading = item.subheading !== lastSubheading;
                   lastSubheading = item.subheading;
                   return (
-                    <div key={item.id}>
+                    <Fragment key={item.id}>
                       {showSubheading && item.subheading && (
-                        <p className="mb-1.5 text-sm font-semibold text-slate-600">
+                        <p className="col-span-full mt-2 text-sm font-semibold text-slate-600 first:mt-0">
                           {item.subheading}
                         </p>
                       )}
                       <NewsCard item={item} rating={feedback[item.id]} onRate={rate} />
-                    </div>
+                    </Fragment>
                   );
                 })}
               </div>
