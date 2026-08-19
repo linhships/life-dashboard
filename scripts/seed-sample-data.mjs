@@ -5,8 +5,8 @@
 // never touched by git, but this script itself will overwrite local files,
 // so don't run it if you already have real data in data/ that you want to keep).
 
-import { existsSync, mkdirSync, readdirSync, copyFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { existsSync, mkdirSync, readdirSync, copyFileSync, statSync } from "node:fs";
+import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -20,11 +20,24 @@ if (!existsSync(sampleDir)) {
 
 mkdirSync(dataDir, { recursive: true });
 
-const files = readdirSync(sampleDir).filter((f) => !f.startsWith("."));
-for (const file of files) {
-  copyFileSync(join(sampleDir, file), join(dataDir, file));
-  console.log(`Seeded data/${file} (fictional sample data)`);
+// Mirrors the data/sample/ tree into data/, recursing into subfolders
+// (e.g. data/sample/news/ -> data/news/) so nested sample data seeds too.
+function seedDir(srcDir, destDir) {
+  mkdirSync(destDir, { recursive: true });
+  const entries = readdirSync(srcDir).filter((f) => !f.startsWith("."));
+  for (const entry of entries) {
+    const srcPath = join(srcDir, entry);
+    const destPath = join(destDir, entry);
+    if (statSync(srcPath).isDirectory()) {
+      seedDir(srcPath, destPath);
+    } else {
+      copyFileSync(srcPath, destPath);
+      console.log(`Seeded data/${relative(dataDir, destPath)} (fictional sample data)`);
+    }
+  }
 }
+
+seedDir(sampleDir, dataDir);
 
 console.log("\nDone. Run `npm run dev` to see the dashboard with example data.");
 console.log("When you're ready, replace the files in data/ with your own — they're gitignored.");

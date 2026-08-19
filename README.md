@@ -69,6 +69,9 @@ All data lives in `/data` as plain files you (or a scheduled task) update:
 - `data/drawdown_baseline.csv` — a static baseline drawdown export, exposed
   via `/api/drawdown` for reference; the dashboard itself now computes the
   drawdown live and doesn't depend on this file.
+- `data/news/` — fallback location for dated news-briefing markdown files
+  and `feedback.jsonl`, used only if `NEWS_BRIEFING_DIR` isn't set. See
+  "Daily briefing" below.
 
 `data/sample/` holds fictional versions of all of the above, committed to
 git, used by `npm run seed:sample`.
@@ -77,6 +80,22 @@ The page is rendered dynamically (`export const dynamic = "force-dynamic"`
 in `app/page.tsx`), so it re-reads these files on every request — replacing
 a CSV or the xlsx and refreshing the browser is all that's needed to see new
 numbers, no restart required.
+
+## Daily briefing
+
+The `/news` page reads dated markdown files (`YYYY-MM-DD-news-summary.md`)
+written by a separate "daily-news" scheduled task, and shows the latest one
+with 👎 / 👍 / 🔥 buttons on each story.
+
+Copy `.env.example` to `.env.local` (gitignored) and set `NEWS_BRIEFING_DIR`
+to the folder your task writes into. If unset, it falls back to `data/news/`
+(seeded with one fictional example day by `npm run seed:sample`).
+
+Clicking a rating appends one line to `feedback.jsonl` in that same folder —
+an append-only log of `{ id, date, section, headline, rating, ratedAt }`,
+so the daily-news task can eventually read it back to learn what you
+actually want to see more or less of. Nothing currently consumes this file
+automatically; it's just being logged for now.
 
 ## How the retirement model works
 

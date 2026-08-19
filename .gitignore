@@ -18,6 +18,12 @@
 !/data/sample/
 !/data/sample/**
 
+# Daily news briefing — same bring-your-own-data model. Real briefings live
+# in NEWS_BRIEFING_DIR (see .env.local); data/news/ is only a local fallback
+# if that's unset, and feedback.jsonl logs your personal likes/dislikes.
+/data/news/*.md
+/data/news/*.jsonl
+
 # Misc
 .DS_Store
 *.pem

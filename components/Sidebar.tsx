@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronUp,
   LayoutDashboard,
   Menu,
+  Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
   X,
@@ -27,10 +30,13 @@ const FINANCE_ITEMS: SubItem[] = [
 const COLLAPSE_KEY = "life-dashboard-sidebar-collapsed";
 
 export function Sidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(true);
   const [activeId, setActiveId] = useState<string>("overview");
+  const onHome = pathname === "/";
 
   // Restore collapse preference (real app preference, not an in-conversation
   // artifact, so localStorage is fine here).
@@ -48,7 +54,9 @@ export function Sidebar() {
   }, []);
 
   // Highlight whichever section is currently near the top of the viewport.
+  // Only relevant on the home page — other routes don't have these anchors.
   useEffect(() => {
+    if (!onHome) return;
     const elements = FINANCE_ITEMS.map((item) => document.getElementById(item.id)).filter(
       (el): el is HTMLElement => el !== null
     );
@@ -69,14 +77,19 @@ export function Sidebar() {
 
     elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, []);
+  }, [onHome]);
 
   const handleNavClick = (id: string) => {
     setMobileOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (onHome) {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      router.push(`/#${id}`);
+    }
   };
 
-  const isAnyChildActive = FINANCE_ITEMS.some((item) => item.id === activeId);
+  const isAnyChildActive = onHome && FINANCE_ITEMS.some((item) => item.id === activeId);
+  const onNews = pathname?.startsWith("/news") ?? false;
 
   return (
     <>
@@ -184,6 +197,23 @@ export function Sidebar() {
               })}
             </ul>
           )}
+
+          {/* News */}
+          <Link
+            href="/news"
+            onClick={() => setMobileOpen(false)}
+            title={collapsed ? "Daily Briefing" : undefined}
+            className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+              onNews
+                ? "bg-blue-50 text-blue-600"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            } ${collapsed ? "md:justify-center" : ""}`}
+          >
+            <Newspaper className="h-[18px] w-[18px] shrink-0" />
+            <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
+              Daily Briefing
+            </span>
+          </Link>
         </nav>
 
         <div className="border-t border-slate-200 p-3">
