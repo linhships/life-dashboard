@@ -4,6 +4,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import type { Kid, KidRating, MealFeedbackEntry, MealRow } from "@/lib/mealplan";
+import { dateForDay } from "@/lib/weekdays";
 
 const markdownComponents = {
   p: (props: React.ComponentProps<"p">) => <p className="m-0" {...props} />,
@@ -90,10 +91,12 @@ function groupByDay(rows: MealRow[]): DayGroup[] {
 
 export function MealPlanGrid({
   weekStart,
+  today,
   rows,
   initialFeedback,
 }: {
   weekStart: string;
+  today: string;
   rows: MealRow[];
   initialFeedback: Record<string, MealFeedbackEntry>;
 }) {
@@ -136,12 +139,27 @@ export function MealPlanGrid({
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {days.map((group) => (
+      {days.map((group) => {
+        const groupDate = dateForDay(weekStart, group.day);
+        const isPast = groupDate !== null && groupDate < today;
+        const isToday = groupDate === today;
+
+        return (
         <div
           key={group.day}
-          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+          className={`rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md ${
+            isToday
+              ? "border-blue-300 bg-blue-50/60 ring-1 ring-blue-200"
+              : isPast
+                ? "border-slate-200 bg-slate-100"
+                : "border-slate-200 bg-white"
+          }`}
         >
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-900">
+          <h2
+            className={`mb-3 text-sm font-bold uppercase tracking-wide ${
+              isPast ? "text-slate-500" : isToday ? "text-blue-700" : "text-slate-900"
+            }`}
+          >
             {group.day}
           </h2>
           <div className="space-y-3">
@@ -197,7 +215,8 @@ export function MealPlanGrid({
             ))}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
