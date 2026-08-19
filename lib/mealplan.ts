@@ -105,10 +105,11 @@ function splitTableCells(line: string): string[] {
   return trimmed.split("|").map((c) => c.trim());
 }
 
-// Sections whose heading mentions "groceries" get parsed into checkable
-// items instead of raw markdown (e.g. "Groceries", "Groceries by Delivery").
+// Only "Groceries by Delivery" gets parsed into checkable items — the
+// plain "Groceries" section stays as a regular read-only list, same as
+// Cuisine spread / Open items.
 function isGrocerySection(heading: string): boolean {
-  return heading.toLowerCase().includes("groceries");
+  return heading.toLowerCase().includes("groceries by delivery");
 }
 
 function parseGrocerySection(
