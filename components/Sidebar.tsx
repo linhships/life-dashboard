@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronUp,
-  LayoutDashboard,
+  Landmark,
   Menu,
   Newspaper,
   PanelLeftClose,
@@ -176,7 +176,7 @@ export function Sidebar() {
                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             } ${collapsed ? "md:justify-center" : ""}`}
           >
-            <LayoutDashboard className="h-[18px] w-[18px] shrink-0" />
+            <Landmark className="h-[18px] w-[18px] shrink-0" />
             <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
               Finance
             </span>
