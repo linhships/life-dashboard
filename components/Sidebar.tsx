@@ -10,13 +10,26 @@ import {
   Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
+  UtensilsCrossed,
   X,
+  type LucideIcon,
 } from "lucide-react";
 
 interface SubItem {
   id: string;
   label: string;
 }
+
+interface TopLevelLink {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const TOP_LEVEL_LINKS: TopLevelLink[] = [
+  { href: "/news", label: "Daily Briefing", icon: Newspaper },
+  { href: "/meals", label: "Meal Plan", icon: UtensilsCrossed },
+];
 
 const FINANCE_ITEMS: SubItem[] = [
   { id: "overview", label: "Overview" },
@@ -89,7 +102,6 @@ export function Sidebar() {
   };
 
   const isAnyChildActive = onHome && FINANCE_ITEMS.some((item) => item.id === activeId);
-  const onNews = pathname?.startsWith("/news") ?? false;
 
   return (
     <>
@@ -148,22 +160,29 @@ export function Sidebar() {
             Menu
           </p>
 
-          {/* News */}
-          <Link
-            href="/news"
-            onClick={() => setMobileOpen(false)}
-            title={collapsed ? "Daily Briefing" : undefined}
-            className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-              onNews
-                ? "bg-blue-50 text-blue-600"
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-            } ${collapsed ? "md:justify-center" : ""}`}
-          >
-            <Newspaper className="h-[18px] w-[18px] shrink-0" />
-            <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
-              Daily Briefing
-            </span>
-          </Link>
+          {/* Standalone top-level links */}
+          {TOP_LEVEL_LINKS.map((link) => {
+            const isActive = pathname?.startsWith(link.href) ?? false;
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                title={collapsed ? link.label : undefined}
+                className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors first:mt-0 ${
+                  isActive
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                } ${collapsed ? "md:justify-center" : ""}`}
+              >
+                <Icon className="h-[18px] w-[18px] shrink-0" />
+                <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
+                  {link.label}
+                </span>
+              </Link>
+            );
+          })}
 
           {/* Parent: Finance */}
           <button

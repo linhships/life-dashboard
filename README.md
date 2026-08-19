@@ -72,6 +72,9 @@ All data lives in `/data` as plain files you (or a scheduled task) update:
 - `data/news/` — fallback location for dated news-briefing markdown files
   and `feedback.jsonl`, used only if `NEWS_BRIEFING_DIR` isn't set. See
   "Daily briefing" below.
+- `data/meals/` — fallback location for dated weekly meal-plan markdown
+  files, used only if `MEAL_PLAN_DIR` isn't set. See "Weekly meal plan"
+  below.
 
 `data/sample/` holds fictional versions of all of the above, committed to
 git, used by `npm run seed:sample`.
@@ -96,6 +99,20 @@ an append-only log of `{ id, date, section, headline, rating, ratedAt }`,
 so the daily-news task can eventually read it back to learn what you
 actually want to see more or less of. Nothing currently consumes this file
 automatically; it's just being logged for now.
+
+## Weekly meal plan
+
+The `/meals` page reads dated markdown files (`Weekly_Plan_YYYY-MM-DD.md`,
+named for the Monday of that week) written by a separate food-planning
+task, and shows the most recent one that isn't in the future — i.e. this
+week's plan. It parses the Day/Meal/Dish/Milo/Arlo/Notes table into a
+day-by-day grid, and renders the rest of the file (cuisine spread, open
+items, groceries) as-is below it.
+
+Copy `.env.example` to `.env.local` (gitignored) and set `MEAL_PLAN_DIR`
+to the folder your task writes into. If unset, it falls back to
+`data/meals/` (seeded with one fictional example week by
+`npm run seed:sample`).
 
 ## How the retirement model works
 

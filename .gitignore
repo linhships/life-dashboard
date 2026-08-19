@@ -24,6 +24,10 @@
 /data/news/*.md
 /data/news/*.jsonl
 
+# Weekly meal plan — same bring-your-own-data model. Real plans live in
+# MEAL_PLAN_DIR (see .env.local); data/meals/ is only a local fallback.
+/data/meals/*.md
+
 # Misc
 .DS_Store
 *.pem
