@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
-import { getCurrentMealPlan, readLatestMealFeedback } from "@/lib/mealplan";
+import { getCurrentMealPlan, readLatestGroceryChecks, readLatestMealFeedback } from "@/lib/mealplan";
 import { MealPlanGrid } from "@/components/MealPlanGrid";
+import { GroceryChecklist } from "@/components/GroceryChecklist";
 import { UtensilsCrossed } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ export default async function MealsPage() {
   }
 
   const feedback = readLatestMealFeedback();
+  const groceryChecks = readLatestGroceryChecks();
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
@@ -37,10 +39,23 @@ export default async function MealsPage() {
 
       <MealPlanGrid weekStart={plan.weekStart} rows={plan.rows} initialFeedback={feedback} />
 
-      {plan.rest && (
+      {plan.otherSections.length > 0 && (
         <div className="prose-slate max-w-none rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-700 shadow-sm [&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:first:mt-0 [&_h3]:mb-1 [&_h3]:mt-4 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-slate-800 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_a]:text-blue-600 [&_a:hover]:underline [&_strong]:font-semibold [&_strong]:text-slate-900">
-          <ReactMarkdown>{plan.rest}</ReactMarkdown>
+          {plan.otherSections.map((section) => (
+            <div key={section.heading}>
+              <h2>{section.heading}</h2>
+              <ReactMarkdown>{section.markdown}</ReactMarkdown>
+            </div>
+          ))}
         </div>
+      )}
+
+      {plan.grocerySections.length > 0 && (
+        <GroceryChecklist
+          weekStart={plan.weekStart}
+          sections={plan.grocerySections}
+          initialChecked={groceryChecks}
+        />
       )}
     </main>
   );

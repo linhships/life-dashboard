@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   if (!["Milo", "Arlo"].includes(kid)) {
     return NextResponse.json({ error: "Invalid kid" }, { status: 400 });
   }
-  if (!["up", "down"].includes(rating)) {
+  if (!["up", "down", "none"].includes(rating)) {
     return NextResponse.json({ error: "Invalid rating" }, { status: 400 });
   }
 

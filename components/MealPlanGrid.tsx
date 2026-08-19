@@ -21,11 +21,11 @@ const markdownComponents = {
 };
 
 const KIDS: { name: Kid; emoji: string }[] = [
-  { name: "Milo", emoji: "🧒" },
-  { name: "Arlo", emoji: "👶" },
+  { name: "Milo", emoji: "👦🏻" },
+  { name: "Arlo", emoji: "👶🏻" },
 ];
 
-const TONE_CLASSES: Record<KidRating, string> = {
+const TONE_CLASSES: Record<"up" | "down", string> = {
   up: "bg-emerald-50 text-emerald-600 border-emerald-200",
   down: "bg-rose-50 text-rose-600 border-rose-200",
 };
@@ -38,7 +38,7 @@ function RateButton({
   children,
 }: {
   active: boolean;
-  tone: KidRating;
+  tone: "up" | "down";
   label: string;
   onClick: () => void;
   children: React.ReactNode;
@@ -98,12 +98,23 @@ export function MealPlanGrid({
   initialFeedback: Record<string, MealFeedbackEntry>;
 }) {
   const [feedback, setFeedback] = useState<Record<string, KidRating>>(() =>
-    Object.fromEntries(Object.entries(initialFeedback).map(([key, f]) => [key, f.rating]))
+    Object.fromEntries(
+      Object.entries(initialFeedback)
+        .filter(([, f]) => f.rating !== "none")
+        .map(([key, f]) => [key, f.rating])
+    )
   );
 
-  const rate = (row: MealRow, kid: Kid, rating: KidRating) => {
+  const rate = (row: MealRow, kid: Kid, clicked: "up" | "down") => {
     const key = `${row.id}:${kid}`;
-    setFeedback((prev) => ({ ...prev, [key]: rating }));
+    // Clicking the already-active button clears the rating.
+    const rating: KidRating = feedback[key] === clicked ? "none" : clicked;
+    setFeedback((prev) => {
+      const next = { ...prev };
+      if (rating === "none") delete next[key];
+      else next[key] = rating;
+      return next;
+    });
     fetch("/api/meals/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

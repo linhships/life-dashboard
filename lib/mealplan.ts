@@ -17,7 +17,7 @@ function mealsDir(): string {
 const PLAN_RE = /^Weekly_Plan_(\d{4}-\d{2}-\d{2})\.md$/;
 
 export type Kid = "Milo" | "Arlo";
-export type KidRating = "up" | "down";
+export type KidRating = "up" | "down" | "none";
 
 export interface MealRow {
   id: string;
@@ -29,12 +29,34 @@ export interface MealRow {
   notes: string;
 }
 
+export interface GroceryItem {
+  id: string;
+  text: string;
+}
+
+export interface GrocerySubsection {
+  subheading: string | null;
+  note: string;
+  items: GroceryItem[];
+}
+
+export interface GrocerySection {
+  heading: string;
+  subsections: GrocerySubsection[];
+}
+
+export interface OtherSection {
+  heading: string;
+  markdown: string;
+}
+
 export interface MealPlan {
   weekStart: string;
   title: string;
   intro: string;
   rows: MealRow[];
-  rest: string; // everything after the table — cuisine spread, groceries, etc.
+  otherSections: OtherSection[];
+  grocerySections: GrocerySection[];
 }
 
 export interface MealFeedbackEntry {
@@ -46,6 +68,16 @@ export interface MealFeedbackEntry {
   kid: Kid;
   rating: KidRating;
   ratedAt: string;
+}
+
+export interface GroceryCheckEntry {
+  id: string;
+  weekStart: string;
+  section: string;
+  subheading: string | null;
+  text: string;
+  checked: boolean;
+  checkedAt: string;
 }
 
 export function listPlanWeeks(): string[] {
@@ -71,6 +103,52 @@ function pickCurrentWeek(weeks: string[]): string | null {
 function splitTableCells(line: string): string[] {
   const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
   return trimmed.split("|").map((c) => c.trim());
+}
+
+// Sections whose heading mentions "groceries" get parsed into checkable
+// items instead of raw markdown (e.g. "Groceries", "Groceries by Delivery").
+function isGrocerySection(heading: string): boolean {
+  return heading.toLowerCase().includes("groceries");
+}
+
+function parseGrocerySection(
+  heading: string,
+  lines: string[],
+  weekStart: string
+): GrocerySection {
+  const subsections: GrocerySubsection[] = [];
+
+  const ensureSubsection = (subheading: string | null): GrocerySubsection => {
+    const last = subsections[subsections.length - 1];
+    if (last && last.subheading === subheading) return last;
+    const next: GrocerySubsection = { subheading, note: "", items: [] };
+    subsections.push(next);
+    return next;
+  };
+
+  let current = ensureSubsection(null);
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith("### ")) {
+      current = ensureSubsection(trimmed.replace(/^###\s+/, ""));
+      continue;
+    }
+    if (trimmed.startsWith("- ")) {
+      const text = trimmed.slice(2).trim();
+      current.items.push({
+        id: hashId(`${weekStart}|${heading}|${current.subheading ?? ""}|${text}`),
+        text,
+      });
+      continue;
+    }
+    // Plain text line (intro paragraph, "Notes:", etc.) — attach to the
+    // current subsection as a small note above its items.
+    current.note = current.note ? `${current.note} ${trimmed}` : trimmed;
+  }
+
+  return { heading, subsections: subsections.filter((s) => s.note || s.items.length > 0) };
 }
 
 export function parsePlan(markdown: string, weekStart: string): MealPlan {
@@ -116,9 +194,44 @@ export function parsePlan(markdown: string, weekStart: string): MealPlan {
     }
   }
 
-  const rest = lines.slice(i).join("\n").trim();
+  // Everything after the table: split into "## " sections. Grocery-ish
+  // sections get parsed into checkable items; everything else stays as
+  // raw markdown, rendered as-is.
+  const otherSections: OtherSection[] = [];
+  const grocerySections: GrocerySection[] = [];
+  let currentHeading: string | null = null;
+  let currentLines: string[] = [];
 
-  return { weekStart, title: title || weekStart, intro: introLines.join(" "), rows, rest };
+  const flush = () => {
+    if (currentHeading === null) return;
+    if (isGrocerySection(currentHeading)) {
+      grocerySections.push(parseGrocerySection(currentHeading, currentLines, weekStart));
+    } else {
+      const markdown = currentLines.join("\n").trim();
+      if (markdown) otherSections.push({ heading: currentHeading, markdown });
+    }
+    currentLines = [];
+  };
+
+  for (; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith("## ")) {
+      flush();
+      currentHeading = trimmed.replace(/^##\s+/, "");
+      continue;
+    }
+    if (currentHeading !== null) currentLines.push(lines[i]);
+  }
+  flush();
+
+  return {
+    weekStart,
+    title: title || weekStart,
+    intro: introLines.join(" "),
+    rows,
+    otherSections,
+    grocerySections,
+  };
 }
 
 export function getCurrentMealPlan(): MealPlan | null {
@@ -141,7 +254,8 @@ export function appendMealFeedback(entry: MealFeedbackEntry): void {
 
 // Append-only log, keyed by "<rowId>:<kid>" — last line wins, so this
 // reduces the log to "current" ratings while keeping full history on disk
-// for the food-planning task to mine later.
+// for the food-planning task to mine later. A rating of "none" means the
+// rating was cleared — treat it as unset when consumed.
 export function readLatestMealFeedback(): Record<string, MealFeedbackEntry> {
   const p = feedbackPath();
   if (!fs.existsSync(p)) return {};
@@ -153,6 +267,32 @@ export function readLatestMealFeedback(): Record<string, MealFeedbackEntry> {
       map[`${entry.id}:${entry.kid}`] = entry;
     } catch {
       // skip malformed lines rather than fail the whole read
+    }
+  }
+  return map;
+}
+
+function groceryCheckPath(): string {
+  return path.join(mealsDir(), "grocery-checked.jsonl");
+}
+
+export function appendGroceryCheck(entry: GroceryCheckEntry): void {
+  const dir = mealsDir();
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.appendFileSync(groceryCheckPath(), JSON.stringify(entry) + "\n", "utf-8");
+}
+
+export function readLatestGroceryChecks(): Record<string, boolean> {
+  const p = groceryCheckPath();
+  if (!fs.existsSync(p)) return {};
+  const lines = fs.readFileSync(p, "utf-8").split("\n").filter(Boolean);
+  const map: Record<string, boolean> = {};
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line) as GroceryCheckEntry;
+      map[entry.id] = entry.checked;
+    } catch {
+      // skip malformed lines
     }
   }
   return map;
