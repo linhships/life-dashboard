@@ -148,12 +148,29 @@ export function Sidebar() {
             Menu
           </p>
 
+          {/* News */}
+          <Link
+            href="/news"
+            onClick={() => setMobileOpen(false)}
+            title={collapsed ? "Daily Briefing" : undefined}
+            className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+              onNews
+                ? "bg-blue-50 text-blue-600"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            } ${collapsed ? "md:justify-center" : ""}`}
+          >
+            <Newspaper className="h-[18px] w-[18px] shrink-0" />
+            <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
+              Daily Briefing
+            </span>
+          </Link>
+
           {/* Parent: Finance */}
           <button
             type="button"
             onClick={() => setFinanceOpen((o) => !o)}
             title={collapsed ? "Finance" : undefined}
-            className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+            className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
               isAnyChildActive
                 ? "bg-blue-50 text-blue-600"
                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -197,23 +214,6 @@ export function Sidebar() {
               })}
             </ul>
           )}
-
-          {/* News */}
-          <Link
-            href="/news"
-            onClick={() => setMobileOpen(false)}
-            title={collapsed ? "Daily Briefing" : undefined}
-            className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-              onNews
-                ? "bg-blue-50 text-blue-600"
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-            } ${collapsed ? "md:justify-center" : ""}`}
-          >
-            <Newspaper className="h-[18px] w-[18px] shrink-0" />
-            <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
-              Daily Briefing
-            </span>
-          </Link>
         </nav>
 
         <div className="border-t border-slate-200 p-3">
