@@ -108,8 +108,8 @@ export function Sidebar() {
       {/* Mobile top bar */}
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
-            £
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-sm">
+            👩🏻
           </div>
           <span className="text-sm font-semibold text-slate-900">Life Dashboard</span>
         </div>
@@ -141,8 +141,8 @@ export function Sidebar() {
             collapsed ? "md:justify-center md:px-0" : ""
           }`}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-600 text-sm font-bold text-white">
-            £
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-600 text-base">
+            👩🏻
           </div>
           <span
             className={`text-sm font-semibold text-slate-900 ${collapsed ? "md:hidden" : ""}`}
