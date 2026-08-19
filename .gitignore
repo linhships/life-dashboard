@@ -25,8 +25,10 @@
 /data/news/*.jsonl
 
 # Weekly meal plan — same bring-your-own-data model. Real plans live in
-# MEAL_PLAN_DIR (see .env.local); data/meals/ is only a local fallback.
+# MEAL_PLAN_DIR (see .env.local); data/meals/ is only a local fallback, and
+# meal-feedback.jsonl logs the kids' per-dish thumbs up/down.
 /data/meals/*.md
+/data/meals/*.jsonl
 
 # Misc
 .DS_Store

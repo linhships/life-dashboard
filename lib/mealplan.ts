@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { hashId } from "./hash";
 
 // Reads the weekly meal plan produced by a separate planning task. That
 // task writes dated markdown files (Weekly_Plan_YYYY-MM-DD.md, named for
@@ -15,7 +16,11 @@ function mealsDir(): string {
 
 const PLAN_RE = /^Weekly_Plan_(\d{4}-\d{2}-\d{2})\.md$/;
 
+export type Kid = "Milo" | "Arlo";
+export type KidRating = "up" | "down";
+
 export interface MealRow {
+  id: string;
   day: string;
   meal: string;
   dish: string;
@@ -30,6 +35,17 @@ export interface MealPlan {
   intro: string;
   rows: MealRow[];
   rest: string; // everything after the table — cuisine spread, groceries, etc.
+}
+
+export interface MealFeedbackEntry {
+  id: string;
+  weekStart: string;
+  day: string;
+  meal: string;
+  dish: string;
+  kid: Kid;
+  rating: KidRating;
+  ratedAt: string;
 }
 
 export function listPlanWeeks(): string[] {
@@ -83,10 +99,14 @@ export function parsePlan(markdown: string, weekStart: string): MealPlan {
     while (i < lines.length && lines[i].trim().startsWith("|")) {
       const cells = splitTableCells(lines[i]);
       if (cells.length >= 6) {
+        const day = cells[0];
+        const meal = cells[1];
+        const dish = cells[2];
         rows.push({
-          day: cells[0],
-          meal: cells[1],
-          dish: cells[2],
+          id: hashId(`${weekStart}|${day}|${meal}|${dish}`),
+          day,
+          meal,
+          dish,
           milo: cells[3],
           arlo: cells[4],
           notes: cells[5],
@@ -107,4 +127,33 @@ export function getCurrentMealPlan(): MealPlan | null {
   if (!weekStart) return null;
   const raw = fs.readFileSync(path.join(mealsDir(), `Weekly_Plan_${weekStart}.md`), "utf-8");
   return parsePlan(raw, weekStart);
+}
+
+function feedbackPath(): string {
+  return path.join(mealsDir(), "meal-feedback.jsonl");
+}
+
+export function appendMealFeedback(entry: MealFeedbackEntry): void {
+  const dir = mealsDir();
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.appendFileSync(feedbackPath(), JSON.stringify(entry) + "\n", "utf-8");
+}
+
+// Append-only log, keyed by "<rowId>:<kid>" — last line wins, so this
+// reduces the log to "current" ratings while keeping full history on disk
+// for the food-planning task to mine later.
+export function readLatestMealFeedback(): Record<string, MealFeedbackEntry> {
+  const p = feedbackPath();
+  if (!fs.existsSync(p)) return {};
+  const lines = fs.readFileSync(p, "utf-8").split("\n").filter(Boolean);
+  const map: Record<string, MealFeedbackEntry> = {};
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line) as MealFeedbackEntry;
+      map[`${entry.id}:${entry.kid}`] = entry;
+    } catch {
+      // skip malformed lines rather than fail the whole read
+    }
+  }
+  return map;
 }

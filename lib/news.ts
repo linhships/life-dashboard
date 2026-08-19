@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { hashId } from "./hash";
 
 // Reads the daily news briefing produced by the separate "daily-news"
 // scheduled task. That task writes dated markdown files
@@ -41,16 +42,6 @@ export interface FeedbackEntry {
   headline: string;
   rating: Rating;
   ratedAt: string;
-}
-
-// Small stable hash so an item's id survives re-renders and doesn't depend
-// on its position in the file (which can shift if a run appends stories).
-function hashId(input: string): string {
-  let h = 5381;
-  for (let i = 0; i < input.length; i++) {
-    h = (h * 33) ^ input.charCodeAt(i);
-  }
-  return (h >>> 0).toString(36);
 }
 
 export function listBriefingDates(): string[] {
