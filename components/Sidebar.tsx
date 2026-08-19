@@ -24,7 +24,7 @@ const FINANCE_ITEMS: SubItem[] = [
   { id: "kids", label: "Kids' Accounts" },
 ];
 
-const COLLAPSE_KEY = "finance-dashboard-sidebar-collapsed";
+const COLLAPSE_KEY = "life-dashboard-sidebar-collapsed";
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -86,7 +86,7 @@ export function Sidebar() {
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
             £
           </div>
-          <span className="text-sm font-semibold text-slate-900">Finance Dashboard</span>
+          <span className="text-sm font-semibold text-slate-900">Life Dashboard</span>
         </div>
         <button
           type="button"
@@ -122,7 +122,7 @@ export function Sidebar() {
           <span
             className={`text-sm font-semibold text-slate-900 ${collapsed ? "md:hidden" : ""}`}
           >
-            Finance Dashboard
+            Life Dashboard
           </span>
         </div>
 

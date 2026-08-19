@@ -1,9 +1,10 @@
-# Finance Dashboard
+# Life Dashboard
 
-A personal finance dashboard: net worth over time, cash flow, an interactive
-UK "Coast FIRE" retirement plan with a full tax-aware drawdown simulation
-(income tax + CGT, SIPP access rules, State Pension), pension annual
-allowance tracking, and kids' Junior ISA/SIPP accounts.
+A personal dashboard, starting with finances: net worth over time, cash flow,
+an interactive UK "Coast FIRE" retirement plan with a full tax-aware drawdown
+simulation (income tax + CGT, SIPP access rules, State Pension), pension
+annual allowance tracking, and kids' Junior ISA/SIPP accounts. Built to grow
+into a broader daily life planner alongside the finance section.
 
 Built with Next.js (App Router) + TypeScript + Tailwind CSS + Recharts.
 Reads data from local files only — no external services, no database, no

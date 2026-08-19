@@ -3,8 +3,8 @@ import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "Finance Dashboard",
-  description: "Personal net worth, income, and retirement dashboard.",
+  title: "Life Dashboard",
+  description: "Personal finance, planning, and life dashboard.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
