@@ -5,6 +5,8 @@ import ReactMarkdown from "react-markdown";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import type { Kid, KidRating, MealFeedbackEntry, MealRow } from "@/lib/mealplan";
 import { dateForDay } from "@/lib/weekdays";
+import { splitDishes } from "@/lib/dishes";
+import { hashId } from "@/lib/hash";
 
 const markdownComponents = {
   p: (props: React.ComponentProps<"p">) => <p className="m-0" {...props} />,
@@ -108,8 +110,14 @@ export function MealPlanGrid({
     )
   );
 
-  const rate = (row: MealRow, kid: Kid, clicked: "up" | "down") => {
-    const key = `${row.id}:${kid}`;
+  const rate = (
+    row: MealRow,
+    dishId: string,
+    dishName: string,
+    kid: Kid,
+    clicked: "up" | "down"
+  ) => {
+    const key = `${dishId}:${kid}`;
     // Clicking the already-active button clears the rating.
     const rating: KidRating = feedback[key] === clicked ? "none" : clicked;
     setFeedback((prev) => {
@@ -122,11 +130,11 @@ export function MealPlanGrid({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: row.id,
+        id: dishId,
         weekStart,
         day: row.day,
         meal: row.meal,
-        dish: row.dish,
+        dish: dishName,
         kid,
         rating,
       }),
@@ -183,34 +191,47 @@ export function MealPlanGrid({
                   </div>
                 )}
 
-                <div className="mt-3 space-y-1.5">
-                  {KIDS.map((kid) => {
-                    const key = `${row.id}:${kid.name}`;
-                    const active = feedback[key];
-                    return (
-                      <div key={kid.name} className="flex items-center gap-1.5">
-                        <span className="text-sm">{kid.emoji}</span>
-                        <span className="w-9 text-xs text-slate-500">{kid.name}</span>
-                        <RateButton
-                          active={active === "up"}
-                          tone="up"
-                          label={`${kid.name} liked it`}
-                          onClick={() => rate(row, kid.name, "up")}
-                        >
-                          <ThumbsUp className="h-3.5 w-3.5" />
-                        </RateButton>
-                        <RateButton
-                          active={active === "down"}
-                          tone="down"
-                          label={`${kid.name} didn't like it`}
-                          onClick={() => rate(row, kid.name, "down")}
-                        >
-                          <ThumbsDown className="h-3.5 w-3.5" />
-                        </RateButton>
+                {splitDishes(row.dish).map((dishName, di, all) => {
+                  const dishId = all.length > 1 ? hashId(`${row.id}|${di}|${dishName}`) : row.id;
+                  return (
+                    <div
+                      key={dishId}
+                      className={all.length > 1 ? "mt-3 border-t border-dashed border-slate-100 pt-2" : "mt-3"}
+                    >
+                      {all.length > 1 && (
+                        <p className="mb-1.5 text-xs font-medium text-slate-600">{dishName}</p>
+                      )}
+                      <div className="space-y-1.5">
+                        {KIDS.map((kid) => {
+                          const key = `${dishId}:${kid.name}`;
+                          const active = feedback[key];
+                          return (
+                            <div key={kid.name} className="flex items-center gap-1.5">
+                              <span className="text-sm">{kid.emoji}</span>
+                              <span className="w-9 text-xs text-slate-500">{kid.name}</span>
+                              <RateButton
+                                active={active === "up"}
+                                tone="up"
+                                label={`${kid.name} liked ${dishName}`}
+                                onClick={() => rate(row, dishId, dishName, kid.name, "up")}
+                              >
+                                <ThumbsUp className="h-3.5 w-3.5" />
+                              </RateButton>
+                              <RateButton
+                                active={active === "down"}
+                                tone="down"
+                                label={`${kid.name} didn't like ${dishName}`}
+                                onClick={() => rate(row, dishId, dishName, kid.name, "down")}
+                              >
+                                <ThumbsDown className="h-3.5 w-3.5" />
+                              </RateButton>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
