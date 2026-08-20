@@ -87,6 +87,40 @@ function extractMeta(html: string): LinkMetadata {
   return { title, description, image };
 }
 
+// Fallback for pages with no og:image/twitter:image: scan <img> tags for
+// the first one that looks like real content rather than a UI/tracking
+// asset — skips data URIs, SVGs (almost always icons/logos), filenames
+// containing common icon/logo/tracking keywords, and tiny fixed-size
+// images (width/height attributes <= 32px).
+function firstSensibleImage(html: string, baseUrl: string): string | null {
+  const imgTags = html.match(/<img\s+[^>]*>/gi) || [];
+  const skipKeywords = /(logo|icon|sprite|pixel|spacer|avatar|badge|tracking)/i;
+
+  for (const tag of imgTags) {
+    const srcMatch =
+      tag.match(/\bsrc\s*=\s*["']([^"']+)["']/i) ||
+      tag.match(/\bdata-src\s*=\s*["']([^"']+)["']/i);
+    if (!srcMatch) continue;
+    const src = srcMatch[1].trim();
+    if (!src || src.startsWith("data:")) continue;
+    if (/\.svg(\?|$)/i.test(src)) continue;
+    if (skipKeywords.test(src)) continue;
+
+    const widthMatch = tag.match(/\bwidth\s*=\s*["']?(\d+)/i);
+    const heightMatch = tag.match(/\bheight\s*=\s*["']?(\d+)/i);
+    const w = widthMatch ? parseInt(widthMatch[1], 10) : null;
+    const h = heightMatch ? parseInt(heightMatch[1], 10) : null;
+    if ((w !== null && w <= 32) || (h !== null && h <= 32)) continue;
+
+    try {
+      return new URL(src, baseUrl).toString();
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 function filenameTitle(url: string): string {
   try {
     const { pathname } = new URL(url);
@@ -127,6 +161,9 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
       } catch {
         // leave as-is if it's not resolvable
       }
+    }
+    if (!meta.image) {
+      meta.image = firstSensibleImage(html, url);
     }
     return {
       title: meta.title || filenameTitle(url),
