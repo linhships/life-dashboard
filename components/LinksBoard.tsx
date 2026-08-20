@@ -12,6 +12,16 @@ function hostname(url: string): string {
   }
 }
 
+function formatAddedAt(addedAt: string): string {
+  const date = new Date(addedAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 // Proxy preview images through our own server (see app/api/links/image) —
 // some sites block direct cross-origin <img> requests via hotlink
 // protection, which a same-origin proxied request with a proper referer
@@ -89,7 +99,10 @@ function LinkCard({
         {link.description && (
           <p className="mt-1 line-clamp-2 text-xs text-slate-500">{link.description}</p>
         )}
-        <p className="mt-2 text-xs text-slate-400">{hostname(link.url)}</p>
+        <p className="mt-2 text-xs text-slate-400">
+          {hostname(link.url)}
+          {link.addedAt && <span> · Added {formatAddedAt(link.addedAt)}</span>}
+        </p>
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
           <select
