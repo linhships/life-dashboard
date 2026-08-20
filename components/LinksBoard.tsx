@@ -12,6 +12,14 @@ function hostname(url: string): string {
   }
 }
 
+// Proxy preview images through our own server (see app/api/links/image) —
+// some sites block direct cross-origin <img> requests via hotlink
+// protection, which a same-origin proxied request with a proper referer
+// gets past.
+function proxiedImage(url: string): string {
+  return `/api/links/image?url=${encodeURIComponent(url)}`;
+}
+
 interface GroupedCategory {
   category: string;
   links: LinkEntry[];
@@ -58,7 +66,7 @@ function LinkCard({
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={link.image!}
+            src={proxiedImage(link.image!)}
             alt=""
             className="h-36 w-full object-cover"
             onError={() => setImageFailed(true)}
