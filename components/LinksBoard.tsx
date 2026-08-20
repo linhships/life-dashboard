@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Link2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ExternalLink, Link2, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import type { LinkEntry } from "@/lib/links";
 
 function hostname(url: string): string {
@@ -54,6 +54,7 @@ function LinkCard({
   onRefresh,
   onRecategorize,
   onNotesChange,
+  onOpen,
 }: {
   link: LinkEntry;
   categories: string[];
@@ -61,6 +62,7 @@ function LinkCard({
   onRefresh: (id: string) => void;
   onRecategorize: (id: string, category: string) => void;
   onNotesChange: (id: string, notes: string) => void;
+  onOpen: (id: string) => void;
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
@@ -79,7 +81,7 @@ function LinkCard({
 
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-      <a href={link.url} target="_blank" rel="noopener noreferrer" className="block">
+      <button type="button" onClick={() => onOpen(link.id)} className="block w-full text-left">
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -93,16 +95,15 @@ function LinkCard({
             <Link2 className="h-8 w-8" />
           </div>
         )}
-      </a>
+      </button>
       <div className="flex flex-1 flex-col p-4">
-        <a
-          href={link.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="line-clamp-2 text-sm font-semibold text-slate-900 hover:underline"
+        <button
+          type="button"
+          onClick={() => onOpen(link.id)}
+          className="line-clamp-2 text-left text-sm font-semibold text-slate-900 hover:underline"
         >
           {link.title}
-        </a>
+        </button>
         {link.description && (
           <p className="mt-1 line-clamp-2 text-xs text-slate-500">{link.description}</p>
         )}
@@ -171,6 +172,115 @@ function LinkCard({
   );
 }
 
+function LinkModal({
+  link,
+  onClose,
+  onNotesChange,
+}: {
+  link: LinkEntry;
+  onClose: () => void;
+  onNotesChange: (id: string, notes: string) => void;
+}) {
+  const [notes, setNotes] = useState(link.notes ?? "");
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setNotes(link.notes ?? "");
+    setImageFailed(false);
+  }, [link.id, link.notes, link.image]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const showImage = Boolean(link.image) && !imageFailed;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative">
+          {showImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={proxiedImage(link.image!)}
+              alt=""
+              className="max-h-80 w-full object-cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <div className="flex h-40 w-full items-center justify-center bg-slate-100 text-slate-300">
+              <Link2 className="h-10 w-10" />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close"
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow hover:bg-white hover:text-slate-700"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-6">
+          <a
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-lg font-bold text-slate-900 hover:underline"
+          >
+            {link.title}
+          </a>
+          <p className="mt-1 text-xs text-slate-400">
+            {hostname(link.url)}
+            {link.addedAt && <span> · Added {formatAddedAt(link.addedAt)}</span>}
+            {" · "}
+            {link.category}
+          </p>
+
+          {link.description && (
+            <p className="mt-3 text-sm text-slate-600">{link.description}</p>
+          )}
+
+          <label className="mt-5 block text-xs font-medium text-slate-500">Notes</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={() => {
+              if (notes !== (link.notes ?? "")) onNotesChange(link.id, notes);
+            }}
+            placeholder="Add a note…"
+            rows={5}
+            className="mt-1.5 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+          />
+
+          <div className="mt-5 flex justify-end">
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Visit link
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
   const [links, setLinks] = useState<LinkEntry[]>(initialLinks);
   const [url, setUrl] = useState("");
@@ -178,6 +288,7 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
   const [newCategory, setNewCategory] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openLinkId, setOpenLinkId] = useState<string | null>(null);
 
   const categories = useMemo(() => {
     const set = new Set(links.map((l) => l.category));
@@ -186,6 +297,8 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
   }, [links, category]);
 
   const grouped = useMemo(() => groupByCategory(links), [links]);
+
+  const openLink = openLinkId ? links.find((l) => l.id === openLinkId) ?? null : null;
 
   const effectiveCategory = category === "__new__" ? newCategory.trim() : category;
 
@@ -334,11 +447,16 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
                 onRefresh={handleRefresh}
                 onRecategorize={handleRecategorize}
                 onNotesChange={handleNotesChange}
+                onOpen={setOpenLinkId}
               />
             ))}
           </div>
         </div>
       ))}
+
+      {openLink && (
+        <LinkModal link={openLink} onClose={() => setOpenLinkId(null)} onNotesChange={handleNotesChange} />
+      )}
     </div>
   );
 }
