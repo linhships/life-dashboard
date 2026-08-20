@@ -114,6 +114,23 @@ to the folder your task writes into. If unset, it falls back to
 `data/meals/` (seeded with one fictional example week by
 `npm run seed:sample`).
 
+## Links
+
+The `/links` page is a simple bookmark manager: paste a URL and pick (or
+create) a category, and the server fetches the page's Open Graph title,
+description, and preview image (`lib/links.ts`, `fetchLinkMetadata`).
+Falls back gracefully to the URL/filename when a site doesn't expose OG
+tags or blocks server-side fetches (common for some social platforms) —
+use the refresh button on a card to retry, e.g. after opening the app on
+a machine with a plainer network path to that site.
+
+Links are stored in `data/links.json` (gitignored — created directly by
+the app rather than an external task, but still personal data). See
+`data/sample/links.json` for the fictional seed used by
+`npm run seed:sample`. Categories are just free text per link — reassign
+a link's category any time from the dropdown on its card as your
+collection grows and a category gets too broad.
+
 ## How the retirement model works
 
 - **Accumulation**: from your current age to target retirement age, ISA/GIA/

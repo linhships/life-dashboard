@@ -31,6 +31,10 @@
 /data/meals/*.md
 /data/meals/*.jsonl
 
+# Saved links — created directly in the app (no external task), but still
+# personal, so real data stays local. See data/sample/links.json.
+/data/links.json
+
 # Misc
 .DS_Store
 *.pem

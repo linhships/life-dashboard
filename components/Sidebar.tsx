@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronUp,
   Landmark,
+  Link2,
   Menu,
   Newspaper,
   PanelLeftClose,
@@ -29,6 +30,7 @@ interface TopLevelLink {
 const TOP_LEVEL_LINKS: TopLevelLink[] = [
   { href: "/news", label: "Daily Briefing", icon: Newspaper },
   { href: "/meals", label: "Meal Plan", icon: UtensilsCrossed },
+  { href: "/links", label: "Links", icon: Link2 },
 ];
 
 const FINANCE_ITEMS: SubItem[] = [
