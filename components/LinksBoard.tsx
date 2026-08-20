@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, Link2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type { LinkEntry } from "@/lib/links";
 
@@ -43,13 +43,26 @@ function LinkCard({
   onRecategorize: (id: string, category: string) => void;
 }) {
   const [refreshing, setRefreshing] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  // Reset the broken-image fallback if a refresh brings in a new URL.
+  useEffect(() => {
+    setImageFailed(false);
+  }, [link.image]);
+
+  const showImage = Boolean(link.image) && !imageFailed;
 
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       <a href={link.url} target="_blank" rel="noopener noreferrer" className="block">
-        {link.image ? (
+        {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={link.image} alt="" className="h-36 w-full object-cover" />
+          <img
+            src={link.image!}
+            alt=""
+            className="h-36 w-full object-cover"
+            onError={() => setImageFailed(true)}
+          />
         ) : (
           <div className="flex h-36 w-full items-center justify-center bg-slate-100 text-slate-300">
             <Link2 className="h-8 w-8" />
