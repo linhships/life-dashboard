@@ -6,7 +6,8 @@
     "description": "A case for adopting type hints across a growing Python codebase, with before/after examples.",
     "image": "https://example.com/images/typed-python-cover.png",
     "category": "Web Development",
-    "addedAt": "2026-01-05T09:12:00.000Z"
+    "addedAt": "2026-01-05T09:12:00.000Z",
+    "notes": "Worth revisiting once we start the migration."
   },
   {
     "id": "sample2",

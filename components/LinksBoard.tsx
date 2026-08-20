@@ -53,15 +53,22 @@ function LinkCard({
   onDelete,
   onRefresh,
   onRecategorize,
+  onNotesChange,
 }: {
   link: LinkEntry;
   categories: string[];
   onDelete: (id: string) => void;
   onRefresh: (id: string) => void;
   onRecategorize: (id: string, category: string) => void;
+  onNotesChange: (id: string, notes: string) => void;
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const [notes, setNotes] = useState(link.notes ?? "");
+
+  useEffect(() => {
+    setNotes(link.notes ?? "");
+  }, [link.notes]);
 
   // Reset the broken-image fallback if a refresh brings in a new URL.
   useEffect(() => {
@@ -103,6 +110,17 @@ function LinkCard({
           {hostname(link.url)}
           {link.addedAt && <span> · Added {formatAddedAt(link.addedAt)}</span>}
         </p>
+
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onBlur={() => {
+            if (notes !== (link.notes ?? "")) onNotesChange(link.id, notes);
+          }}
+          placeholder="Add a note…"
+          rows={2}
+          className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+        />
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
           <select
@@ -213,6 +231,15 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
     }).catch(() => {});
   };
 
+  const handleNotesChange = async (id: string, notes: string) => {
+    setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, notes } : l)));
+    fetch("/api/links", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, notes }),
+    }).catch(() => {});
+  };
+
   const handleRefresh = async (id: string) => {
     const link = links.find((l) => l.id === id);
     if (!link) return;
@@ -306,6 +333,7 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
                 onDelete={handleDelete}
                 onRefresh={handleRefresh}
                 onRecategorize={handleRecategorize}
+                onNotesChange={handleNotesChange}
               />
             ))}
           </div>

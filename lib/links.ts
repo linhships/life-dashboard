@@ -17,6 +17,7 @@ export interface LinkEntry {
   image: string | null;
   category: string;
   addedAt: string;
+  notes?: string;
 }
 
 export interface LinkMetadata {
@@ -55,7 +56,7 @@ export function addLink(entry: Omit<LinkEntry, "id" | "addedAt">): LinkEntry {
 
 export function updateLink(
   id: string,
-  updates: Partial<Pick<LinkEntry, "title" | "description" | "image" | "category">>
+  updates: Partial<Pick<LinkEntry, "title" | "description" | "image" | "category" | "notes">>
 ): LinkEntry | null {
   const links = getLinks();
   const idx = links.findIndex((l) => l.id === id);

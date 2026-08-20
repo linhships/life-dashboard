@@ -41,6 +41,7 @@ export async function PATCH(request: NextRequest) {
     description?: string;
     image?: string | null;
     category?: string;
+    notes?: string;
   };
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
