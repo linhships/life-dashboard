@@ -1,10 +1,28 @@
+import { cookies } from "next/headers";
 import { getLinks } from "@/lib/links";
 import { LinksBoard } from "@/components/LinksBoard";
+import { LinksAuthGuard } from "@/components/LinksAuthGuard";
+import { LinksPageGate } from "@/components/LinksPageGate";
+import { LINKS_AUTH_COOKIE, isAuthed } from "@/lib/linksAuth";
 import { Link2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function LinksPage() {
+  const cookieStore = await cookies();
+  const authed = isAuthed(cookieStore.get(LINKS_AUTH_COOKIE)?.value);
+
+  // Gate check happens before the data is ever fetched, so an unauthenticated
+  // request never gets link data in the page's HTML — this isn't just a UI
+  // overlay hiding an already-loaded page.
+  if (!authed) {
+    return (
+      <main className="mx-auto max-w-6xl px-6 py-10">
+        <LinksPageGate />
+      </main>
+    );
+  }
+
   const links = getLinks();
 
   return (
@@ -21,7 +39,9 @@ export default async function LinksPage() {
         </p>
       </header>
 
-      <LinksBoard initialLinks={links} />
+      <LinksAuthGuard>
+        <LinksBoard initialLinks={links} />
+      </LinksAuthGuard>
     </main>
   );
 }

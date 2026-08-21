@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addLink, deleteLink, fetchLinkMetadata, getLinks, updateLink } from "@/lib/links";
+import { isAuthedRequest } from "@/lib/linksAuth";
 
-export async function GET() {
+// Guard every route here so the passcode gate can't be bypassed by hitting
+// the API directly (the page itself never even fetches this data server-side
+// unless the cookie checks out — see app/links/page.tsx — but these routes
+// are also reachable independently, e.g. for add/edit/delete actions).
+function unauthorized() {
+  return NextResponse.json({ error: "Locked" }, { status: 401 });
+}
+
+export async function GET(request: NextRequest) {
+  if (!isAuthedRequest(request)) return unauthorized();
   return NextResponse.json(getLinks());
 }
 
 export async function POST(request: NextRequest) {
+  if (!isAuthedRequest(request)) return unauthorized();
   const body = await request.json();
   const { url, category } = body as { url?: string; category?: string };
 
@@ -34,6 +45,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (!isAuthedRequest(request)) return unauthorized();
   const body = await request.json();
   const { id, ...updates } = body as {
     id?: string;
@@ -54,6 +66,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  if (!isAuthedRequest(request)) return unauthorized();
   const id = request.nextUrl.searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });

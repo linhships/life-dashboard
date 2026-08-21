@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchLinkMetadata } from "@/lib/links";
+import { isAuthedRequest } from "@/lib/linksAuth";
 
 // Standalone metadata lookup, used by the "Refresh" action on an existing
 // card (e.g. if the page's preview image changed, or the first fetch came
 // back empty).
 export async function POST(request: NextRequest) {
+  if (!isAuthedRequest(request)) {
+    return NextResponse.json({ error: "Locked" }, { status: 401 });
+  }
   const body = await request.json();
   const { url } = body as { url?: string };
   if (!url) {

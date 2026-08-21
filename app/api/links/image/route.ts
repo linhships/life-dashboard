@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthedRequest } from "@/lib/linksAuth";
 
 // Proxies preview images through our own server instead of hotlinking them
 // directly from the browser. Some sites (heysigmund.com among them) block
@@ -7,6 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 // real browser loading that page would) gets past that, without exposing
 // this app's URL to the image host.
 export async function GET(request: NextRequest) {
+  if (!isAuthedRequest(request)) {
+    return new NextResponse("Locked", { status: 401 });
+  }
   const url = request.nextUrl.searchParams.get("url");
   if (!url) {
     return new NextResponse("Missing url", { status: 400 });
