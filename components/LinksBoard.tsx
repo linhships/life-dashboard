@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Link2, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { Check, Copy, ExternalLink, Link2, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import type { LinkEntry } from "@/lib/links";
 
 function hostname(url: string): string {
@@ -28,6 +28,42 @@ function formatAddedAt(addedAt: string): string {
 // gets past.
 function proxiedImage(url: string): string {
   return `/api/links/image?url=${encodeURIComponent(url)}`;
+}
+
+function CopyLinkButton({
+  url,
+  className,
+  showLabel = false,
+}: {
+  url: string;
+  className?: string;
+  showLabel?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Clipboard API can fail (e.g. no permission) — nothing more we can
+      // do here, so just skip the "copied" feedback.
+      return;
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title={copied ? "Copied!" : "Copy link"}
+      className={className}
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+      {showLabel && <span>{copied ? "Copied!" : "Copy link"}</span>}
+    </button>
+  );
 }
 
 interface GroupedCategory {
@@ -174,6 +210,10 @@ function LinkCard({
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
             </button>
+            <CopyLinkButton
+              url={link.url}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+            />
             <a
               href={link.url}
               target="_blank"
@@ -290,7 +330,12 @@ function LinkModal({
             className="mt-1.5 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
           />
 
-          <div className="mt-5 flex justify-end">
+          <div className="mt-5 flex justify-end gap-2">
+            <CopyLinkButton
+              url={link.url}
+              showLabel
+              className="flex items-center gap-1.5 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            />
             <a
               href={link.url}
               target="_blank"
