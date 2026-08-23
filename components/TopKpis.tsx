@@ -55,7 +55,7 @@ export function TopKpis({
         iconColor="emerald"
       />
       <KpiCard
-        label="Shortfall vs. target spend"
+        label="SIPP shortfall vs. target spend"
         value={gbp(shortfall)}
         subtext={`Target: ${gbp(spend)}/yr`}
         tone={shortfall < 0 ? "negative" : "positive"}
