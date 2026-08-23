@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Lock } from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 
 // Shared passcode-entry UI, reused across every gated section (Links,
 // Finance, ...). Used two ways:
@@ -23,6 +23,7 @@ export function PasscodeLockScreen({
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
   const submit = async () => {
     if (!passcode || submitting) return;
@@ -54,18 +55,28 @@ export function PasscodeLockScreen({
       </div>
       <h1 className="mt-3 text-base font-semibold text-slate-900">{label} is locked</h1>
       <p className="mt-1 text-sm text-slate-500">Enter the passcode to continue.</p>
-      <input
-        type="password"
-        inputMode="numeric"
-        autoFocus
-        value={passcode}
-        onChange={(e) => setPasscode(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") submit();
-        }}
-        placeholder="Passcode"
-        className="mt-4 w-full rounded-md border border-slate-200 px-3 py-2 text-center text-sm tracking-widest focus:outline-none focus:ring-1 focus:ring-blue-300"
-      />
+      <div className="relative mt-4">
+        <input
+          type={revealed ? "text" : "password"}
+          inputMode="numeric"
+          autoFocus
+          value={passcode}
+          onChange={(e) => setPasscode(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+          }}
+          placeholder="Passcode"
+          className="w-full rounded-md border border-slate-200 px-3 py-2 pr-10 text-center text-sm tracking-widest focus:outline-none focus:ring-1 focus:ring-blue-300"
+        />
+        <button
+          type="button"
+          onClick={() => setRevealed((v) => !v)}
+          title={revealed ? "Hide passcode" : "Show passcode"}
+          className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-slate-400 hover:text-slate-600"
+        >
+          {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
       {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
       <button
         type="button"
