@@ -42,9 +42,35 @@ function groupByCategory(links: LinkEntry[]): GroupedCategory[] {
     list.push(link);
     map.set(link.category, list);
   }
-  return Array.from(map.entries())
-    .map(([category, items]) => ({ category, links: items }))
-    .sort((a, b) => b.links.length - a.links.length);
+  return Array.from(map.entries()).map(([category, items]) => ({ category, links: items }));
+}
+
+type CategorySort = "count-desc" | "count-asc" | "alpha-asc" | "alpha-desc";
+
+const SORT_OPTIONS: { value: CategorySort; label: string }[] = [
+  { value: "count-desc", label: "Most links first" },
+  { value: "count-asc", label: "Fewest links first" },
+  { value: "alpha-asc", label: "A → Z" },
+  { value: "alpha-desc", label: "Z → A" },
+];
+
+function sortGroups(groups: GroupedCategory[], sort: CategorySort): GroupedCategory[] {
+  const sorted = [...groups];
+  switch (sort) {
+    case "count-desc":
+      sorted.sort((a, b) => b.links.length - a.links.length);
+      break;
+    case "count-asc":
+      sorted.sort((a, b) => a.links.length - b.links.length);
+      break;
+    case "alpha-asc":
+      sorted.sort((a, b) => a.category.localeCompare(b.category));
+      break;
+    case "alpha-desc":
+      sorted.sort((a, b) => b.category.localeCompare(a.category));
+      break;
+  }
+  return sorted;
 }
 
 function LinkCard({
@@ -289,6 +315,7 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openLinkId, setOpenLinkId] = useState<string | null>(null);
+  const [categorySort, setCategorySort] = useState<CategorySort>("count-desc");
 
   const categories = useMemo(() => {
     const set = new Set(links.map((l) => l.category));
@@ -296,7 +323,10 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
     return Array.from(set).sort();
   }, [links, category]);
 
-  const grouped = useMemo(() => groupByCategory(links), [links]);
+  const grouped = useMemo(
+    () => sortGroups(groupByCategory(links), categorySort),
+    [links, categorySort]
+  );
 
   const openLink = openLinkId ? links.find((l) => l.id === openLinkId) ?? null : null;
 
@@ -429,6 +459,26 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
 
       {grouped.length === 0 && (
         <p className="text-sm text-slate-500">No links saved yet — add one above.</p>
+      )}
+
+      {grouped.length > 1 && (
+        <div className="flex items-center justify-end gap-2">
+          <label htmlFor="category-sort" className="text-xs text-slate-500">
+            Sort categories
+          </label>
+          <select
+            id="category-sort"
+            value={categorySort}
+            onChange={(e) => setCategorySort(e.target.value as CategorySort)}
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
 
       {grouped.map((group) => (
