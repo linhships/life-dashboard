@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { getLinks } from "@/lib/links";
 import { LinksBoard } from "@/components/LinksBoard";
-import { LinksAuthGuard } from "@/components/LinksAuthGuard";
-import { LinksPageGate } from "@/components/LinksPageGate";
+import { PasscodeAuthGuard } from "@/components/PasscodeAuthGuard";
+import { PasscodePageGate } from "@/components/PasscodePageGate";
 import { LINKS_AUTH_COOKIE, isAuthed } from "@/lib/linksAuth";
 import { Link2 } from "lucide-react";
 
@@ -18,7 +18,7 @@ export default async function LinksPage() {
   if (!authed) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <LinksPageGate />
+        <PasscodePageGate authEndpoint="/api/links/auth" label="Links" />
       </main>
     );
   }
@@ -39,9 +39,9 @@ export default async function LinksPage() {
         </p>
       </header>
 
-      <LinksAuthGuard>
+      <PasscodeAuthGuard authEndpoint="/api/links/auth" label="Links">
         <LinksBoard initialLinks={links} />
-      </LinksAuthGuard>
+      </PasscodeAuthGuard>
     </main>
   );
 }

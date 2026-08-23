@@ -1,25 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { LinksLockScreen } from "./LinksLockScreen";
+import { PasscodeLockScreen } from "./PasscodeLockScreen";
 
 // How often we're willing to send a heartbeat, at most (activity events
 // fire far more often than this — mousemove alone would otherwise spam the
-// server). The cookie's own sliding window (see lib/linksAuth.ts) is 10
+// server). The cookie's own sliding window (see lib/passcodeGate.ts) is 10
 // minutes, so anything comfortably under that keeps the session alive
 // during genuine activity.
 const HEARTBEAT_MIN_GAP_MS = 30_000;
 
-// Wraps the already-rendered Links page content. The server already
+// Wraps the already-rendered content of a gated page. The server already
 // verified the cookie before sending this data down, so we start
 // "authed." From here it's purely a client-side sliding session: activity
 // (mouse/keyboard/scroll) and tab-visibility changes trigger a heartbeat
-// that refreshes the cookie's expiry. If 10 minutes pass with no
-// heartbeat — because the tab was idle, or the laptop was asleep/locked
-// (no JS runs during that time, so no heartbeats fire, and the cookie's
-// real-clock expiry lapses on its own) — the next heartbeat comes back
-// 401 and we swap the content out for the lock screen, in place.
-export function LinksAuthGuard({ children }: { children: ReactNode }) {
+// (PUT authEndpoint) that refreshes the cookie's expiry. If 10 minutes
+// pass with no heartbeat — because the tab was idle, or the laptop was
+// asleep/locked (no JS runs during that time, so no heartbeats fire, and
+// the cookie's real-clock expiry lapses on its own) — the next heartbeat
+// comes back 401 and we swap the content out for the lock screen, in
+// place.
+export function PasscodeAuthGuard({
+  authEndpoint,
+  label,
+  children,
+}: {
+  authEndpoint: string;
+  label?: string;
+  children: ReactNode;
+}) {
   const [authed, setAuthed] = useState(true);
   const lastHeartbeatRef = useRef(0);
 
@@ -30,7 +39,7 @@ export function LinksAuthGuard({ children }: { children: ReactNode }) {
 
     const heartbeat = async () => {
       try {
-        const res = await fetch("/api/links/auth", { method: "PUT" });
+        const res = await fetch(authEndpoint, { method: "PUT" });
         if (cancelled) return;
         if (!res.ok) {
           setAuthed(false);
@@ -67,10 +76,12 @@ export function LinksAuthGuard({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", onVisibility);
       clearInterval(interval);
     };
-  }, [authed]);
+  }, [authed, authEndpoint]);
 
   if (!authed) {
-    return <LinksLockScreen onUnlocked={() => setAuthed(true)} />;
+    return (
+      <PasscodeLockScreen authEndpoint={authEndpoint} label={label} onUnlocked={() => setAuthed(true)} />
+    );
   }
 
   return <>{children}</>;

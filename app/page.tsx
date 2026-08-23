@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import {
   getAccounts,
   getPensionAllowance,
@@ -18,6 +19,9 @@ import { KidsAccounts } from "@/components/KidsAccounts";
 import { FinancePlanProvider } from "@/components/FinancePlanContext";
 import { TopKpis } from "@/components/TopKpis";
 import { ConnectedContributionPlan } from "@/components/ConnectedContributionPlan";
+import { PasscodeAuthGuard } from "@/components/PasscodeAuthGuard";
+import { PasscodePageGate } from "@/components/PasscodePageGate";
+import { FINANCE_AUTH_COOKIE, isAuthed } from "@/lib/financeAuth";
 import { type ContributionPlan, type StartingBalances } from "@/lib/simulate";
 import { gbp } from "@/lib/format";
 import type { AssumptionItem } from "@/lib/types";
@@ -33,6 +37,19 @@ function findAssumption(items: AssumptionItem[], needle: string): number {
 }
 
 export default async function Home() {
+  const cookieStore = await cookies();
+  const authed = isAuthed(cookieStore.get(FINANCE_AUTH_COOKIE)?.value);
+
+  // Gate check happens before any finance data is fetched, so an
+  // unauthenticated request never gets it in the page's HTML.
+  if (!authed) {
+    return (
+      <main className="mx-auto max-w-6xl px-6 py-10">
+        <PasscodePageGate authEndpoint="/api/finance/auth" label="Finance" />
+      </main>
+    );
+  }
+
   const [accounts, pensionAllowance, income, retirement] = await Promise.all([
     Promise.resolve(getAccounts()),
     Promise.resolve(getPensionAllowance()),
@@ -120,81 +137,83 @@ export default async function Home() {
         </p>
       </header>
 
-      <FinancePlanProvider start={start} initialPlan={defaultPlan} initialSpend={targetSpend}>
-        <TopKpis
-          netWorth={netWorth}
-          currentAge={currentAge}
-          targetRetirementAge={targetRetirementAge}
-          sippAccessAge={sippAccessAge}
-          longHorizonSwr={longHorizonSwr}
-        />
-
-        <SectionCard
-          id="net-worth"
-          title="Net worth over time"
-          description="ISA, GIA, SIPP and savings balances by snapshot date."
-          icon={Wallet}
-          iconColor="blue"
-        >
-          <NetWorthChart data={netWorthSeries} />
-        </SectionCard>
-
-        <SectionCard
-          id="coast-fire"
-          title="Coast FIRE plan & tax-aware drawdown"
-          description="Adjust how much you contribute (and for how long) and your target spend, and see the Coast FIRE trajectory plus the full tax-aware drawdown to life expectancy update live — UK income tax + CGT, SIPP's 25% tax-free portion taken in phased slices, ISA/GIA/SIPP drawn in the tax-cheapest order. Deterministic 5% real growth, doesn't model market variance. Starting balances and default plan come from retirement_model.xlsx."
-          icon={TrendingUp}
-          iconColor="emerald"
-        >
-          <ConnectedContributionPlan
-            baseYear={baseYear}
+      <PasscodeAuthGuard authEndpoint="/api/finance/auth" label="Finance">
+        <FinancePlanProvider start={start} initialPlan={defaultPlan} initialSpend={targetSpend}>
+          <TopKpis
+            netWorth={netWorth}
             currentAge={currentAge}
             targetRetirementAge={targetRetirementAge}
             sippAccessAge={sippAccessAge}
-            lifeExpectancy={lifeExpectancy}
-            statePensionAge={statePensionAge}
-            statePension={statePension}
+            longHorizonSwr={longHorizonSwr}
           />
-        </SectionCard>
-      </FinancePlanProvider>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <SectionCard
+            id="net-worth"
+            title="Net worth over time"
+            description="ISA, GIA, SIPP and savings balances by snapshot date."
+            icon={Wallet}
+            iconColor="blue"
+          >
+            <NetWorthChart data={netWorthSeries} />
+          </SectionCard>
+
+          <SectionCard
+            id="coast-fire"
+            title="Coast FIRE plan & tax-aware drawdown"
+            description="Adjust how much you contribute (and for how long) and your target spend, and see the Coast FIRE trajectory plus the full tax-aware drawdown to life expectancy update live — UK income tax + CGT, SIPP's 25% tax-free portion taken in phased slices, ISA/GIA/SIPP drawn in the tax-cheapest order. Deterministic 5% real growth, doesn't model market variance. Starting balances and default plan come from retirement_model.xlsx."
+            icon={TrendingUp}
+            iconColor="emerald"
+          >
+            <ConnectedContributionPlan
+              baseYear={baseYear}
+              currentAge={currentAge}
+              targetRetirementAge={targetRetirementAge}
+              sippAccessAge={sippAccessAge}
+              lifeExpectancy={lifeExpectancy}
+              statePensionAge={statePensionAge}
+              statePension={statePension}
+            />
+          </SectionCard>
+        </FinancePlanProvider>
+
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <SectionCard
+            id="cash-flow"
+            title="Cash flow"
+            description="Last 12 months: payroll net pay vs. what actually landed in the bank."
+            icon={ArrowLeftRight}
+            iconColor="blue"
+          >
+            <IncomeChart data={recentIncome} />
+          </SectionCard>
+
+          <SectionCard
+            id="pension"
+            title="Pension annual allowance"
+            description={
+              currentYearAllowance
+                ? `${currentYearAllowance.taxYear}: ${gbp(
+                    currentYearAllowance.carryForwardRemainder
+                  )} of allowance still available.`
+                : undefined
+            }
+            icon={PiggyBank}
+            iconColor="purple"
+          >
+            <PensionAllowanceChart data={pensionAllowance} />
+          </SectionCard>
+        </div>
+
         <SectionCard
-          id="cash-flow"
-          title="Cash flow"
-          description="Last 12 months: payroll net pay vs. what actually landed in the bank."
-          icon={ArrowLeftRight}
-          iconColor="blue"
+          id="kids"
+          title="Kids' accounts"
+          description="Junior ISA + Junior SIPP balances, latest snapshot."
+          icon={Users}
+          iconColor="amber"
         >
-          <IncomeChart data={recentIncome} />
+          <KidsAccounts kids={kids} />
         </SectionCard>
-
-        <SectionCard
-          id="pension"
-          title="Pension annual allowance"
-          description={
-            currentYearAllowance
-              ? `${currentYearAllowance.taxYear}: ${gbp(
-                  currentYearAllowance.carryForwardRemainder
-                )} of allowance still available.`
-              : undefined
-          }
-          icon={PiggyBank}
-          iconColor="purple"
-        >
-          <PensionAllowanceChart data={pensionAllowance} />
-        </SectionCard>
-      </div>
-
-      <SectionCard
-        id="kids"
-        title="Kids' accounts"
-        description="Junior ISA + Junior SIPP balances, latest snapshot."
-        icon={Users}
-        iconColor="amber"
-      >
-        <KidsAccounts kids={kids} />
-      </SectionCard>
+      </PasscodeAuthGuard>
     </main>
   );
 }
