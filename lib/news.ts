@@ -73,8 +73,13 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
       title = trimmed.replace(/^#\s+/, "");
       continue;
     }
+    // A "---" divider can appear twice: once right after the intro (purely
+    // cosmetic, before any section heading) and once before the true
+    // trailing footer (e.g. "## Run notes"). Only the latter should start
+    // footer capture — an early one, before we've seen a "## " heading yet,
+    // is just skipped.
     if (trimmed === "---") {
-      inFooter = true;
+      if (sawFirstHeading) inFooter = true;
       continue;
     }
     if (inFooter) {
