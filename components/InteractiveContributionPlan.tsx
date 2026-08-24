@@ -13,9 +13,7 @@ import { ContributionChart, type ContributionYear } from "./ContributionChart";
 import { CoastFireChart, type CoastFirePoint } from "./CoastFireChart";
 import { DrawdownBalanceChart } from "./DrawdownBalanceChart";
 import { DrawdownWithdrawalChart } from "./DrawdownWithdrawalChart";
-import { KpiCard } from "./KpiCard";
 import { gbp } from "@/lib/format";
-import { AlertTriangle, CheckCircle2, PiggyBank, Receipt, Percent } from "lucide-react";
 
 interface Props {
   start: StartingBalances;
@@ -155,15 +153,6 @@ export function InteractiveContributionPlan({
     return [...accumulation, ...bridge];
   }, [start, plan, currentAge, baseYear, nYears, drawdown, sippAccessAge]);
 
-  const lastRow = drawdown[drawdown.length - 1];
-  const finalBalance = lastRow ? lastRow.isaEnd + lastRow.giaEnd + lastRow.sippEnd : 0;
-  const yearsFunded = drawdown.filter((r) => r.netReceived >= spend - 1).length;
-  const lifetimeTax = drawdown.reduce((s, r) => s + r.incomeTax + r.cgt, 0);
-  const totalWithdrawn = drawdown.reduce(
-    (s, r) => s + r.withdrawnIsa + r.withdrawnGia + r.withdrawnSipp,
-    0
-  );
-  const effectiveTaxRate = totalWithdrawn > 0 ? (lifetimeTax / totalWithdrawn) * 100 : 0;
   const isDefault =
     JSON.stringify(plan) === JSON.stringify(initialPlan) &&
     spend === targetSpend &&
@@ -306,42 +295,8 @@ export function InteractiveContributionPlan({
       </div>
 
       <div className="border-t border-slate-200 pt-6">
-        <p className="mb-4 text-sm font-medium text-slate-700">
-          Resulting tax-aware drawdown (age {targetRetirementAge} to {lifeExpectancy})
-        </p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard
-            label="Balance at 90"
-            value={gbp(finalBalance)}
-            icon={PiggyBank}
-            iconColor="emerald"
-          />
-          <KpiCard
-            label="Years fully funded"
-            value={`${yearsFunded} / ${drawdown.length}`}
-            tone={yearsFunded === drawdown.length ? "positive" : "negative"}
-            icon={yearsFunded === drawdown.length ? CheckCircle2 : AlertTriangle}
-            iconColor={yearsFunded === drawdown.length ? "emerald" : "rose"}
-            badge={yearsFunded === drawdown.length ? "Fully funded" : `${drawdown.length - yearsFunded} short`}
-          />
-          <KpiCard
-            label="Lifetime tax paid"
-            value={gbp(lifetimeTax)}
-            icon={Receipt}
-            iconColor="amber"
-          />
-          <KpiCard
-            label="Effective tax rate"
-            value={`${effectiveTaxRate.toFixed(1)}%`}
-            icon={Percent}
-            iconColor="blue"
-            subtext="on money withdrawn from accounts"
-          />
-        </div>
-        <div className="mt-6">
-          <p className="mb-2 text-sm font-medium text-slate-700">Account balances by age</p>
-          <DrawdownBalanceChart data={drawdown} />
-        </div>
+        <p className="mb-2 text-sm font-medium text-slate-700">Account balances by age</p>
+        <DrawdownBalanceChart data={drawdown} />
         <div className="mt-6">
           <p className="mb-2 text-sm font-medium text-slate-700">
             Where the {gbp(spend)}/yr comes from

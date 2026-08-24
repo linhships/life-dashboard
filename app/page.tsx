@@ -18,6 +18,7 @@ import { PensionAllowanceChart } from "@/components/PensionAllowanceChart";
 import { KidsAccounts } from "@/components/KidsAccounts";
 import { FinancePlanProvider } from "@/components/FinancePlanContext";
 import { TopKpis } from "@/components/TopKpis";
+import { DrawdownSummaryCards } from "@/components/DrawdownSummaryCards";
 import { ConnectedContributionPlan } from "@/components/ConnectedContributionPlan";
 import { PasscodeAuthGuard } from "@/components/PasscodeAuthGuard";
 import { PasscodePageGate } from "@/components/PasscodePageGate";
@@ -145,6 +146,15 @@ export default async function Home() {
             targetRetirementAge={targetRetirementAge}
             sippAccessAge={sippAccessAge}
             longHorizonSwr={longHorizonSwr}
+          />
+
+          <DrawdownSummaryCards
+            currentAge={currentAge}
+            targetRetirementAge={targetRetirementAge}
+            sippAccessAge={sippAccessAge}
+            lifeExpectancy={lifeExpectancy}
+            statePensionAge={statePensionAge}
+            statePension={statePension}
           />
 
           <SectionCard
