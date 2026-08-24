@@ -216,8 +216,12 @@ export function NewsFeed({
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
       <div className="space-y-10 lg:col-span-2">
-        {sections.map((section) => {
+        {sections.map((section, sectionIndex) => {
           const isCollapsed = collapsed[section.name];
+          // The first section (Top Stories / Breaking News) stays a single
+          // wide column, like a hero feed; every other section packs two
+          // cards per row so the page doesn't get too long.
+          const isFeatured = sectionIndex === 0;
           return (
             <div key={section.name} id={`section-${slugify(section.name)}`} className="scroll-mt-6">
               <div className="mb-4 flex items-center gap-3">
@@ -239,7 +243,7 @@ export function NewsFeed({
               </div>
 
               {!isCollapsed && (
-                <div className="space-y-5">
+                <div className={isFeatured ? "space-y-5" : "grid grid-cols-1 gap-5 md:grid-cols-2"}>
                   {section.items.map((item) => (
                     <ArticleCard
                       key={item.id}
