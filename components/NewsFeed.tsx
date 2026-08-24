@@ -162,37 +162,39 @@ function ArticleCard({
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1">
+        <div className="flex min-w-0 items-center gap-2">
           {primarySource ? (
             <>
               <span
-                className={`mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(
                   primarySource.name
                 )}`}
               >
                 {primarySource.name.charAt(0).toUpperCase()}
               </span>
-              <a
-                href={primarySource.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium text-slate-700 hover:underline"
-              >
-                {primarySource.name}
-              </a>
-              {sources.slice(1).map((s) => (
-                <span key={s.url} className="text-sm text-slate-400">
-                  ,{" "}
-                  <a
-                    href={s.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-slate-700 hover:underline"
-                  >
-                    {s.name}
-                  </a>
-                </span>
-              ))}
+              <span className="truncate text-sm text-slate-700">
+                <a
+                  href={primarySource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium hover:underline"
+                >
+                  {primarySource.name}
+                </a>
+                {sources.slice(1).map((s) => (
+                  <span key={s.url}>
+                    {", "}
+                    <a
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium hover:underline"
+                    >
+                      {s.name}
+                    </a>
+                  </span>
+                ))}
+              </span>
             </>
           ) : (
             <span className="text-sm text-slate-400">Source not linked</span>
