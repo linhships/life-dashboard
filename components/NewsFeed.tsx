@@ -89,7 +89,6 @@ function ArticleCard({
 }) {
   const { sources, excerpt } = useMemo(() => parseNewsItemBody(item.markdown), [item.markdown]);
   const primarySource = sources[0];
-  const extraCount = Math.max(0, sources.length - 1);
   const pillLabel = item.subheading || item.section;
 
   const excerptRef = useRef<HTMLDivElement>(null);
@@ -163,11 +162,11 @@ function ArticleCard({
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1">
           {primarySource ? (
             <>
               <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(
+                className={`mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(
                   primarySource.name
                 )}`}
               >
@@ -177,11 +176,23 @@ function ArticleCard({
                 href={primarySource.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="truncate text-sm font-medium text-slate-700 hover:underline"
+                className="text-sm font-medium text-slate-700 hover:underline"
               >
                 {primarySource.name}
-                {extraCount > 0 && ` +${extraCount}`}
               </a>
+              {sources.slice(1).map((s) => (
+                <span key={s.url} className="text-sm text-slate-400">
+                  ,{" "}
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-slate-700 hover:underline"
+                  >
+                    {s.name}
+                  </a>
+                </span>
+              ))}
             </>
           ) : (
             <span className="text-sm text-slate-400">Source not linked</span>
