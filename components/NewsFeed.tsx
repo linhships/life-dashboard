@@ -2,9 +2,30 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ChevronDown, Flame, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ChevronDown, Flame, Image as ImageIcon, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { NewsItem, Rating } from "@/lib/news";
-import { avatarColor, parseNewsItemBody, rankSources, slugify } from "@/lib/newsItem";
+import {
+  avatarColor,
+  parseNewsItemBody,
+  placeholderGradient,
+  rankSources,
+  slugify,
+} from "@/lib/newsItem";
+
+// No article photos in the source data (it's a text digest, not a CMS) —
+// this stands in with a deterministic gradient + icon per story so the
+// feed still has the visual rhythm of the reference design.
+function PlaceholderImage({ seed, className }: { seed: string; className?: string }) {
+  return (
+    <div
+      className={`flex items-center justify-center bg-gradient-to-br ${placeholderGradient(
+        seed
+      )} ${className ?? ""}`}
+    >
+      <ImageIcon className="h-8 w-8 text-white/60" strokeWidth={1.5} />
+    </div>
+  );
+}
 
 interface FeedbackEntry {
   id: string;
@@ -56,10 +77,15 @@ function ArticleCard({
   item,
   rating,
   onRate,
+  stacked,
 }: {
   item: NewsItem;
   rating: Rating | undefined;
   onRate: (item: NewsItem, rating: Rating) => void;
+  // Top Stories cards run image-left/text-right (row); every other
+  // section's two-per-row cards run image-above-text (stacked) instead —
+  // matches the reference layout at each width.
+  stacked: boolean;
 }) {
   const { sources, excerpt } = useMemo(() => parseNewsItemBody(item.markdown), [item.markdown]);
   const primarySource = sources[0];
@@ -86,8 +112,8 @@ function ArticleCard({
     return () => observer.disconnect();
   }, [excerpt, expanded]);
 
-  return (
-    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+  const content = (
+    <div className="p-5">
       <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
         <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
         {pillLabel}
@@ -191,6 +217,20 @@ function ArticleCard({
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <article
+      className={`overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md ${
+        stacked ? "" : "flex flex-col sm:flex-row"
+      }`}
+    >
+      <PlaceholderImage
+        seed={item.id}
+        className={stacked ? "h-40 w-full shrink-0" : "h-40 w-full shrink-0 sm:h-auto sm:w-2/5"}
+      />
+      <div className="min-w-0 flex-1">{content}</div>
     </article>
   );
 }
@@ -286,6 +326,7 @@ export function NewsFeed({
                       item={item}
                       rating={feedback[item.id]}
                       onRate={rate}
+                      stacked={!isFeatured}
                     />
                   ))}
                 </div>

@@ -84,3 +84,23 @@ export function avatarColor(name: string): string {
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
+
+// The briefing is a text digest — there's no article photo. Rather than a
+// flat gray box, give each card a deterministic gradient (stable across
+// re-renders, since it's keyed off the item's own id) so the feed still
+// reads as visually varied.
+const PLACEHOLDER_GRADIENTS = [
+  "from-blue-100 to-indigo-200",
+  "from-emerald-100 to-teal-200",
+  "from-amber-100 to-orange-200",
+  "from-rose-100 to-pink-200",
+  "from-purple-100 to-fuchsia-200",
+  "from-cyan-100 to-sky-200",
+  "from-slate-200 to-slate-300",
+];
+
+export function placeholderGradient(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return PLACEHOLDER_GRADIENTS[h % PLACEHOLDER_GRADIENTS.length];
+}
