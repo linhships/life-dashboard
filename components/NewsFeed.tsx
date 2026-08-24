@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChevronDown, Flame, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { NewsItem, Rating } from "@/lib/news";
+import { avatarColor, parseNewsItemBody, rankSources, slugify } from "@/lib/newsItem";
 
 interface FeedbackEntry {
   id: string;
@@ -36,7 +37,7 @@ function RateButton({
       title={label}
       aria-label={label}
       aria-pressed={active}
-      className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-colors ${
+      className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors ${
         active
           ? TONE_CLASSES[tone]
           : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
@@ -47,7 +48,11 @@ function RateButton({
   );
 }
 
-function NewsCard({
+// Magazine-style article card: category pill, bold headline, excerpt,
+// then a byline row (source avatar + name, date, rating buttons). There's
+// no article imagery in the source data (it's a text digest), so this
+// leans on typography and the colored initial "avatar" instead of a photo.
+function ArticleCard({
   item,
   rating,
   onRate,
@@ -56,55 +61,101 @@ function NewsCard({
   rating: Rating | undefined;
   onRate: (item: NewsItem, rating: Rating) => void;
 }) {
+  const { sources, excerpt } = useMemo(() => parseNewsItemBody(item.markdown), [item.markdown]);
+  const primarySource = sources[0];
+  const extraCount = Math.max(0, sources.length - 1);
+  const pillLabel = item.subheading || item.section;
+
   return (
-    <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex-1 text-sm leading-relaxed text-slate-700">
-        <ReactMarkdown
-          components={{
-            p: ({ ...props }) => <p className="m-0" {...props} />,
-            strong: ({ ...props }) => (
-              <strong className="font-semibold text-slate-900" {...props} />
-            ),
-            a: ({ ...props }) => (
+    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
+        {pillLabel}
+      </span>
+
+      <h3 className="mt-3 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
+        {item.headline}
+      </h3>
+
+      {excerpt && (
+        <div className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600">
+          <ReactMarkdown
+            components={{
+              p: ({ node: _node, ...props }) => <span {...props} />,
+              strong: ({ node: _node, ...props }) => (
+                <strong className="font-semibold text-slate-800" {...props} />
+              ),
+              a: ({ node: _node, ...props }) => (
+                <a
+                  className="text-blue-600 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  {...props}
+                />
+              ),
+            }}
+          >
+            {excerpt}
+          </ReactMarkdown>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <div className="flex min-w-0 items-center gap-2">
+          {primarySource ? (
+            <>
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(
+                  primarySource.name
+                )}`}
+              >
+                {primarySource.name.charAt(0).toUpperCase()}
+              </span>
               <a
-                className="text-blue-600 hover:underline"
+                href={primarySource.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                {...props}
-              />
-            ),
-          }}
-        >
-          {item.markdown}
-        </ReactMarkdown>
+                className="truncate text-sm font-medium text-slate-700 hover:underline"
+              >
+                {primarySource.name}
+                {extraCount > 0 && ` +${extraCount}`}
+              </a>
+            </>
+          ) : (
+            <span className="text-sm text-slate-400">Source not linked</span>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="text-xs text-slate-400">{item.date}</span>
+          <div className="flex items-center gap-1.5">
+            <RateButton
+              active={rating === "love"}
+              tone="love"
+              label="Loved it"
+              onClick={() => onRate(item, "love")}
+            >
+              <Flame className="h-3.5 w-3.5" />
+            </RateButton>
+            <RateButton
+              active={rating === "up"}
+              tone="up"
+              label="Liked it"
+              onClick={() => onRate(item, "up")}
+            >
+              <ThumbsUp className="h-3.5 w-3.5" />
+            </RateButton>
+            <RateButton
+              active={rating === "down"}
+              tone="down"
+              label="Not interested"
+              onClick={() => onRate(item, "down")}
+            >
+              <ThumbsDown className="h-3.5 w-3.5" />
+            </RateButton>
+          </div>
+        </div>
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <RateButton
-          active={rating === "love"}
-          tone="love"
-          label="Loved it"
-          onClick={() => onRate(item, "love")}
-        >
-          <Flame className="h-4 w-4" />
-        </RateButton>
-        <RateButton
-          active={rating === "up"}
-          tone="up"
-          label="Liked it"
-          onClick={() => onRate(item, "up")}
-        >
-          <ThumbsUp className="h-4 w-4" />
-        </RateButton>
-        <RateButton
-          active={rating === "down"}
-          tone="down"
-          label="Not interested"
-          onClick={() => onRate(item, "down")}
-        >
-          <ThumbsDown className="h-4 w-4" />
-        </RateButton>
-      </div>
-    </div>
+    </article>
   );
 }
 
@@ -160,49 +211,99 @@ export function NewsFeed({
   };
 
   const sections = groupBySection(items);
+  const topSources = useMemo(() => rankSources(items), [items]);
 
   return (
-    <div className="space-y-8">
-      {sections.map((section) => {
-        const isCollapsed = collapsed[section.name];
-        let lastSubheading: string | null = "";
-
-        return (
-          <div key={section.name}>
-            <button
-              type="button"
-              onClick={() => toggleSection(section.name)}
-              className="flex w-full items-center justify-between gap-2 border-b border-slate-200 pb-2 text-left"
-            >
-              <h2 className="text-lg font-bold text-slate-900">{section.name}</h2>
-              <ChevronDown
-                className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${
-                  isCollapsed ? "-rotate-90" : ""
-                }`}
-              />
-            </button>
-
-            {!isCollapsed && (
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {section.items.map((item) => {
-                  const showSubheading = item.subheading !== lastSubheading;
-                  lastSubheading = item.subheading;
-                  return (
-                    <Fragment key={item.id}>
-                      {showSubheading && item.subheading && (
-                        <p className="col-span-full mt-2 text-sm font-semibold text-slate-600 first:mt-0">
-                          {item.subheading}
-                        </p>
-                      )}
-                      <NewsCard item={item} rating={feedback[item.id]} onRate={rate} />
-                    </Fragment>
-                  );
-                })}
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="space-y-10 lg:col-span-2">
+        {sections.map((section) => {
+          const isCollapsed = collapsed[section.name];
+          return (
+            <div key={section.name} id={`section-${slugify(section.name)}`} className="scroll-mt-6">
+              <div className="mb-4 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => toggleSection(section.name)}
+                  className="flex shrink-0 items-center gap-2 text-left"
+                >
+                  <h2 className="text-lg font-bold text-slate-900">
+                    <span className="text-slate-300">#</span> {section.name}
+                  </h2>
+                  <ChevronDown
+                    className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+                      isCollapsed ? "-rotate-90" : ""
+                    }`}
+                  />
+                </button>
+                <div className="h-0 flex-1 border-t-2 border-dashed border-slate-300" />
               </div>
-            )}
+
+              {!isCollapsed && (
+                <div className="space-y-5">
+                  {section.items.map((item) => (
+                    <ArticleCard
+                      key={item.id}
+                      item={item}
+                      rating={feedback[item.id]}
+                      onRate={rate}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <aside className="space-y-8 lg:sticky lg:top-6 lg:col-span-1 lg:self-start">
+        <div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            In this briefing
+          </p>
+          <nav className="space-y-1">
+            {sections.map((s) => (
+              <a
+                key={s.name}
+                href={`#section-${slugify(s.name)}`}
+                className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              >
+                <span className="truncate">{s.name}</span>
+                <span className="shrink-0 text-xs text-slate-400">{s.items.length}</span>
+              </a>
+            ))}
+          </nav>
+        </div>
+
+        {topSources.length > 0 && (
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Top sources today
+            </p>
+            <div className="space-y-3">
+              {topSources.map((s, i) => (
+                <div key={s.name} className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-900 text-xs font-bold text-white">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">{s.name}</p>
+                    <p className="text-xs text-slate-400">
+                      {s.count} {s.count === 1 ? "story" : "stories"}
+                    </p>
+                  </div>
+                  <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(
+                      s.name
+                    )}`}
+                  >
+                    {s.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        );
-      })}
+        )}
+      </aside>
     </div>
   );
 }

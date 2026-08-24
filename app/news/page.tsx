@@ -25,11 +25,11 @@ export default async function NewsPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-6 py-10">
       <header>
-        <div className="flex items-center gap-2 text-sm text-slate-400">
-          <Newspaper className="h-4 w-4" />
-          <span>{briefing.date}</span>
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <Newspaper className="h-3.5 w-3.5" />
+          <span>Daily briefing · {briefing.date}</span>
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">{briefing.title}</h1>
+        <h1 className="mt-1 text-3xl font-bold text-slate-900">{briefing.title}</h1>
         {briefing.intro && (
           <p className="mt-2 text-sm text-slate-500">{briefing.intro}</p>
         )}
