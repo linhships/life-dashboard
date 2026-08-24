@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChevronDown, Flame, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { NewsItem, Rating } from "@/lib/news";
@@ -66,6 +66,26 @@ function ArticleCard({
   const extraCount = Math.max(0, sources.length - 1);
   const pillLabel = item.subheading || item.section;
 
+  const excerptRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  // Only show the "More" button when the clamp is actually cutting text
+  // off — re-checks on resize, since the same card goes from one column
+  // (Top Stories) to two (everywhere else), which changes wrapping.
+  useEffect(() => {
+    const el = excerptRef.current;
+    if (!el) return;
+    const check = () => {
+      if (expanded) return;
+      setIsTruncated(el.scrollHeight > el.clientHeight + 1);
+    };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [excerpt, expanded]);
+
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
@@ -78,26 +98,42 @@ function ArticleCard({
       </h3>
 
       {excerpt && (
-        <div className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600">
-          <ReactMarkdown
-            components={{
-              p: ({ node: _node, ...props }) => <span {...props} />,
-              strong: ({ node: _node, ...props }) => (
-                <strong className="font-semibold text-slate-800" {...props} />
-              ),
-              a: ({ node: _node, ...props }) => (
-                <a
-                  className="text-blue-600 hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  {...props}
-                />
-              ),
-            }}
+        <>
+          <div
+            ref={excerptRef}
+            className={`mt-2 text-sm leading-relaxed text-slate-600 ${
+              expanded ? "" : "line-clamp-3"
+            }`}
           >
-            {excerpt}
-          </ReactMarkdown>
-        </div>
+            <ReactMarkdown
+              components={{
+                p: ({ node: _node, ...props }) => <span {...props} />,
+                strong: ({ node: _node, ...props }) => (
+                  <strong className="font-semibold text-slate-800" {...props} />
+                ),
+                a: ({ node: _node, ...props }) => (
+                  <a
+                    className="text-blue-600 hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    {...props}
+                  />
+                ),
+              }}
+            >
+              {excerpt}
+            </ReactMarkdown>
+          </div>
+          {(isTruncated || expanded) && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-1 text-xs font-medium text-blue-600 hover:underline"
+            >
+              {expanded ? "Less" : "More"}
+            </button>
+          )}
+        </>
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
