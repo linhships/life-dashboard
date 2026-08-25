@@ -15,7 +15,9 @@ import { splitHeadline } from "./newsItem";
 // if this parser's expectations ever change):
 //   # Title                              <- h1, first thing in the file
 //   Intro sentence(s), plain/*italic*/    <- rendered as markdown (bold,
-//   **bold**/`code`                          italic, inline code, links)
+//   **bold**/`code`, one per line            italic, inline code, links),
+//                                            each source line becomes its
+//                                            own paragraph, not one run-on
 //   ---                                  <- optional, allowed anywhere;
 //   ## Section Name                      <- h2 = a real section boundary
 //   ### Subsection Name                  <- h3 = optional pill/category tag,
@@ -183,7 +185,10 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
   return {
     date,
     title: title || date,
-    intro: introLines.join(" "),
+    // Join with a markdown blank line, not a single space — each source
+    // line becomes its own rendered paragraph (see app/news/page.tsx)
+    // rather than one long run-on sentence.
+    intro: introLines.join("\n\n"),
     items,
     footer: footerLines.join("\n").trim(),
   };
