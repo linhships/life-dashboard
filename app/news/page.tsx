@@ -1,3 +1,4 @@
+import ReactMarkdown from "react-markdown";
 import { getLatestBriefing, readLatestFeedback } from "@/lib/news";
 import { NewsFeed } from "@/components/NewsFeed";
 import { Newspaper } from "lucide-react";
@@ -31,7 +32,30 @@ export default async function NewsPage() {
         </div>
         <h1 className="mt-1 text-3xl font-bold text-slate-900">{briefing.title}</h1>
         {briefing.intro && (
-          <p className="mt-2 text-sm text-slate-500">{briefing.intro}</p>
+          <div className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">
+            <ReactMarkdown
+              components={{
+                p: ({ node: _node, ...props }) => <p {...props} />,
+                strong: ({ node: _node, ...props }) => (
+                  <strong className="font-semibold text-slate-700" {...props} />
+                ),
+                em: ({ node: _node, ...props }) => <em {...props} />,
+                code: ({ node: _node, ...props }) => (
+                  <code className="rounded bg-slate-100 px-1 py-0.5 text-xs" {...props} />
+                ),
+                a: ({ node: _node, ...props }) => (
+                  <a
+                    className="text-blue-600 hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    {...props}
+                  />
+                ),
+              }}
+            >
+              {briefing.intro}
+            </ReactMarkdown>
+          </div>
         )}
       </header>
 

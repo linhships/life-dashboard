@@ -14,7 +14,8 @@ import { splitHeadline } from "./newsItem";
 // "Markdown parsing contract", so both sides stay in sync — update both
 // if this parser's expectations ever change):
 //   # Title                              <- h1, first thing in the file
-//   Intro sentence(s), plain or *italic*  <- rendered as plain text, no md
+//   Intro sentence(s), plain/*italic*/    <- rendered as markdown (bold,
+//   **bold**/`code`                          italic, inline code, links)
 //   ---                                  <- optional, allowed anywhere;
 //   ## Section Name                      <- h2 = a real section boundary
 //   ### Subsection Name                  <- h3 = optional pill/category tag,
