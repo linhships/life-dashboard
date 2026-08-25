@@ -66,20 +66,27 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
   let inFooter = false;
   const footerLines: string[] = [];
 
-  for (const rawLine of lines) {
+  // "---" dividers show up in multiple places — after the intro, and
+  // sometimes between sections too (cosmetic, not consistent run to run)
+  // — but there's always exactly one true footer boundary, right before
+  // the trailing run-notes section, and it's always the *last* "---" in
+  // the file. Only that one should start footer capture; every earlier
+  // one is just a cosmetic rule and gets skipped.
+  let lastDividerIndex = -1;
+  lines.forEach((l, i) => {
+    if (l.trim() === "---") lastDividerIndex = i;
+  });
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
     const trimmed = rawLine.trim();
 
     if (!sawFirstHeading && trimmed.startsWith("# ")) {
       title = trimmed.replace(/^#\s+/, "");
       continue;
     }
-    // A "---" divider can appear twice: once right after the intro (purely
-    // cosmetic, before any section heading) and once before the true
-    // trailing footer (e.g. "## Run notes"). Only the latter should start
-    // footer capture — an early one, before we've seen a "## " heading yet,
-    // is just skipped.
     if (trimmed === "---") {
-      if (sawFirstHeading) inFooter = true;
+      if (i === lastDividerIndex) inFooter = true;
       continue;
     }
     if (inFooter) {
