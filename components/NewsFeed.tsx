@@ -328,8 +328,9 @@ export function NewsFeed({
     // column" as two separately-widthed blocks) — this lets each section's
     // header row span the *full* page width (col-span-full), with the
     // dashed rule running edge to edge, while the aside still reads as a
-    // persistent sidebar via an explicit `[grid-row:1/-1]` pin (spans row 1
-    // through the last row, whatever that ends up being) into column 3.
+    // persistent sidebar via the .news-feed-aside CSS rule in globals.css
+    // (grid-row: 1 / -1 — spans row 1 through the last row, whatever that
+    // ends up being) into column 3.
     // Each section is wrapped in a `contents` div so its header (full
     // width) and its card grid (2/3 width) can be separate grid items
     // without an extra wrapping box constraining them to the same width.
@@ -386,7 +387,7 @@ export function NewsFeed({
         );
       })}
 
-      <aside className="space-y-8 lg:sticky lg:top-6 lg:col-start-3 lg:self-start lg:[grid-row:1/-1]">
+      <aside className="news-feed-aside space-y-8 lg:sticky lg:top-6 lg:col-start-3 lg:self-start">
         <div>
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
             In this briefing
