@@ -12,9 +12,9 @@ import {
   slugify,
 } from "@/lib/newsItem";
 
-// No article photos in the source data (it's a text digest, not a CMS) —
-// this stands in with a deterministic gradient + icon per story so the
-// feed still has the visual rhythm of the reference design.
+// Falls back to a deterministic gradient + icon per story when there's no
+// downloaded image for it yet (or it fails to load) — keeps the feed's
+// visual rhythm even before every story has real art.
 function PlaceholderImage({ seed, className }: { seed: string; className?: string }) {
   return (
     <div
@@ -24,6 +24,27 @@ function PlaceholderImage({ seed, className }: { seed: string; className?: strin
     >
       <ImageIcon className="h-8 w-8 text-white/60" strokeWidth={1.5} />
     </div>
+  );
+}
+
+// Real article image, proxied through /api/news/image so the browser only
+// ever talks to this app (the daily-news task downloads images locally
+// rather than hotlinking, per the "Article images" instructions). Falls
+// back to the gradient placeholder when the story has no image yet, or if
+// the file fails to load for any reason.
+function CardImage({ item, className }: { item: NewsItem; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!item.image || failed) {
+    return <PlaceholderImage seed={item.id} className={className} />;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/api/news/image?src=${encodeURIComponent(item.image)}`}
+      alt=""
+      className={`object-cover ${className ?? ""}`}
+      onError={() => setFailed(true)}
+    />
   );
 }
 
@@ -239,8 +260,8 @@ function ArticleCard({
         stacked ? "" : "flex flex-col sm:flex-row"
       }`}
     >
-      <PlaceholderImage
-        seed={item.id}
+      <CardImage
+        item={item}
         className={stacked ? "h-40 w-full shrink-0" : "h-40 w-full shrink-0 sm:h-auto sm:w-2/5"}
       />
       <div className="min-w-0 flex-1">{content}</div>

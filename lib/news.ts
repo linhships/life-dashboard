@@ -20,6 +20,11 @@ import { splitHeadline } from "./newsItem";
 //   ### Subsection Name                  <- h3 = optional pill/category tag,
 //                                            resets at the next "## "
 //   - **Headline** ([Source](url), ...): Excerpt text.
+//     ![](images/YYYY-MM-DD-<slug>.jpg)  <- optional, directly under the
+//                                            bullet it belongs to; a locally
+//                                            downloaded representative image
+//                                            for that story (see "Article
+//                                            images" in that task's CLAUDE.md)
 //   ---                                  <- only the LAST "---" in the
 //   ## Processed this run                   whole file starts footer capture;
 //   Free text, shown raw/unformatted        everything from there on is
@@ -32,6 +37,7 @@ import { splitHeadline } from "./newsItem";
 // neither a bold marker nor a source group falls back to a blunt 80-char
 // slice.
 const DEFAULT_NEWS_DIR = path.join(process.cwd(), "data", "news");
+const IMAGE_SUBDIR = "images";
 
 function newsDir(): string {
   return process.env.NEWS_BRIEFING_DIR?.trim() || DEFAULT_NEWS_DIR;
@@ -48,6 +54,11 @@ export interface NewsItem {
   subheading: string | null;
   headline: string;
   markdown: string;
+  // Relative path (e.g. "images/2026-08-25-slug.jpg") to a locally
+  // downloaded representative image, as referenced by an optional
+  // "![](...)" line right under the bullet. null when the story has no
+  // image yet — the UI falls back to a placeholder in that case.
+  image: string | null;
 }
 
 export interface NewsBriefing {
@@ -142,6 +153,20 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
       const body = trimmed.slice(2).trim();
       const { headline } = splitHeadline(body);
       const idSeed = `${section}|${subheading ?? ""}|${headline}`;
+
+      // An optional image line can directly follow the bullet:
+      //   ![](images/YYYY-MM-DD-<slug>.jpg)
+      // Peek at the next line and consume it (advance i) so it isn't
+      // mistaken for the start of a new bullet/heading on the next
+      // iteration.
+      let image: string | null = null;
+      const nextTrimmed = lines[i + 1]?.trim();
+      const imageMatch = nextTrimmed?.match(/^!\[[^\]]*\]\(([^)]+)\)$/);
+      if (imageMatch) {
+        image = imageMatch[1];
+        i++;
+      }
+
       items.push({
         id: hashId(idSeed),
         date,
@@ -149,6 +174,7 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
         subheading,
         headline,
         markdown: body,
+        image,
       });
     }
   }
@@ -160,6 +186,26 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
     items,
     footer: footerLines.join("\n").trim(),
   };
+}
+
+// Resolves a NewsItem.image relative path (e.g. "images/2026-08-25-slug.jpg")
+// against this briefing dir's images/ subfolder, used by the
+// /api/news/image route to stream the file. Rejects anything that would
+// escape the images/ subfolder (path traversal via "../", an absolute
+// path, etc.) or that doesn't actually exist on disk — returns null in
+// either case so the route can 404 rather than serve/leak an arbitrary
+// file.
+export function resolveNewsImagePath(relPath: string): string | null {
+  const dir = newsDir();
+  const imagesRoot = path.join(dir, IMAGE_SUBDIR);
+  const resolved = path.resolve(dir, relPath);
+  if (resolved !== imagesRoot && !resolved.startsWith(imagesRoot + path.sep)) {
+    return null;
+  }
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+    return null;
+  }
+  return resolved;
 }
 
 export function getLatestBriefing(): NewsBriefing | null {
