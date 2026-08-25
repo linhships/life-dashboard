@@ -16,16 +16,3 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
-
-/* News feed sidebar: pins the aside to span every row of its parent grid
-   (row 1 through however many rows the section headers/cards end up
-   producing), so it reads as one persistent sticky sidebar. This has to
-   be real CSS rather than Tailwind's arbitrary-value utility
-   (`[grid-row:1/-1]`) — that utility silently failed to compile (the "/"
-   in the value broke Tailwind's parser), which left the sidebar
-   unconstrained and broke the whole feed's grid placement. */
-@media (min-width: 64rem) {
-  .news-feed-aside {
-    grid-row: 1 / -1;
-  }
-}
