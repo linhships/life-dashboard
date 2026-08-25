@@ -16,8 +16,34 @@ export interface ParsedNewsBody {
   excerpt: string;
 }
 
+export interface SplitHeadline {
+  headline: string;
+  rest: string;
+}
+
+// Splits a bullet body into its headline and everything after it (source
+// links + excerpt). Bullets are supposed to bold the headline
+// ("**Headline** (...)"), but a few terse "headline only" mentions skip
+// the bold marker entirely, e.g. "VW: Warnung vor Werksschließungen
+// ([Zeit](url)) — nur Schlagzeile: ...". For those, cut right before the
+// "([" that starts the sources group instead of blindly truncating —
+// truncating at a fixed length risks cutting mid-markdown-link, which both
+// garbles the headline and leaves parseNewsItemBody below unable to find
+// the source-links group at all (shows "Source not linked").
+export function splitHeadline(body: string): SplitHeadline {
+  const bold = body.match(/^\*\*(.+?)\*\*\s*(.*)$/);
+  if (bold) {
+    return { headline: bold[1], rest: bold[2] };
+  }
+  const plain = body.match(/^(.+?)\s*(\(\[.*)$/);
+  if (plain) {
+    return { headline: plain[1].trim(), rest: plain[2] };
+  }
+  return { headline: body.slice(0, 80), rest: "" };
+}
+
 export function parseNewsItemBody(markdown: string): ParsedNewsBody {
-  const withoutHeadline = markdown.replace(/^\*\*(.+?)\*\*/, "").trim();
+  const withoutHeadline = splitHeadline(markdown).rest.trim();
 
   // The sources are usually a parenthetical group of markdown links right
   // after the headline. Allow one level of nested parens, since each

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { hashId } from "./hash";
+import { splitHeadline } from "./newsItem";
 
 // Reads the daily news briefing produced by the separate "daily-news"
 // scheduled task. That task writes dated markdown files
@@ -23,8 +24,13 @@ import { hashId } from "./hash";
 //   ## Processed this run                   whole file starts footer capture;
 //   Free text, shown raw/unformatted        everything from there on is
 //                                            dumped verbatim, not parsed.
-// A bullet without a **bold** headline still renders, but falls back to a
-// blunt 80-char truncation instead of a real headline/excerpt split.
+// A bullet without a **bold** headline still renders — splitHeadline() (in
+// ./newsItem, shared with the client-side excerpt/source parsing) falls
+// back to cutting the text right before the "([" source-links group
+// instead of a blind 80-char truncation, so it still produces a clean
+// headline as long as a "(...)" source group follows. Only a bullet with
+// neither a bold marker nor a source group falls back to a blunt 80-char
+// slice.
 const DEFAULT_NEWS_DIR = path.join(process.cwd(), "data", "news");
 
 function newsDir(): string {
@@ -134,8 +140,7 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
     }
     if (trimmed.startsWith("- ")) {
       const body = trimmed.slice(2).trim();
-      const headlineMatch = body.match(/^\*\*(.+?)\*\*/);
-      const headline = headlineMatch ? headlineMatch[1] : body.slice(0, 80);
+      const { headline } = splitHeadline(body);
       const idSeed = `${section}|${subheading ?? ""}|${headline}`;
       items.push({
         id: hashId(idSeed),
