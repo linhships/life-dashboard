@@ -8,6 +8,23 @@ import { hashId } from "./hash";
 // entirely on a real machine. Point NEWS_BRIEFING_DIR (in .env.local,
 // gitignored) at that folder; falls back to data/news/ (sample data) so the
 // app still runs on a fresh clone with no env configured.
+//
+// Expected markdown shape (mirrored in that task's own CLAUDE.md under
+// "Markdown parsing contract", so both sides stay in sync — update both
+// if this parser's expectations ever change):
+//   # Title                              <- h1, first thing in the file
+//   Intro sentence(s), plain or *italic*  <- rendered as plain text, no md
+//   ---                                  <- optional, allowed anywhere;
+//   ## Section Name                      <- h2 = a real section boundary
+//   ### Subsection Name                  <- h3 = optional pill/category tag,
+//                                            resets at the next "## "
+//   - **Headline** ([Source](url), ...): Excerpt text.
+//   ---                                  <- only the LAST "---" in the
+//   ## Processed this run                   whole file starts footer capture;
+//   Free text, shown raw/unformatted        everything from there on is
+//                                            dumped verbatim, not parsed.
+// A bullet without a **bold** headline still renders, but falls back to a
+// blunt 80-char truncation instead of a real headline/excerpt split.
 const DEFAULT_NEWS_DIR = path.join(process.cwd(), "data", "news");
 
 function newsDir(): string {
