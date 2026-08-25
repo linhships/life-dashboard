@@ -32,7 +32,7 @@ export default async function NewsPage() {
         </div>
         <h1 className="mt-1 text-3xl font-bold text-slate-900">{briefing.title}</h1>
         {briefing.intro && (
-          <div className="mt-4 max-w-3xl space-y-4 font-serif text-lg italic leading-relaxed text-slate-800">
+          <div className="mt-4 max-w-3xl space-y-3 font-serif text-sm italic leading-relaxed text-slate-800">
             <ReactMarkdown
               components={{
                 p: ({ node: _node, ...props }) => <p {...props} />,

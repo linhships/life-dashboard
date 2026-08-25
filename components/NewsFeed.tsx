@@ -324,53 +324,69 @@ export function NewsFeed({
   const topSources = useMemo(() => rankSources(items), [items]);
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-      <div className="space-y-10 lg:col-span-2">
-        {sections.map((section, sectionIndex) => {
-          const isCollapsed = collapsed[section.name];
-          // The first section (Top Stories / Breaking News) stays a single
-          // wide column, like a hero feed; every other section packs two
-          // cards per row so the page doesn't get too long.
-          const isFeatured = sectionIndex === 0;
-          return (
-            <div key={section.name} id={`section-${slugify(section.name)}`} className="scroll-mt-6">
-              <div className="mb-4 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.name)}
-                  className="flex shrink-0 items-center gap-2 text-left"
-                >
-                  <h2 className="text-lg font-bold text-slate-900">
-                    <span className="text-slate-300">#</span> {section.name}
-                  </h2>
-                  <ChevronDown
-                    className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
-                      isCollapsed ? "-rotate-90" : ""
-                    }`}
-                  />
-                </button>
-                <div className="h-0 flex-1 border-t-2 border-dashed border-slate-300" />
-              </div>
-
-              {!isCollapsed && (
-                <div className={isFeatured ? "space-y-5" : "grid grid-cols-1 gap-5 md:grid-cols-2"}>
-                  {section.items.map((item) => (
-                    <ArticleCard
-                      key={item.id}
-                      item={item}
-                      rating={feedback[item.id]}
-                      onRate={rate}
-                      stacked={!isFeatured}
-                    />
-                  ))}
-                </div>
-              )}
+    // A single 3-column grid for the whole page (not "main column" + "aside
+    // column" as two separately-widthed blocks) — this lets each section's
+    // header row span the *full* page width (col-span-full), with the
+    // dashed rule running edge to edge, while the aside still reads as a
+    // persistent sidebar via an explicit `[grid-row:1/-1]` pin (spans row 1
+    // through the last row, whatever that ends up being) into column 3.
+    // Each section is wrapped in a `contents` div so its header (full
+    // width) and its card grid (2/3 width) can be separate grid items
+    // without an extra wrapping box constraining them to the same width.
+    <div className="grid grid-cols-1 gap-x-8 gap-y-3 lg:grid-cols-3">
+      {sections.map((section, sectionIndex) => {
+        const isCollapsed = collapsed[section.name];
+        // The first section (Top Stories / Breaking News) stays a single
+        // wide column, like a hero feed; every other section packs two
+        // cards per row so the page doesn't get too long.
+        const isFeatured = sectionIndex === 0;
+        return (
+          <div key={section.name} className="contents">
+            <div
+              id={`section-${slugify(section.name)}`}
+              className={`col-span-full flex scroll-mt-6 items-center gap-3 ${
+                sectionIndex === 0 ? "" : "mt-6"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => toggleSection(section.name)}
+                className="flex shrink-0 items-center gap-2 text-left"
+              >
+                <h2 className="text-lg font-bold text-slate-900">
+                  <span className="text-slate-300">#</span> {section.name}
+                </h2>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+                    isCollapsed ? "-rotate-90" : ""
+                  }`}
+                />
+              </button>
+              <div className="h-0 flex-1 border-t-2 border-dashed border-slate-300" />
             </div>
-          );
-        })}
-      </div>
 
-      <aside className="space-y-8 lg:sticky lg:top-6 lg:col-span-1 lg:self-start">
+            {!isCollapsed && (
+              <div
+                className={`lg:col-span-2 ${
+                  isFeatured ? "space-y-5" : "grid grid-cols-1 gap-5 md:grid-cols-2"
+                }`}
+              >
+                {section.items.map((item) => (
+                  <ArticleCard
+                    key={item.id}
+                    item={item}
+                    rating={feedback[item.id]}
+                    onRate={rate}
+                    stacked={!isFeatured}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <aside className="space-y-8 lg:sticky lg:top-6 lg:col-start-3 lg:self-start lg:[grid-row:1/-1]">
         <div>
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
             In this briefing
