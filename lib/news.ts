@@ -103,6 +103,13 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
       if (trimmed) introLines.push(trimmed);
       continue;
     }
+    // Subsections (e.g. "### UK" grouping Politics by region) can be
+    // written either as an h3 heading or a standalone bold line — both
+    // set the subheading the same way.
+    if (trimmed.startsWith("### ")) {
+      subheading = trimmed.replace(/^###\s+/, "");
+      continue;
+    }
     const boldOnly = trimmed.match(/^\*\*(.+)\*\*$/);
     if (boldOnly) {
       subheading = boldOnly[1];
