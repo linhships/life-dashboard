@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronUp,
+  Heart,
   Landmark,
   Link2,
   Menu,
@@ -31,6 +32,7 @@ const TOP_LEVEL_LINKS: TopLevelLink[] = [
   { href: "/news", label: "Daily Briefing", icon: Newspaper },
   { href: "/meals", label: "Meal Plan", icon: UtensilsCrossed },
   { href: "/links", label: "Links", icon: Link2 },
+  { href: "/tori-photos", label: "Tori & the boys", icon: Heart },
 ];
 
 const FINANCE_ITEMS: SubItem[] = [
