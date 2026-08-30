@@ -12,14 +12,42 @@ import { hashId } from "./hash";
 //
 // Photos are only included if the chat's _chat.txt shows Tori herself as
 // the sender of that attachment — not just any photo present in these
-// threads. The threads also carry logistics messages/documents/photos
-// from parents (contracts, screenshots, forms), which don't represent an
-// actual moment of her caring for the boys. Filtering to her own
-// attachments turned out to reliably exclude all of that on its own: the
-// only two device-screenshot-resolution images found anywhere in these
-// exports were both sent by a parent, not Tori, so they're already
-// excluded by this rule alone — no separate content-based filtering
-// needed.
+// threads. That rule alone isn't enough, though: Tori herself also sent
+// screenshots, receipts, payment confirmations, and the odd non-kid photo
+// (a buggy wheel, a recipe card) mixed in among real photos of the boys.
+// To catch those, every Tori-sent photo was scored with a simple
+// image-content heuristic — % of near-white pixels and mean saturation on
+// a downsampled thumbnail, since screenshots/text-on-solid-background
+// images tend to run either very pale or very desaturated — and every
+// flagged candidate (27 out of ~1500) was manually reviewed by eye.
+// EXCLUDED_PHOTOS below is the resulting hand-confirmed list: mostly
+// checkout/payment screens, ticket confirmations, and text screenshots —
+// several of which contain a parent's card digits, home address, or full
+// name, which is another reason to keep these out of the gallery.
+const EXCLUDED_PHOTOS = new Set<string>(
+  [
+    ["WhatsApp Chat - Tori (Nanny)", "00001194-PHOTO-2024-10-17-08-30-07.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00002275-PHOTO-2026-02-14-11-45-28.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00002615-PHOTO-2026-07-15-12-09-04.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00001433-PHOTO-2025-02-05-14-06-51.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00001070-PHOTO-2024-09-02-09-09-16.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00002274-PHOTO-2026-02-14-11-45-28.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00002702-PHOTO-2026-08-26-13-47-52.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00001541-PHOTO-2025-03-20-08-07-22.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00001468-PHOTO-2025-02-13-08-04-24.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00000865-PHOTO-2024-07-10-08-43-20.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00000920-PHOTO-2024-07-24-21-30-18.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00000732-PHOTO-2024-05-20-08-55-47.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00000280-PHOTO-2023-11-28-14-40-53.jpg"],
+    ["WhatsApp Chat - Tori - Charlie - Milo", "00004087-PHOTO-2025-07-31-07-51-03.jpg"],
+    ["WhatsApp Chat - Tori - Charlie - Milo", "00004339-PHOTO-2025-11-19-19-22-59.jpg"],
+    ["WhatsApp Chat - Tori - Charlie - Milo", "00003377-PHOTO-2025-03-20-15-46-48.jpg"],
+    ["WhatsApp Chat - Tori - Charlie - Milo", "00001831-PHOTO-2024-05-15-12-30-26.jpg"],
+    ["WhatsApp Chat - Tori - Charlie - Milo", "00002258-PHOTO-2024-07-22-13-02-11.jpg"],
+    ["WhatsApp Chat - Tori - Charlie - Milo", "00001832-PHOTO-2024-05-15-12-30-26.jpg"],
+    ["WhatsApp Chat - Tori-Milo-Arlo", "00000362-PHOTO-2024-01-14-13-36-46.jpg"],
+  ].map(([chat, file]) => `${chat}|${file}`)
+);
 function toriPhotosDir(): string | null {
   const dir = process.env.TORI_PHOTOS_DIR?.trim();
   return dir || null;
@@ -95,6 +123,7 @@ export function getToriCareDays(): ToriCareDay[] {
     for (const file of files) {
       if (!file.toLowerCase().endsWith(".jpg")) continue;
       if (senderByFile.get(file) !== TORI_SENDER) continue;
+      if (EXCLUDED_PHOTOS.has(`${chat}|${file}`)) continue;
       const m = file.match(PHOTO_FILENAME_RE);
       if (!m) continue;
       const [, y, mo, da, h, mi, se] = m;

@@ -42,7 +42,11 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="relative aspect-[4/3] w-full bg-slate-100 sm:aspect-[16/9]">
+      <div className="relative aspect-[4/3] w-full bg-white sm:aspect-[16/9]">
+        {/* object-contain (not cover) so a portrait photo is shown in full,
+            letterboxed with white margins, rather than cropped to fill a
+            landscape-ish frame — most of these WhatsApp photos are tall
+            portrait shots that cover was cutting the tops/bottoms off. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={photos[index].id}
@@ -50,7 +54,7 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
           alt=""
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain"
         />
 
         {hasMultiple && (
