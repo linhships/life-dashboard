@@ -23,7 +23,11 @@ import { hashId } from "./hash";
 // EXCLUDED_PHOTOS below is the resulting hand-confirmed list: mostly
 // checkout/payment screens, ticket confirmations, and text screenshots —
 // several of which contain a parent's card digits, home address, or full
-// name, which is another reason to keep these out of the gallery.
+// name, which is another reason to keep these out of the gallery. The
+// heuristic doesn't catch everything (e.g. a dark-mode chat screenshot
+// with a video thumbnail slipped through, since it's neither pale nor
+// desaturated) — entries reported directly after browsing the gallery are
+// appended at the end of the list below.
 const EXCLUDED_PHOTOS = new Set<string>(
   [
     ["WhatsApp Chat - Tori (Nanny)", "00001194-PHOTO-2024-10-17-08-30-07.jpg"],
@@ -46,6 +50,8 @@ const EXCLUDED_PHOTOS = new Set<string>(
     ["WhatsApp Chat - Tori - Charlie - Milo", "00002258-PHOTO-2024-07-22-13-02-11.jpg"],
     ["WhatsApp Chat - Tori - Charlie - Milo", "00001832-PHOTO-2024-05-15-12-30-26.jpg"],
     ["WhatsApp Chat - Tori-Milo-Arlo", "00000362-PHOTO-2024-01-14-13-36-46.jpg"],
+    // Reported directly (missed by the heuristic above):
+    ["WhatsApp Chat - Tori (Nanny)", "00002552-PHOTO-2026-07-07-12-47-35.jpg"],
   ].map(([chat, file]) => `${chat}|${file}`)
 );
 function toriPhotosDir(): string | null {
