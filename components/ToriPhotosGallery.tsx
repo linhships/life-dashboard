@@ -34,11 +34,54 @@ function formatMonthHeading(key: string): string {
 // jump straight to a given slide — the reference layout this was asked to
 // match (TailAdmin's carousel demo).
 function DayCarousel({ day }: { day: ToriCareDay }) {
-  const [index, setIndex] = useState(0);
   const photos = day.photos;
-  const hasMultiple = photos.length > 1;
+  const n = photos.length;
+  const hasMultiple = n > 1;
 
-  const goTo = (i: number) => setIndex((i + photos.length) % photos.length);
+  // Looping from the last photo back to the first (or back the other way)
+  // used to be a straight index wrap — translateX jumping from -(n-1)*100%
+  // back to 0% in one frame, which reads as a huge backward snap instead
+  // of a continuation of the slide. To make the loop itself feel like a
+  // slide, a clone of the last photo is placed before the real ones and a
+  // clone of the first is placed after them, so sliding "past the end"
+  // moves into a clone that looks identical to the real next slide. Once
+  // that slide finishes, we snap (no transition) back to the matching real
+  // slide — invisible to the eye since it looks the same either way. This
+  // is the standard infinite-carousel technique, same idea TailAdmin's
+  // demo carousel uses.
+  const slides = hasMultiple ? [photos[n - 1], ...photos, photos[0]] : photos;
+  // `pos` indexes into `slides`; real photo i lives at pos i+1.
+  const [pos, setPos] = useState(hasMultiple ? 1 : 0);
+  const [withTransition, setWithTransition] = useState(true);
+  const index = hasMultiple ? (((pos - 1) % n) + n) % n : 0;
+
+  const step = (delta: number) => {
+    setWithTransition(true);
+    setPos((p) => p + delta);
+  };
+  const jumpTo = (i: number) => {
+    setWithTransition(true);
+    setPos(i + 1);
+  };
+
+  // After sliding into a clone, snap back to the real slide it matches —
+  // done with the transition switched off for one frame, then switched
+  // back on so the *next* slide still animates normally.
+  const handleTransitionEnd = () => {
+    if (!hasMultiple) return;
+    if (pos === n + 1) {
+      setWithTransition(false);
+      setPos(1);
+    } else if (pos === 0) {
+      setWithTransition(false);
+      setPos(n);
+    }
+  };
+  useEffect(() => {
+    if (withTransition) return;
+    const raf = requestAnimationFrame(() => setWithTransition(true));
+    return () => cancelAnimationFrame(raf);
+  }, [withTransition]);
 
   // Auto-play: this component only ever exists in the DOM while its month
   // is expanded (the parent conditionally renders it), so mounting is the
@@ -47,11 +90,10 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
   // check needed. Stops on unmount (month collapsed again).
   useEffect(() => {
     if (!hasMultiple) return;
-    const id = setInterval(() => {
-      setIndex((i) => (i + 1) % photos.length);
-    }, 3500);
+    const id = setInterval(() => step(1), 3500);
     return () => clearInterval(id);
-  }, [hasMultiple, photos.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMultiple, n]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -63,11 +105,14 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
             instead of an actual slide — this is the same technique behind
             the TailAdmin carousel demo this was modeled on. */}
         <div
-          className="flex h-full transition-transform duration-700 ease-in-out"
-          style={{ transform: `translateX(-${index * 100}%)` }}
+          className={`flex h-full ${
+            withTransition ? "transition-transform duration-700 ease-in-out" : ""
+          }`}
+          style={{ transform: `translateX(-${pos * 100}%)` }}
+          onTransitionEnd={handleTransitionEnd}
         >
-          {photos.map((p) => (
-            <div key={p.id} className="h-full w-full shrink-0">
+          {slides.map((p, i) => (
+            <div key={`${p.id}-${i}`} className="h-full w-full shrink-0">
               {/* object-contain (not cover) so a portrait photo is shown in
                   full, letterboxed with white margins, rather than cropped
                   to fill a landscape-ish frame — most of these WhatsApp
@@ -89,7 +134,7 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
           <>
             <button
               type="button"
-              onClick={() => goTo(index - 1)}
+              onClick={() => step(-1)}
               aria-label="Previous photo"
               className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
             >
@@ -97,7 +142,7 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
             </button>
             <button
               type="button"
-              onClick={() => goTo(index + 1)}
+              onClick={() => step(1)}
               aria-label="Next photo"
               className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
             >
@@ -109,7 +154,7 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => setIndex(i)}
+                  onClick={() => jumpTo(i)}
                   aria-label={`Go to photo ${i + 1}`}
                   className={`h-1.5 rounded-full transition-all ${
                     i === index ? "w-5 bg-white" : "w-1.5 bg-white/60 hover:bg-white/80"
