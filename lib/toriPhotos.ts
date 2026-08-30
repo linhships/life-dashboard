@@ -3,9 +3,9 @@ import path from "path";
 import { hashId } from "./hash";
 
 // Reads the raw WhatsApp chat exports for the "Tori" nanny threads and
-// builds a day-by-day photo gallery of moments from her time caring for
-// Milo & Arlo. Point TORI_PHOTOS_DIR (in .env.local, gitignored) at the
-// folder containing the three exported chat subfolders below — the export
+// builds a day-by-day photo (and video) gallery of moments from her time
+// caring for Milo & Arlo. Point TORI_PHOTOS_DIR (in .env.local, gitignored)
+// at the folder containing the three exported chat subfolders below — the export
 // produced by WhatsApp's own "Export Chat" > "Attach Media" feature,
 // unzipped, with each original chat thread kept as its own subfolder
 // exactly as WhatsApp named it.
@@ -75,6 +75,7 @@ const TORI_SENDER = "Tori (Nanny)";
 const LINE_RE = /^‎?\[\d{2}\/\d{2}\/\d{4}, [\d:]+\s?[ap]m\]\s([^:]+):\s(.*)$/;
 const ATTACH_RE = /<attached:\s*([^>]+)>/;
 const PHOTO_FILENAME_RE = /^\d+-PHOTO-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})\.jpg$/i;
+const VIDEO_FILENAME_RE = /^\d+-VIDEO-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})\.mp4$/i;
 
 export interface ToriPhoto {
   id: string;
@@ -82,6 +83,7 @@ export interface ToriPhoto {
   file: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:MM:SS
+  type: "photo" | "video";
 }
 
 export interface ToriCareDay {
@@ -127,10 +129,13 @@ export function getToriCareDays(): ToriCareDay[] {
     const senderByFile = parseSendersByFilename(chatDir);
     const files = fs.readdirSync(/* turbopackIgnore: true */ chatDir);
     for (const file of files) {
-      if (!file.toLowerCase().endsWith(".jpg")) continue;
+      const lower = file.toLowerCase();
+      const isPhoto = lower.endsWith(".jpg");
+      const isVideo = lower.endsWith(".mp4");
+      if (!isPhoto && !isVideo) continue;
       if (senderByFile.get(file) !== TORI_SENDER) continue;
       if (EXCLUDED_PHOTOS.has(`${chat}|${file}`)) continue;
-      const m = file.match(PHOTO_FILENAME_RE);
+      const m = file.match(isPhoto ? PHOTO_FILENAME_RE : VIDEO_FILENAME_RE);
       if (!m) continue;
       const [, y, mo, da, h, mi, se] = m;
       const date = `${y}-${mo}-${da}`;
@@ -141,6 +146,7 @@ export function getToriCareDays(): ToriCareDay[] {
         file,
         date,
         time,
+        type: isPhoto ? "photo" : "video",
       };
       const bucket = photosByDate.get(date);
       if (bucket) bucket.push(photo);
@@ -159,16 +165,16 @@ export function getToriCareDays(): ToriCareDay[] {
   return days;
 }
 
-// Resolves a (chat, file) pair to an absolute path on disk for the image
+// Resolves a (chat, file) pair to an absolute path on disk for the media
 // API route, guarding against path traversal: chat must be one of the
 // three known folder names (a fixed allowlist, not attacker-controlled
-// beyond that) and file must match the expected WhatsApp photo filename
-// shape.
+// beyond that) and file must match the expected WhatsApp photo or video
+// filename shape.
 export function resolveToriPhotoPath(chat: string, file: string): string | null {
   const dir = toriPhotosDir();
   if (!dir) return null;
   if (!CHAT_FOLDERS.includes(chat as ChatFolder)) return null;
-  if (!PHOTO_FILENAME_RE.test(file)) return null;
+  if (!PHOTO_FILENAME_RE.test(file) && !VIDEO_FILENAME_RE.test(file)) return null;
   const resolved = path.join(dir, chat, file);
   if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
   return resolved;

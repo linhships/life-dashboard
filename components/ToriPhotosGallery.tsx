@@ -4,10 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import type { ToriCareDay, ToriPhoto } from "@/lib/toriPhotos";
 
-function photoUrl(photo: ToriPhoto): string {
+function mediaUrl(photo: ToriPhoto): string {
   return `/api/tori-photos/image?chat=${encodeURIComponent(photo.chat)}&file=${encodeURIComponent(
     photo.file
   )}`;
+}
+
+// "3 photos" / "3 photos · 1 video" — days can now mix both.
+function formatMediaCount(photos: ToriPhoto[]): string {
+  const videos = photos.filter((p) => p.type === "video").length;
+  const stills = photos.length - videos;
+  const parts: string[] = [];
+  if (stills > 0) parts.push(`${stills} ${stills === 1 ? "photo" : "photos"}`);
+  if (videos > 0) parts.push(`${videos} ${videos === 1 ? "video" : "videos"}`);
+  return parts.join(" · ") || "0 photos";
 }
 
 function formatDayHeading(date: string): string {
@@ -88,12 +98,20 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
   // same as becoming visible — advance to the next photo every few
   // seconds for as long as that's true, no separate "is this on screen"
   // check needed. Stops on unmount (month collapsed again).
+  //
+  // Videos are the exception: auto-advancing every 3.5s would yank the
+  // slide away mid-playback, so the timer just skips its turn (checked
+  // fresh on every tick) while the current slide is a video. The viewer
+  // presses the arrow themselves once they're done watching.
   useEffect(() => {
     if (!hasMultiple) return;
-    const id = setInterval(() => step(1), 3500);
+    const id = setInterval(() => {
+      if (slides[pos]?.type === "video") return;
+      step(1);
+    }, 3500);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMultiple, n]);
+  }, [hasMultiple, n, pos]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -113,19 +131,29 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
         >
           {slides.map((p, i) => (
             <div key={`${p.id}-${i}`} className="h-full w-full shrink-0">
-              {/* object-contain (not cover) so a portrait photo is shown in
-                  full, letterboxed with white margins, rather than cropped
-                  to fill a landscape-ish frame — most of these WhatsApp
-                  photos are tall portrait shots that cover was cutting the
-                  tops/bottoms off. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photoUrl(p)}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-contain"
-              />
+              {/* object-contain (not cover) so a portrait photo/video is
+                  shown in full, letterboxed with white margins, rather than
+                  cropped to fill a landscape-ish frame — most of these
+                  WhatsApp photos are tall portrait shots that cover was
+                  cutting the tops/bottoms off. */}
+              {p.type === "video" ? (
+                <video
+                  src={mediaUrl(p)}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={mediaUrl(p)}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-contain"
+                />
+              )}
             </div>
           ))}
         </div>
@@ -170,7 +198,7 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
         <p className="text-sm font-semibold text-slate-900">{formatDayHeading(day.date)}</p>
         <span className="flex shrink-0 items-center gap-1 text-xs text-slate-400">
           <Images className="h-3.5 w-3.5" />
-          {photos.length} {photos.length === 1 ? "photo" : "photos"}
+          {formatMediaCount(photos)}
         </span>
       </div>
     </div>
@@ -224,7 +252,7 @@ export function ToriPhotosGallery({ days }: { days: ToriCareDay[] }) {
     <div className="space-y-4">
       {groups.map((group) => {
         const isCollapsed = collapsed[group.key] ?? true;
-        const photoCount = group.days.reduce((sum, d) => sum + d.photos.length, 0);
+        const monthMedia = group.days.flatMap((d) => d.photos);
         return (
           <div key={group.key}>
             <button
@@ -239,8 +267,8 @@ export function ToriPhotosGallery({ days }: { days: ToriCareDay[] }) {
               />
               <h2 className="text-lg font-bold text-slate-900">{formatMonthHeading(group.key)}</h2>
               <span className="text-sm text-slate-400">
-                {group.days.length} {group.days.length === 1 ? "day" : "days"} · {photoCount}{" "}
-                {photoCount === 1 ? "photo" : "photos"}
+                {group.days.length} {group.days.length === 1 ? "day" : "days"} ·{" "}
+                {formatMediaCount(monthMedia)}
               </span>
             </button>
 
