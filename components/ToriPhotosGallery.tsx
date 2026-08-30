@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Images } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import type { ToriCareDay, ToriPhoto } from "@/lib/toriPhotos";
 
 function photoUrl(photo: ToriPhoto): string {
@@ -122,6 +122,15 @@ function groupByMonth(days: ToriCareDay[]): MonthGroup[] {
 export function ToriPhotosGallery({ days }: { days: ToriCareDay[] }) {
   const groups = useMemo(() => groupByMonth(days), [days]);
 
+  // Collapsed by default — 292 days' worth of carousels all expanded at
+  // once would be an enormous scroll. Keyed by month, initialized once
+  // from the first render's groups so every month starts closed.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(groups.map((g) => [g.key, true]))
+  );
+
+  const toggle = (key: string) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+
   if (days.length === 0) {
     return (
       <p className="text-sm text-slate-500">
@@ -132,17 +141,39 @@ export function ToriPhotosGallery({ days }: { days: ToriCareDay[] }) {
   }
 
   return (
-    <div className="space-y-10">
-      {groups.map((group) => (
-        <div key={group.key}>
-          <h2 className="mb-4 text-lg font-bold text-slate-900">{formatMonthHeading(group.key)}</h2>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {group.days.map((day) => (
-              <DayCarousel key={day.date} day={day} />
-            ))}
+    <div className="space-y-4">
+      {groups.map((group) => {
+        const isCollapsed = collapsed[group.key] ?? true;
+        const photoCount = group.days.reduce((sum, d) => sum + d.photos.length, 0);
+        return (
+          <div key={group.key}>
+            <button
+              type="button"
+              onClick={() => toggle(group.key)}
+              className="flex w-full items-center gap-3 rounded-lg py-2 text-left hover:bg-slate-50"
+            >
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+                  isCollapsed ? "-rotate-90" : ""
+                }`}
+              />
+              <h2 className="text-lg font-bold text-slate-900">{formatMonthHeading(group.key)}</h2>
+              <span className="text-sm text-slate-400">
+                {group.days.length} {group.days.length === 1 ? "day" : "days"} · {photoCount}{" "}
+                {photoCount === 1 ? "photo" : "photos"}
+              </span>
+            </button>
+
+            {!isCollapsed && (
+              <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
+                {group.days.map((day) => (
+                  <DayCarousel key={day.date} day={day} />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
