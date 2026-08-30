@@ -55,20 +55,35 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="relative aspect-[4/3] w-full bg-white sm:aspect-[16/9]">
-        {/* object-contain (not cover) so a portrait photo is shown in full,
-            letterboxed with white margins, rather than cropped to fill a
-            landscape-ish frame — most of these WhatsApp photos are tall
-            portrait shots that cover was cutting the tops/bottoms off. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          key={photos[index].id}
-          src={photoUrl(photos[index])}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full object-contain"
-        />
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-white sm:aspect-[16/9]">
+        {/* All of the day's photos sit side by side in one track; sliding
+            between them is a CSS transform transition rather than swapping
+            the img's src, which is what made the old version feel like a
+            hard cut (a whole new element mounting, network permitting)
+            instead of an actual slide — this is the same technique behind
+            the TailAdmin carousel demo this was modeled on. */}
+        <div
+          className="flex h-full transition-transform duration-700 ease-in-out"
+          style={{ transform: `translateX(-${index * 100}%)` }}
+        >
+          {photos.map((p) => (
+            <div key={p.id} className="h-full w-full shrink-0">
+              {/* object-contain (not cover) so a portrait photo is shown in
+                  full, letterboxed with white margins, rather than cropped
+                  to fill a landscape-ish frame — most of these WhatsApp
+                  photos are tall portrait shots that cover was cutting the
+                  tops/bottoms off. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photoUrl(p)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ))}
+        </div>
 
         {hasMultiple && (
           <>
