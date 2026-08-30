@@ -53,6 +53,7 @@ const EXCLUDED_PHOTOS = new Set<string>(
     // Reported directly (missed by the heuristic above):
     ["WhatsApp Chat - Tori (Nanny)", "00002552-PHOTO-2026-07-07-12-47-35.jpg"],
     ["WhatsApp Chat - Tori - Charlie - Milo", "00005102-PHOTO-2026-08-13-08-13-19.jpg"],
+    ["WhatsApp Chat - Tori - Charlie - Milo", "00001883-PHOTO-2024-05-17-11-24-42.jpg"],
   ].map(([chat, file]) => `${chat}|${file}`)
 );
 function toriPhotosDir(): string | null {
