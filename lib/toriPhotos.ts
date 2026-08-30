@@ -54,6 +54,10 @@ const EXCLUDED_PHOTOS = new Set<string>(
     ["WhatsApp Chat - Tori (Nanny)", "00002552-PHOTO-2026-07-07-12-47-35.jpg"],
     ["WhatsApp Chat - Tori - Charlie - Milo", "00005102-PHOTO-2026-08-13-08-13-19.jpg"],
     ["WhatsApp Chat - Tori - Charlie - Milo", "00001883-PHOTO-2024-05-17-11-24-42.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00000909-PHOTO-2024-07-22-13-12-18.jpg"],
+    ["WhatsApp Chat - Tori - Charlie - Milo", "00002223-PHOTO-2024-07-15-10-24-36.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00000840-PHOTO-2024-07-06-22-01-59.jpg"],
+    ["WhatsApp Chat - Tori (Nanny)", "00000735-PHOTO-2024-05-21-09-14-46.jpg"],
   ].map(([chat, file]) => `${chat}|${file}`)
 );
 function toriPhotosDir(): string | null {
