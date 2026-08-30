@@ -120,12 +120,9 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
   // is expanded (the parent conditionally renders it), so mounting is the
   // same as becoming visible — advance to the next photo every few
   // seconds for as long as that's true, no separate "is this on screen"
-  // check needed. Stops on unmount (month collapsed again).
-  //
-  // Videos are the exception: auto-advancing every 3.5s would yank the
-  // slide away mid-playback, so the timer just skips its turn (checked
-  // fresh on every tick) while the current slide is a video. The viewer
-  // presses the arrow themselves once they're done watching.
+  // check needed. Stops on unmount (month collapsed again). Skips its
+  // turn while the current slide is a video — that's handled by its own
+  // 5s-cap effect below instead, which has different timing.
   useEffect(() => {
     if (!hasMultiple) return;
     const id = setInterval(() => {
@@ -135,6 +132,24 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMultiple, n, pos]);
+
+  // Videos get up to 5s of autoplay, then get cut off and the carousel
+  // moves on by itself — nobody wants a keepsake carousel to stall on one
+  // clip. If the clip is shorter than that, onEnded (on the <video> below)
+  // clears this timer and advances immediately instead of waiting out the
+  // full 5s. Re-armed fresh any time `pos` changes, and torn down
+  // (clearTimeout) the moment it does too, so navigating away manually
+  // never leaves a stale timer to fire an extra, unwanted advance later.
+  useEffect(() => {
+    if (!hasMultiple) return;
+    if (slides[pos]?.type !== "video") return;
+    const timer = setTimeout(() => {
+      videoRefs.current[pos]?.pause();
+      step(1);
+    }, 5000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMultiple, pos]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -170,6 +185,11 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
                   muted
                   playsInline
                   preload="metadata"
+                  onEnded={() => {
+                    // Clip finished on its own before the 5s cap — no
+                    // reason to wait out the rest of the timer.
+                    if (i === pos) step(1);
+                  }}
                   className="h-full w-full object-contain"
                 />
               ) : (
