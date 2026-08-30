@@ -121,8 +121,9 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
   // same as becoming visible — advance to the next photo every few
   // seconds for as long as that's true, no separate "is this on screen"
   // check needed. Stops on unmount (month collapsed again). Skips its
-  // turn while the current slide is a video — that's handled by its own
-  // 5s-cap effect below instead, which has different timing.
+  // turn while the current slide is a video — a video runs for its full
+  // length instead (see onPause below), which usually takes longer than
+  // this interval anyway.
   useEffect(() => {
     if (!hasMultiple) return;
     const id = setInterval(() => {
@@ -132,24 +133,6 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMultiple, n, pos]);
-
-  // Videos get up to 5s of autoplay, then get cut off and the carousel
-  // moves on by itself — nobody wants a keepsake carousel to stall on one
-  // clip. If the clip is shorter than that, onEnded (on the <video> below)
-  // clears this timer and advances immediately instead of waiting out the
-  // full 5s. Re-armed fresh any time `pos` changes, and torn down
-  // (clearTimeout) the moment it does too, so navigating away manually
-  // never leaves a stale timer to fire an extra, unwanted advance later.
-  useEffect(() => {
-    if (!hasMultiple) return;
-    if (slides[pos]?.type !== "video") return;
-    const timer = setTimeout(() => {
-      videoRefs.current[pos]?.pause();
-      step(1);
-    }, 5000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMultiple, pos]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -185,9 +168,14 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
                   muted
                   playsInline
                   preload="metadata"
-                  onEnded={() => {
-                    // Clip finished on its own before the 5s cap — no
-                    // reason to wait out the rest of the timer.
+                  onPause={() => {
+                    // Fires whenever this clip stops playing — reaching
+                    // the end (the HTML5 spec fires "pause" right before
+                    // "ended"), or someone pausing it by hand. Either way,
+                    // the carousel picks up and moves on. Guarded to the
+                    // slide that's actually current: pausing every other
+                    // (off-screen) video whenever `pos` changes — see the
+                    // effect above — would otherwise also trigger this.
                     if (i === pos) step(1);
                   }}
                   className="h-full w-full object-contain"
