@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Baby,
   ChevronUp,
   Heart,
   Landmark,
@@ -33,6 +34,7 @@ const TOP_LEVEL_LINKS: TopLevelLink[] = [
   { href: "/meals", label: "Meal Plan", icon: UtensilsCrossed },
   { href: "/links", label: "Links", icon: Link2 },
   { href: "/tori-photos", label: "Tori & the boys", icon: Heart },
+  { href: "/milo-nursery", label: "Milo's Nursery", icon: Baby },
 ];
 
 const FINANCE_ITEMS: SubItem[] = [
