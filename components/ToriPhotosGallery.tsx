@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import type { ToriCareDay, ToriPhoto } from "@/lib/toriPhotos";
 
@@ -39,6 +39,19 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
   const hasMultiple = photos.length > 1;
 
   const goTo = (i: number) => setIndex((i + photos.length) % photos.length);
+
+  // Auto-play: this component only ever exists in the DOM while its month
+  // is expanded (the parent conditionally renders it), so mounting is the
+  // same as becoming visible — advance to the next photo every few
+  // seconds for as long as that's true, no separate "is this on screen"
+  // check needed. Stops on unmount (month collapsed again).
+  useEffect(() => {
+    if (!hasMultiple) return;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % photos.length);
+    }, 3500);
+    return () => clearInterval(id);
+  }, [hasMultiple, photos.length]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -124,7 +137,10 @@ function groupByMonth(days: ToriCareDay[]): MonthGroup[] {
 }
 
 export function ToriPhotosGallery({ days }: { days: ToriCareDay[] }) {
-  const groups = useMemo(() => groupByMonth(days), [days]);
+  // `days` comes in oldest-first. Reverse before grouping so the most
+  // recent month lands first and, within it, the most recent day is first
+  // too — most-recent-on-top throughout.
+  const groups = useMemo(() => groupByMonth([...days].reverse()), [days]);
 
   // Collapsed by default — 292 days' worth of carousels all expanded at
   // once would be an enormous scroll. Keyed by month, initialized once
