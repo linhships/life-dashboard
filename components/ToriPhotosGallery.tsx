@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import type { ToriCareDay, ToriPhoto } from "@/lib/toriPhotos";
 
@@ -93,6 +93,29 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
     return () => cancelAnimationFrame(raf);
   }, [withTransition]);
 
+  // Every slide's <video> is mounted at once (they're all in the track,
+  // just shifted out of view), so playback has to be driven by hand:
+  // whichever slide is currently on screen plays, muted (autoplay only
+  // works unprompted if muted — browsers block it otherwise), and every
+  // other video is paused and rewound so it's not still running silently
+  // behind the scenes or resuming mid-way through next time it's shown.
+  const videoRefs = useRef<Record<number, HTMLVideoElement | null>>({});
+  useEffect(() => {
+    Object.entries(videoRefs.current).forEach(([key, el]) => {
+      if (!el) return;
+      if (Number(key) === pos) {
+        el.muted = true;
+        el.play().catch(() => {
+          // Autoplay can still be refused (e.g. reduced-data mode) —
+          // the viewer's own controls remain right there either way.
+        });
+      } else {
+        el.pause();
+        el.currentTime = 0;
+      }
+    });
+  }, [pos]);
+
   // Auto-play: this component only ever exists in the DOM while its month
   // is expanded (the parent conditionally renders it), so mounting is the
   // same as becoming visible — advance to the next photo every few
@@ -138,8 +161,13 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
                   cutting the tops/bottoms off. */}
               {p.type === "video" ? (
                 <video
+                  ref={(el) => {
+                    videoRefs.current[i] = el;
+                  }}
                   src={mediaUrl(p)}
                   controls
+                  autoPlay={i === pos}
+                  muted
                   playsInline
                   preload="metadata"
                   className="h-full w-full object-contain"
