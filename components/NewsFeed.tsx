@@ -2,51 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ChevronDown, Flame, Image as ImageIcon, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ChevronDown, Flame, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { NewsItem, Rating } from "@/lib/news";
-import {
-  avatarColor,
-  parseNewsItemBody,
-  placeholderGradient,
-  rankSources,
-  slugify,
-} from "@/lib/newsItem";
-
-// Falls back to a deterministic gradient + icon per story when there's no
-// downloaded image for it yet (or it fails to load) — keeps the feed's
-// visual rhythm even before every story has real art.
-function PlaceholderImage({ seed, className }: { seed: string; className?: string }) {
-  return (
-    <div
-      className={`flex items-center justify-center bg-gradient-to-br ${placeholderGradient(
-        seed
-      )} ${className ?? ""}`}
-    >
-      <ImageIcon className="h-8 w-8 text-white/60" strokeWidth={1.5} />
-    </div>
-  );
-}
-
-// Real article image, proxied through /api/news/image so the browser only
-// ever talks to this app (the daily-news task downloads images locally
-// rather than hotlinking, per the "Article images" instructions). Falls
-// back to the gradient placeholder when the story has no image yet, or if
-// the file fails to load for any reason.
-function CardImage({ item, className }: { item: NewsItem; className?: string }) {
-  const [failed, setFailed] = useState(false);
-  if (!item.image || failed) {
-    return <PlaceholderImage seed={item.id} className={className} />;
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={`/api/news/image?src=${encodeURIComponent(item.image)}`}
-      alt=""
-      className={`object-cover ${className ?? ""}`}
-      onError={() => setFailed(true)}
-    />
-  );
-}
+import { avatarColor, parseNewsItemBody, rankSources, slugify } from "@/lib/newsItem";
 
 interface FeedbackEntry {
   id: string;
@@ -98,15 +56,10 @@ function ArticleCard({
   item,
   rating,
   onRate,
-  stacked,
 }: {
   item: NewsItem;
   rating: Rating | undefined;
   onRate: (item: NewsItem, rating: Rating) => void;
-  // Top Stories cards run image-left/text-right (row); every other
-  // section's two-per-row cards run image-above-text (stacked) instead —
-  // matches the reference layout at each width.
-  stacked: boolean;
 }) {
   const { sources, excerpt } = useMemo(() => parseNewsItemBody(item.markdown), [item.markdown]);
   const primarySource = sources[0];
@@ -255,16 +208,8 @@ function ArticleCard({
   );
 
   return (
-    <article
-      className={`overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md ${
-        stacked ? "" : "flex flex-col sm:flex-row"
-      }`}
-    >
-      <CardImage
-        item={item}
-        className={stacked ? "h-40 w-full shrink-0" : "h-40 w-full shrink-0 sm:h-auto sm:w-2/5"}
-      />
-      <div className="min-w-0 flex-1">{content}</div>
+    <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      {content}
     </article>
   );
 }
@@ -378,7 +323,6 @@ export function NewsFeed({
                       item={item}
                       rating={feedback[item.id]}
                       onRate={rate}
-                      stacked={!isFeatured}
                     />
                   ))}
                 </div>

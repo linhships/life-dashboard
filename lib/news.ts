@@ -23,11 +23,6 @@ import { splitHeadline } from "./newsItem";
 //   ### Subsection Name                  <- h3 = optional pill/category tag,
 //                                            resets at the next "## "
 //   - **Headline** ([Source](url), ...): Excerpt text.
-//     ![](images/YYYY-MM-DD-<slug>.jpg)  <- optional, directly under the
-//                                            bullet it belongs to; a locally
-//                                            downloaded representative image
-//                                            for that story (see "Article
-//                                            images" in that task's CLAUDE.md)
 //   ---                                  <- only the LAST "---" in the
 //   ## Processed this run                   whole file starts footer capture;
 //   Free text, shown raw/unformatted        everything from there on is
@@ -39,8 +34,17 @@ import { splitHeadline } from "./newsItem";
 // headline as long as a "(...)" source group follows. Only a bullet with
 // neither a bold marker nor a source group falls back to a blunt 80-char
 // slice.
+//
+// Every story is also allowed to skip the leading "- " bullet marker
+// entirely and just be its own paragraph line (one line = one story) —
+// added 2026-08-31 after a "condensed catch-up" run wrote most sections as
+// bare "**Bold lead.** summary…" paragraphs instead of bulleted lists, and
+// every one of those sections silently vanished from the page (the parser
+// only ever recognized lines starting with "- "). Both shapes are parsed
+// identically from here — a non-empty, non-heading line becomes an item
+// either way — so a future format drift like that one no longer drops
+// content, it just renders slightly less tidily.
 const DEFAULT_NEWS_DIR = path.join(process.cwd(), "data", "news");
-const IMAGE_SUBDIR = "images";
 
 function newsDir(): string {
   return process.env.NEWS_BRIEFING_DIR?.trim() || DEFAULT_NEWS_DIR;
@@ -57,11 +61,6 @@ export interface NewsItem {
   subheading: string | null;
   headline: string;
   markdown: string;
-  // Relative path (e.g. "images/2026-08-25-slug.jpg") to a locally
-  // downloaded representative image, as referenced by an optional
-  // "![](...)" line right under the bullet. null when the story has no
-  // image yet — the UI falls back to a placeholder in that case.
-  image: string | null;
 }
 
 export interface NewsBriefing {
@@ -140,6 +139,8 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
       if (trimmed) introLines.push(trimmed);
       continue;
     }
+    // Blank lines between bullets/paragraphs — not content.
+    if (!trimmed) continue;
     // Subsections (e.g. "### UK" grouping Politics by region) can be
     // written either as an h3 heading or a standalone bold line — both
     // set the subheading the same way.
@@ -152,34 +153,26 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
       subheading = boldOnly[1];
       continue;
     }
-    if (trimmed.startsWith("- ")) {
-      const body = trimmed.slice(2).trim();
-      const { headline } = splitHeadline(body);
-      const idSeed = `${section}|${subheading ?? ""}|${headline}`;
 
-      // An optional image line can directly follow the bullet:
-      //   ![](images/YYYY-MM-DD-<slug>.jpg)
-      // Peek at the next line and consume it (advance i) so it isn't
-      // mistaken for the start of a new bullet/heading on the next
-      // iteration.
-      let image: string | null = null;
-      const nextTrimmed = lines[i + 1]?.trim();
-      const imageMatch = nextTrimmed?.match(/^!\[[^\]]*\]\(([^)]+)\)$/);
-      if (imageMatch) {
-        image = imageMatch[1];
-        i++;
-      }
+    // A story, either as a "- " bullet (the documented, primary format) or
+    // as a bare paragraph line — a condensed/catch-up run may drop the
+    // bullet marker but still write one story per line. Either way, any
+    // remaining non-empty, non-heading line is one story: strip a leading
+    // "- " when present, then run it through the same headline-extraction
+    // fallback (bold lead, or text right before a "([" source group, or a
+    // blunt slice) either shape ends up using.
+    const body = trimmed.startsWith("- ") ? trimmed.slice(2).trim() : trimmed;
+    const { headline } = splitHeadline(body);
+    const idSeed = `${section}|${subheading ?? ""}|${headline}`;
 
-      items.push({
-        id: hashId(idSeed),
-        date,
-        section,
-        subheading,
-        headline,
-        markdown: body,
-        image,
-      });
-    }
+    items.push({
+      id: hashId(idSeed),
+      date,
+      section,
+      subheading,
+      headline,
+      markdown: body,
+    });
   }
 
   return {
@@ -192,26 +185,6 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
     items,
     footer: footerLines.join("\n").trim(),
   };
-}
-
-// Resolves a NewsItem.image relative path (e.g. "images/2026-08-25-slug.jpg")
-// against this briefing dir's images/ subfolder, used by the
-// /api/news/image route to stream the file. Rejects anything that would
-// escape the images/ subfolder (path traversal via "../", an absolute
-// path, etc.) or that doesn't actually exist on disk — returns null in
-// either case so the route can 404 rather than serve/leak an arbitrary
-// file.
-export function resolveNewsImagePath(relPath: string): string | null {
-  const dir = newsDir();
-  const imagesRoot = path.join(dir, IMAGE_SUBDIR);
-  const resolved = path.resolve(dir, relPath);
-  if (resolved !== imagesRoot && !resolved.startsWith(imagesRoot + path.sep)) {
-    return null;
-  }
-  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
-    return null;
-  }
-  return resolved;
 }
 
 export function getLatestBriefing(): NewsBriefing | null {
