@@ -297,22 +297,19 @@ export function NewsFeed({
           const isFeatured = sectionIndex === 0;
           return (
             <div key={section.name} id={`section-${slugify(section.name)}`} className="scroll-mt-6">
-              <div className="mb-4 flex items-center gap-3">
+              <div className="mb-4 border-b border-slate-200 pb-3">
                 <button
                   type="button"
                   onClick={() => toggleSection(section.name)}
-                  className="flex shrink-0 items-center gap-2 text-left"
+                  className="flex items-center gap-2 text-left"
                 >
-                  <h2 className="text-lg font-bold text-slate-900">
-                    <span className="text-slate-300">#</span> {section.name}
-                  </h2>
+                  <h2 className="text-lg font-bold text-slate-900">{section.name}</h2>
                   <ChevronDown
                     className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
                       isCollapsed ? "-rotate-90" : ""
                     }`}
                   />
                 </button>
-                <div className="h-0 flex-1 border-t-2 border-dashed border-slate-300" />
               </div>
 
               {!isCollapsed && (
