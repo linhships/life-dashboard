@@ -64,7 +64,12 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(true);
-  const [childcareOpen, setChildcareOpen] = useState(true);
+  // Collapsed by default — only starts open if a childcare sub-page is the
+  // one currently loaded (usePathname is already correct on first render,
+  // so this lazy initializer avoids an open-then-collapse flash).
+  const [childcareOpen, setChildcareOpen] = useState(() =>
+    CHILDCARE_ITEMS.some((item) => pathname?.startsWith(item.href))
+  );
   const [activeId, setActiveId] = useState<string>("overview");
   const onHome = pathname === "/";
 
@@ -122,6 +127,14 @@ export function Sidebar() {
   const isAnyChildcareChildActive = CHILDCARE_ITEMS.some((item) =>
     pathname?.startsWith(item.href)
   );
+
+  // Auto-expand when client-side navigation (not just a fresh page load)
+  // lands on a childcare sub-page — e.g. going Tori & the boys -> Milo's
+  // Nursery without the sidebar remounting. Only opens, never closes, so a
+  // manual collapse while already on one of these pages still sticks.
+  useEffect(() => {
+    if (isAnyChildcareChildActive) setChildcareOpen(true);
+  }, [isAnyChildcareChildActive]);
 
   return (
     <>
