@@ -33,18 +33,42 @@ interface TopLevelLink {
   icon: LucideIcon;
 }
 
+interface RouteGroup {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  items: RouteSubItem[];
+}
+
 const TOP_LEVEL_LINKS: TopLevelLink[] = [
   { href: "/news", label: "Daily Briefing", icon: Newspaper },
-  { href: "/meals", label: "Meal Plan", icon: UtensilsCrossed },
   { href: "/links", label: "Links", icon: Link2 },
 ];
 
-// Photo galleries for the boys' care, grouped under one parent so the
-// sidebar doesn't grow a new top-level entry every time another source
-// (Tori's WhatsApp photos, Milo's nursery, ...) gets its own gated gallery.
-const CHILDCARE_ITEMS: RouteSubItem[] = [
-  { href: "/tori-photos", label: "Tori & the boys" },
-  { href: "/milo-nursery", label: "Milo's Nursery" },
+// Collapsible parent groups for routes that belong together — each one
+// starts collapsed and only auto-expands when the page currently open is
+// one of its own children (see the useEffect below). Adding a new grouped
+// section is just adding an entry here; the open/close state and active
+// highlighting are handled generically for all of them.
+const ROUTE_GROUPS: RouteGroup[] = [
+  {
+    key: "food",
+    label: "Food",
+    icon: UtensilsCrossed,
+    items: [
+      { href: "/meals", label: "Meal Plan" },
+      { href: "/recipes", label: "Recipes" },
+    ],
+  },
+  {
+    key: "childcare",
+    label: "Milo & Arlo",
+    icon: Heart,
+    items: [
+      { href: "/tori-photos", label: "Tori & the boys" },
+      { href: "/milo-nursery", label: "Milo's Nursery" },
+    ],
+  },
 ];
 
 const FINANCE_ITEMS: SubItem[] = [
@@ -64,11 +88,17 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(true);
-  // Collapsed by default — only starts open if a childcare sub-page is the
-  // one currently loaded (usePathname is already correct on first render,
-  // so this lazy initializer avoids an open-then-collapse flash).
-  const [childcareOpen, setChildcareOpen] = useState(() =>
-    CHILDCARE_ITEMS.some((item) => pathname?.startsWith(item.href))
+  // Collapsed by default — a group only starts open if one of its own
+  // sub-pages is the one currently loaded (usePathname is already correct
+  // on first render, so this lazy initializer avoids an open-then-collapse
+  // flash). Keyed by group key so each group's state is independent.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      ROUTE_GROUPS.map((group) => [
+        group.key,
+        group.items.some((item) => pathname?.startsWith(item.href)),
+      ])
+    )
   );
   const [activeId, setActiveId] = useState<string>("overview");
   const onHome = pathname === "/";
@@ -124,17 +154,25 @@ export function Sidebar() {
   };
 
   const isAnyChildActive = onHome && FINANCE_ITEMS.some((item) => item.id === activeId);
-  const isAnyChildcareChildActive = CHILDCARE_ITEMS.some((item) =>
-    pathname?.startsWith(item.href)
-  );
 
-  // Auto-expand when client-side navigation (not just a fresh page load)
-  // lands on a childcare sub-page — e.g. going Tori & the boys -> Milo's
-  // Nursery without the sidebar remounting. Only opens, never closes, so a
-  // manual collapse while already on one of these pages still sticks.
+  // Auto-expand a group when client-side navigation (not just a fresh page
+  // load) lands on one of its sub-pages — e.g. going Meal Plan -> Recipes
+  // without the sidebar remounting. Only opens, never closes, so manually
+  // collapsing a group while already on one of its pages still sticks.
   useEffect(() => {
-    if (isAnyChildcareChildActive) setChildcareOpen(true);
-  }, [isAnyChildcareChildActive]);
+    setOpenGroups((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const group of ROUTE_GROUPS) {
+        const isActive = group.items.some((item) => pathname?.startsWith(item.href));
+        if (isActive && !next[group.key]) {
+          next[group.key] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [pathname]);
 
   return (
     <>
@@ -217,54 +255,67 @@ export function Sidebar() {
             );
           })}
 
-          {/* Parent: Milo & Arlo (the boys' care photo galleries) */}
-          <button
-            type="button"
-            onClick={() => setChildcareOpen((o) => !o)}
-            title={collapsed ? "Milo & Arlo" : undefined}
-            className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-              isAnyChildcareChildActive
-                ? "bg-blue-50 text-blue-600"
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-            } ${collapsed ? "md:justify-center" : ""}`}
-          >
-            <Heart className="h-[18px] w-[18px] shrink-0" />
-            <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
-              Milo & Arlo
-            </span>
-            <ChevronUp
-              className={`h-4 w-4 shrink-0 transition-transform ${
-                childcareOpen ? "" : "rotate-180"
-              } ${collapsed ? "md:hidden" : ""}`}
-            />
-          </button>
+          {/* Collapsible route groups (Food, Milo & Arlo, ...) */}
+          {ROUTE_GROUPS.map((group) => {
+            const isGroupOpen = openGroups[group.key] ?? false;
+            const isAnyGroupChildActive = group.items.some((item) =>
+              pathname?.startsWith(item.href)
+            );
+            const Icon = group.icon;
+            return (
+              <div key={group.key}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))
+                  }
+                  title={collapsed ? group.label : undefined}
+                  className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                    isAnyGroupChildActive
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  } ${collapsed ? "md:justify-center" : ""}`}
+                >
+                  <Icon className="h-[18px] w-[18px] shrink-0" />
+                  <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
+                    {group.label}
+                  </span>
+                  <ChevronUp
+                    className={`h-4 w-4 shrink-0 transition-transform ${
+                      isGroupOpen ? "" : "rotate-180"
+                    } ${collapsed ? "md:hidden" : ""}`}
+                  />
+                </button>
 
-          {childcareOpen && (
-            <ul
-              className={`mt-1 space-y-1 border-l border-slate-200 pl-4 ${
-                collapsed ? "md:hidden" : ""
-              }`}
-            >
-              {CHILDCARE_ITEMS.map((item) => {
-                const isActive = pathname?.startsWith(item.href) ?? false;
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
-                        isActive
-                          ? "bg-blue-50 text-blue-600"
-                          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                {isGroupOpen && (
+                  <ul
+                    className={`mt-1 space-y-1 border-l border-slate-200 pl-4 ${
+                      collapsed ? "md:hidden" : ""
+                    }`}
+                  >
+                    {group.items.map((item) => {
+                      const isActive = pathname?.startsWith(item.href) ?? false;
+                      return (
+                        <li key={item.href}>
+                          <Link
+                            href={item.href}
+                            onClick={() => setMobileOpen(false)}
+                            className={`block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                              isActive
+                                ? "bg-blue-50 text-blue-600"
+                                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                            }`}
+                          >
+                            {item.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
 
           {/* Parent: Finance */}
           <button

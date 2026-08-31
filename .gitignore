@@ -35,6 +35,17 @@
 # personal, so real data stays local. See data/sample/links.json.
 /data/links.json
 
+# Food list + recipes — same bring-your-own-data model as meals. Real data
+# lives in FOOD_PLANNING_DIR (see .env.local); data/food/ is only a local
+# fallback if that's unset.
+/data/food/*.md
+/data/food/recipes/*.md
+
+# Recipe photos downloaded from each recipe's source page (see
+# app/api/recipes/image) — cached locally on first request so they aren't
+# re-fetched every time, but not something to commit.
+/data/recipe-images/
+
 # Misc
 .DS_Store
 *.pem
