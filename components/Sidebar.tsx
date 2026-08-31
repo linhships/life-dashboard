@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Baby,
   ChevronUp,
   Heart,
   Landmark,
@@ -23,6 +22,11 @@ interface SubItem {
   label: string;
 }
 
+interface RouteSubItem {
+  href: string;
+  label: string;
+}
+
 interface TopLevelLink {
   href: string;
   label: string;
@@ -33,8 +37,14 @@ const TOP_LEVEL_LINKS: TopLevelLink[] = [
   { href: "/news", label: "Daily Briefing", icon: Newspaper },
   { href: "/meals", label: "Meal Plan", icon: UtensilsCrossed },
   { href: "/links", label: "Links", icon: Link2 },
-  { href: "/tori-photos", label: "Tori & the boys", icon: Heart },
-  { href: "/milo-nursery", label: "Milo's Nursery", icon: Baby },
+];
+
+// Photo galleries for the boys' care, grouped under one parent so the
+// sidebar doesn't grow a new top-level entry every time another source
+// (Tori's WhatsApp photos, Milo's nursery, ...) gets its own gated gallery.
+const CHILDCARE_ITEMS: RouteSubItem[] = [
+  { href: "/tori-photos", label: "Tori & the boys" },
+  { href: "/milo-nursery", label: "Milo's Nursery" },
 ];
 
 const FINANCE_ITEMS: SubItem[] = [
@@ -54,6 +64,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(true);
+  const [childcareOpen, setChildcareOpen] = useState(true);
   const [activeId, setActiveId] = useState<string>("overview");
   const onHome = pathname === "/";
 
@@ -108,6 +119,9 @@ export function Sidebar() {
   };
 
   const isAnyChildActive = onHome && FINANCE_ITEMS.some((item) => item.id === activeId);
+  const isAnyChildcareChildActive = CHILDCARE_ITEMS.some((item) =>
+    pathname?.startsWith(item.href)
+  );
 
   return (
     <>
@@ -189,6 +203,55 @@ export function Sidebar() {
               </Link>
             );
           })}
+
+          {/* Parent: Milo & Arlo (the boys' care photo galleries) */}
+          <button
+            type="button"
+            onClick={() => setChildcareOpen((o) => !o)}
+            title={collapsed ? "Milo & Arlo" : undefined}
+            className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+              isAnyChildcareChildActive
+                ? "bg-blue-50 text-blue-600"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            } ${collapsed ? "md:justify-center" : ""}`}
+          >
+            <Heart className="h-[18px] w-[18px] shrink-0" />
+            <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
+              Milo & Arlo
+            </span>
+            <ChevronUp
+              className={`h-4 w-4 shrink-0 transition-transform ${
+                childcareOpen ? "" : "rotate-180"
+              } ${collapsed ? "md:hidden" : ""}`}
+            />
+          </button>
+
+          {childcareOpen && (
+            <ul
+              className={`mt-1 space-y-1 border-l border-slate-200 pl-4 ${
+                collapsed ? "md:hidden" : ""
+              }`}
+            >
+              {CHILDCARE_ITEMS.map((item) => {
+                const isActive = pathname?.startsWith(item.href) ?? false;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                        isActive
+                          ? "bg-blue-50 text-blue-600"
+                          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
 
           {/* Parent: Finance */}
           <button
