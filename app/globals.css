@@ -100,41 +100,48 @@ html[data-theme="neobrutal"] {
   --color-slate-50: #fdfcf2;
   --color-slate-100: #f7f4e3;
 
-  /* Primary accent: blue -> electric cobalt */
-  --color-blue-50: #eaf0ff;
-  --color-blue-100: #d1defe;
-  --color-blue-200: #a3bdfd;
-  --color-blue-300: #7a9dfb;
-  --color-blue-600: #2547f4;
-  --color-blue-700: #1c35c2;
-  --color-blue-800: #16299a;
+  /* Primary accent: blue -> coral/orange (this app's "primary action"
+     color slot — buttons, links, active nav — so this is what actually
+     reads as the theme's signature color, matching the reference's
+     orange CTAs and "Published" badges). */
+  --color-blue-50: #fef0e7;
+  --color-blue-100: #fcdcc4;
+  --color-blue-200: #f8bb8e;
+  --color-blue-300: #f39a5c;
+  --color-blue-600: #e8703a;
+  --color-blue-700: #c85a28;
+  --color-blue-800: #a0461e;
 
-  /* Secondary accent: emerald -> bold kelly green */
+  /* Secondary accent: emerald -> bold kelly green (positive/success) */
   --color-emerald-50: #e9f9ee;
   --color-emerald-100: #c9f0d6;
   --color-emerald-200: #97e0b1;
   --color-emerald-600: #0f9d58;
   --color-emerald-700: #0b7a44;
 
-  /* Negative/danger: rose -> hot red */
-  --color-rose-50: #ffe9ea;
-  --color-rose-100: #ffc9cc;
-  --color-rose-200: #ff9ba0;
-  --color-rose-600: #ef1f2e;
-  --color-rose-700: #c0141f;
+  /* Negative/danger: rose -> crimson (kept clearly distinct from the new
+     orange primary, so "danger" doesn't visually blend with "action") */
+  --color-rose-50: #ffeaf0;
+  --color-rose-100: #ffc9d8;
+  --color-rose-200: #ff9db6;
+  --color-rose-600: #d6284a;
+  --color-rose-700: #a81d38;
 
-  /* Purple -> electric violet */
-  --color-purple-50: #f2ebff;
-  --color-purple-100: #e0cfff;
-  --color-purple-600: #7c2ff0;
-  --color-purple-700: #5f1fc2;
+  /* Purple -> soft lavender/pink (matches the reference's icon-badge and
+     "Ready" status pill color) */
+  --color-purple-50: #faf0fb;
+  --color-purple-100: #f0d9f5;
+  --color-purple-600: #b478d9;
+  --color-purple-700: #935fb0;
 
-  /* Amber -> mustard/brutalist yellow */
-  --color-amber-50: #fff8dc;
-  --color-amber-100: #fdecab;
-  --color-amber-200: #fbdd6e;
-  --color-amber-600: #d9a300;
-  --color-amber-700: #a97e00;
+  /* Amber -> bright lemon yellow. Kept brightest in the light tints
+     (50/100/200, where the reference uses yellow as bold background
+     fills) with 600/700 held dark enough to still read as text. */
+  --color-amber-50: #fff9e0;
+  --color-amber-100: #fcefa8;
+  --color-amber-200: #f9e36e;
+  --color-amber-600: #b8880a;
+  --color-amber-700: #8f6900;
 
   /* Sharp, minimal corners */
   --radius-md: 0.1875rem;
@@ -143,9 +150,14 @@ html[data-theme="neobrutal"] {
   --radius-2xl: 0.375rem;
 }
 
-/* Borders: heavier and pure black, regardless of which shade of slate a
-   component happened to use for its border color. rounded-full circles
-   (avatars, dots) are left untouched on purpose. */
+/* Borders: bold and pure black for structural/card boundaries — but not
+   every border. border-slate-100 is this app's "quiet divider inside a
+   card" shade (byline rows, recipe-modal section breaks, etc.); giving
+   that the same full-black treatment as the outer card border flattened
+   the hierarchy and made stacked cards feel cramped/noisy. So the two
+   are now treated differently: slate-200/300 (card/table/pill edges) go
+   bold black; slate-100 dividers stay a soft hairline. rounded-full
+   circles (avatars, dots) are left untouched on purpose. */
 html[data-theme="neobrutal"] .border,
 html[data-theme="neobrutal"] .border-2,
 html[data-theme="neobrutal"] .border-t,
@@ -154,10 +166,16 @@ html[data-theme="neobrutal"] .border-l,
 html[data-theme="neobrutal"] .border-r {
   border-width: 2px;
 }
-html[data-theme="neobrutal"] .border-slate-100,
 html[data-theme="neobrutal"] .border-slate-200,
 html[data-theme="neobrutal"] .border-slate-300 {
   border-color: #000;
+}
+html[data-theme="neobrutal"] .border-slate-100 {
+  border-color: #ded8c4;
+}
+html[data-theme="neobrutal"] .border-t.border-slate-100,
+html[data-theme="neobrutal"] .border-b.border-slate-100 {
+  border-width: 1px;
 }
 
 /* Shadows: flat, hard-edged, offset — no blur, no soft ambient shade. */
@@ -167,6 +185,20 @@ html[data-theme="neobrutal"] .shadow-sm {
 html[data-theme="neobrutal"] .shadow-md,
 html[data-theme="neobrutal"] .hover\:shadow-md:hover {
   box-shadow: 3px 3px 0 0 #000 !important;
+}
+html[data-theme="neobrutal"] .shadow-lg {
+  box-shadow: 5px 5px 0 0 #000 !important;
+}
+html[data-theme="neobrutal"] .shadow-xl {
+  box-shadow: 7px 7px 0 0 #000 !important;
+}
+
+/* Extra breathing room inside the two card types that were reading as
+   cramped once their borders went bold — p-5 is only used by KpiCard and
+   the news ArticleCard, so this is safe to bump without touching padding
+   anywhere else in the app. */
+html[data-theme="neobrutal"] .p-5 {
+  padding: 1.75rem;
 }
 html[data-theme="neobrutal"] .shadow-lg {
   box-shadow: 5px 5px 0 0 #000 !important;

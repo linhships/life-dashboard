@@ -34,8 +34,8 @@ const SWATCHES: Record<ThemeId, Swatch> = {
   neobrutal: {
     bg: "#fdfcf2",
     card: "#ffffff",
-    accent: "#2547f4",
-    accent2: "#d9a300",
+    accent: "#e8703a",
+    accent2: "#b478d9",
     radius: "0.1875rem",
     border: "2px solid #000",
     shadow: "3px 3px 0 0 #000",
