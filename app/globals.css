@@ -128,9 +128,12 @@ html[data-theme="neobrutal"] {
   --color-rose-700: #a81d38;
 
   /* Purple -> soft lavender/pink (matches the reference's icon-badge and
-     "Ready" status pill color) */
+     "Ready" status pill color). 200 added to match the solid pink card
+     fill on the reference's "Pro (planned)" pricing card — a clearly
+     visible block color, not a barely-there pale wash like 50/100. */
   --color-purple-50: #faf0fb;
   --color-purple-100: #f0d9f5;
+  --color-purple-200: #f0bfe8;
   --color-purple-600: #b478d9;
   --color-purple-700: #935fb0;
 
@@ -268,15 +271,17 @@ html[data-theme="neobrutal"] {
    move. section-header is a plain hook added in components/NewsFeed.tsx
    with no effect in other themes. Colored to match the category-pill
    treatment inside each card below it — both represent the same idea
-   (a section/category label), so they share the same lavender/purple
-   rather than introducing a separate hue just for this one element. */
+   (a section/category label), so they share the same lavender/purple.
+   Per the reference's own pricing card (solid pink fill, black text,
+   black border — see the "Pro (planned)" card), only the background
+   gets the color; border and text stay pure black. */
 :where(html[data-theme="neobrutal"]) .section-header {
   padding: 0.75rem;
-  border-color: var(--color-purple-600);
-  background: var(--color-purple-100);
+  border-color: #000;
+  background: var(--color-purple-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header h2 {
-  color: var(--color-purple-700);
+  color: #000;
 }
 
 /* News article byline row (source names, date, rating buttons): in
@@ -377,17 +382,21 @@ html[data-theme="neobrutal"] {
    just this one item rather than changing the container's default.
    align-self overrides only this element's own stretch behavior,
    letting it size to its own content again like it did before the
-   flex-column change. category-pill / category-pill-dot are plain
-   hooks added in components/NewsFeed.tsx with no effect in other
-   themes. */
+   flex-column change.
+
+   Colored per the reference's own pricing card (solid pink fill, black
+   text, black border — see the "Pro (planned)" card): only the
+   background takes the color, border/text/dot stay pure black.
+   category-pill / category-pill-dot are plain hooks added in
+   components/NewsFeed.tsx with no effect in other themes. */
 :where(html[data-theme="neobrutal"]) .category-pill {
   align-self: flex-start;
-  border-color: var(--color-purple-600);
-  background: var(--color-purple-100);
-  color: var(--color-purple-700);
+  border-color: #000;
+  background: var(--color-purple-200);
+  color: #000;
 }
 :where(html[data-theme="neobrutal"]) .category-pill-dot {
-  background: var(--color-purple-600);
+  background: #000;
 }
 
 /* News rating buttons (flame/thumbs-up/thumbs-down): same "colored
