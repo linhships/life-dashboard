@@ -271,6 +271,37 @@ html[data-theme="neobrutal"] {
   padding: 0.75rem;
 }
 
+/* News article byline row (source names, date, rating buttons): in
+   Classic/Haven this is a single flex row (source left, date+buttons
+   right) with just a thin top divider — border-t border-slate-100. That
+   only ever bordered one edge, so under Neobrutal the row read as an
+   asymmetric, barely-there grey line rather than a proper box, and
+   Linh asked for it to actually enclose both the source and the
+   buttons, stacked onto two lines with more room inside.
+
+   The selector below repeats .border-t.border-slate-100 (already on
+   this div from Tailwind) purely to out-rank the general
+   border-t/border-slate-100 rules earlier in this file, which would
+   otherwise still win the top edge specifically and leave it a
+   mismatched 1px grey line while the other three sides went black —
+   see the :where() note near the top of the Neobrutal section for why
+   plain html[data-theme="neobrutal"] .byline-row wouldn't have been
+   specific enough on its own. flex-direction: column reflows the two
+   existing children (source info, then date+buttons) into two lines
+   without any markup changes — they're already siblings in a flex
+   container, row vs. column is the only thing changing. byline-row is
+   a plain hook added in components/NewsFeed.tsx with no effect in
+   other themes. */
+:where(html[data-theme="neobrutal"]) .byline-row.border-t.border-slate-100 {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  border: 2px solid #000;
+  border-radius: 0;
+  padding: 0.75rem;
+}
+
 /* Meal-plan rating buttons (thumbs up/down under Milo/Arlo on each day
    card): Linh flagged the hollow bordered-square look as ugly and asked
    for colored blocks instead. meal-rate-btn is a plain hook added to
