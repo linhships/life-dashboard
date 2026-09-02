@@ -52,6 +52,15 @@ import { splitHeadline } from "./newsItem";
 // identically from here — a non-empty, non-heading line becomes an item
 // either way — so a future format drift like that one no longer drops
 // content, it just renders slightly less tidily.
+//
+// That "any line is a story" fallback is deliberately not unconditional,
+// though: a line is only treated as a story if it contains a **bold**
+// span or a markdown [link](url) somewhere in it — every real bullet has
+// at least one of those, per the shape above. A plain-prose line with
+// neither is section-level commentary, not a story — e.g. "Kept detailed
+// per your standing preference for this category." showing up as its own
+// line under a section heading (seen 2026-09-02) — and gets silently
+// skipped rather than rendered as a broken, sourceless "article" card.
 const DEFAULT_NEWS_DIR = path.join(process.cwd(), "data", "news");
 
 function newsDir(): string {
@@ -170,9 +179,22 @@ export function parseBriefing(markdown: string, date: string): NewsBriefing {
     // bullet marker but still write one story per line. Either way, any
     // remaining non-empty, non-heading line is one story: strip a leading
     // "- " when present, then run it through the same headline-extraction
-    // fallback (bold lead, or text right before a "([" source group, or a
-    // blunt slice) either shape ends up using.
+    // fallback (bold lead, or text right before a "Source:"/"([" marker, or
+    // a blunt slice) either shape ends up using.
     const body = trimmed.startsWith("- ") ? trimmed.slice(2).trim() : trimmed;
+
+    // A genuine story always carries either a bolded headline or a
+    // markdown link somewhere in it — per the format contract, even the
+    // leanest "headline only" bullet still ends in "Source: [Name](url).".
+    // A line with neither is section-level commentary that ended up
+    // without a proper home rather than an actual story — e.g. "Kept
+    // detailed per your standing preference for this category." showing
+    // up as its own line under a Lifestyle/Parenting heading (seen
+    // 2026-09-02) — and rendering it as a card gives a broken,
+    // sourceless "article". Skip it instead.
+    const looksLikeStory = /\*\*.+\*\*/.test(body) || /\[[^\]]+\]\([^)]+\)/.test(body);
+    if (!looksLikeStory) continue;
+
     const { headline } = splitHeadline(body);
     const idSeed = `${section}|${subheading ?? ""}|${headline}`;
 
