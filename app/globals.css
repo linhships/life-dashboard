@@ -294,7 +294,7 @@ html[data-theme="neobrutal"] {
    other themes. */
 :where(html[data-theme="neobrutal"]) .byline-row.border-t.border-slate-100 {
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: flex-start;
   gap: 0.5rem;
   border: 2px solid #000;
