@@ -4,7 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChevronDown, Flame, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { NewsItem, Rating } from "@/lib/news";
-import { avatarColor, parseNewsItemBody, rankSources, slugify } from "@/lib/newsItem";
+import {
+  avatarColor,
+  categoryColorClass,
+  parseNewsItemBody,
+  rankSources,
+  slugify,
+} from "@/lib/newsItem";
 
 interface FeedbackEntry {
   id: string;
@@ -62,10 +68,12 @@ function ArticleCard({
   item,
   rating,
   onRate,
+  featured,
 }: {
   item: NewsItem;
   rating: Rating | undefined;
   onRate: (item: NewsItem, rating: RateTone) => void;
+  featured: boolean;
 }) {
   const { sources, excerpt } = useMemo(() => parseNewsItemBody(item.markdown), [item.markdown]);
   const primarySource = sources[0];
@@ -93,54 +101,60 @@ function ArticleCard({
 
   const content = (
     <div className="article-card-body p-5">
-      <span className="category-pill inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
-        <span className="category-pill-dot h-1.5 w-1.5 rounded-full bg-slate-900" />
-        {pillLabel}
-      </span>
+      <div className="article-card-main">
+        <span
+          className={`category-pill ${categoryColorClass(
+            item.section
+          )} inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600`}
+        >
+          <span className="category-pill-dot h-1.5 w-1.5 rounded-full bg-slate-900" />
+          {pillLabel}
+        </span>
 
-      <h3 className="mt-3 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
-        {item.headline}
-      </h3>
-      <p className="mt-1 text-xs text-slate-400">{item.date}</p>
+        <h3 className="mt-3 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
+          {item.headline}
+        </h3>
+        <p className="mt-1 text-xs text-slate-400">{item.date}</p>
 
-      {excerpt && (
-        <>
-          <div
-            ref={excerptRef}
-            className={`mt-2 text-sm leading-relaxed text-slate-600 ${
-              expanded ? "" : "line-clamp-3"
-            }`}
-          >
-            <ReactMarkdown
-              components={{
-                p: ({ node: _node, ...props }) => <span {...props} />,
-                strong: ({ node: _node, ...props }) => (
-                  <strong className="font-semibold text-slate-800" {...props} />
-                ),
-                a: ({ node: _node, ...props }) => (
-                  <a
-                    className="text-blue-600 hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    {...props}
-                  />
-                ),
-              }}
+        {excerpt && (
+          <>
+            <div
+              ref={excerptRef}
+              className={`mt-2 text-sm leading-relaxed text-slate-600 ${
+                expanded ? "" : "line-clamp-3"
+              }`}
             >
-              {excerpt}
-            </ReactMarkdown>
-          </div>
-          {(isTruncated || expanded) && (
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="mt-1 text-xs font-medium text-blue-600 hover:underline"
-            >
-              {expanded ? "Less" : "More"}
-            </button>
-          )}
-        </>
-      )}
+              <ReactMarkdown
+                components={{
+                  p: ({ node: _node, ...props }) => <span {...props} />,
+                  strong: ({ node: _node, ...props }) => (
+                    <strong className="font-semibold text-slate-800" {...props} />
+                  ),
+                  a: ({ node: _node, ...props }) => (
+                    <a
+                      className="text-blue-600 hover:underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      {...props}
+                    />
+                  ),
+                }}
+              >
+                {excerpt}
+              </ReactMarkdown>
+            </div>
+            {(isTruncated || expanded) && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="mt-1 text-xs font-medium text-blue-600 hover:underline"
+              >
+                {expanded ? "Less" : "More"}
+              </button>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="byline-row mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -212,7 +226,11 @@ function ArticleCard({
   );
 
   return (
-    <article className="article-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <article
+      className={`article-card ${
+        featured ? "article-card--featured" : ""
+      } overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md`}
+    >
       {content}
     </article>
   );
@@ -313,7 +331,11 @@ export function NewsFeed({
           const isFeatured = sectionIndex === 0;
           return (
             <div key={section.name} id={`section-${slugify(section.name)}`} className="scroll-mt-6">
-              <div className="section-header mb-4 border-b border-slate-200 pb-3">
+              <div
+                className={`section-header ${categoryColorClass(
+                  section.name
+                )} mb-4 border-b border-slate-200 pb-3`}
+              >
                 <button
                   type="button"
                   onClick={() => toggleSection(section.name)}
@@ -336,6 +358,7 @@ export function NewsFeed({
                       item={item}
                       rating={feedback[item.id]}
                       onRate={rate}
+                      featured={isFeatured}
                     />
                   ))}
                 </div>

@@ -313,33 +313,31 @@ html[data-theme="neobrutal"] {
   border: 2px solid #000;
   border-radius: 0;
   padding: 0.75rem;
-  /* margin-top: auto claims all the leftover space in the column,
-     pinning the box flush against the card's bottom edge regardless of
-     story length (see article-card/article-card-body below, which make
-     the card and its body flex columns for exactly this). A fixed
-     margin-top was tried instead (same 1.75rem as the card's p-5) so
-     all four sides matched evenly, but on a grid row where one card's
-     excerpt is shorter than its sibling's, that left visible dead space
-     below the box instead of the box sitting flush with the bottom —
-     which Linh flagged as "still not fixed to the bottom." A flush
-     bottom (and, since the box is full-width inside the padded card
-     body, an equally fixed right margin) is the more important
-     guarantee, so this reverts to auto; the top gap is now whatever's
-     left over rather than a fixed value. */
-  margin-top: auto;
+  /* Fixed to the same 1.75rem as the card's own p-5 padding, matching
+     top/right/bottom evenly — see article-card-main below for how this
+     stays flush with the card's bottom edge too, without the two goals
+     fighting each other the way a bare margin-top: auto vs. a fixed
+     margin-top on this element alone previously did (tried both in
+     earlier rounds; each one satisfied only one of the two asks). */
+  margin-top: 1.75rem;
 }
 
 /* News article card (grid layout): a row can hold two cards whose
-   headline+excerpt naturally take up different amounts of space.
-   CSS Grid already stretches both cards in a row to match the taller
-   one's height by default, but the card's own content wasn't using
-   that extra height for anything — it just left blank space below the
-   byline box. Turning the card and its body into flex columns lets the
-   byline box's margin-top: auto (above) claim that leftover space
-   instead, so it lands at a consistent distance from the bottom on
-   every card regardless of story length. article-card /
-   article-card-body are plain hooks added in components/NewsFeed.tsx
-   with no effect in other themes. */
+   headline+excerpt naturally take up different amounts of space. CSS
+   Grid already stretches both cards in a row to match the taller one's
+   height by default. article-card-main wraps everything ABOVE the
+   byline box (category pill, headline, date, excerpt) and is the piece
+   that actually grows to fill that stretched height — flex: 1 1 auto on
+   a plain block only grows the column it sits in, it doesn't touch the
+   fixed 1.75rem margin-top on .byline-row right below it. So the byline
+   box keeps an even, fixed gap from whatever content precedes it
+   (matching its own right/bottom padding, per Linh's ask), while any
+   leftover height from a taller sibling card gets absorbed by
+   article-card-main growing, which pushes the byline box down to the
+   card's bottom edge anyway — both asks satisfied at once, instead of
+   the margin-top: auto vs. fixed-value tug-of-war from earlier rounds.
+   article-card / article-card-body / article-card-main are plain hooks
+   added in components/NewsFeed.tsx with no effect in other themes. */
 :where(html[data-theme="neobrutal"]) .article-card {
   display: flex;
   flex-direction: column;
@@ -349,6 +347,31 @@ html[data-theme="neobrutal"] {
   display: flex;
   flex: 1;
   flex-direction: column;
+}
+:where(html[data-theme="neobrutal"]) .article-card-main {
+  flex: 1 1 auto;
+}
+
+/* Featured (single, full-width column) cards — the "Top Stories /
+   Breaking News" section only, see NewsFeed.tsx's isFeatured — are much
+   wider than the two-per-row grid cards, so a byline box that always
+   stretches to 100% width (the flex column's default cross-axis
+   behavior) left a large empty stretch of colored background to the
+   left of the right-aligned source/date/buttons text. Linh asked for
+   the box to shrink to fit its content instead on these wide cards,
+   with a floor so it never gets too small to read comfortably: at
+   least half the card's width, or however wide the content itself
+   needs, whichever is bigger. align-self: flex-end overrides just this
+   element's stretch (same trick as category-pill's align-self above)
+   and, on the column's cross axis, also right-aligns the now
+   shrink-wrapped box — no separate alignment rule needed.
+   article-card--featured is a plain hook added in components/
+   NewsFeed.tsx (via ArticleCard's `featured` prop) with no effect in
+   other themes or on the two-per-row grid cards. */
+:where(html[data-theme="neobrutal"]) .article-card--featured .byline-row.border-t.border-slate-100 {
+  align-self: flex-end;
+  width: fit-content;
+  min-width: 50%;
 }
 
 /* Meal-plan rating buttons (thumbs up/down under Milo/Arlo on each day
@@ -400,6 +423,62 @@ html[data-theme="neobrutal"] {
   background: #000;
 }
 
+/* Per-category accent colors: Linh flagged every section-header/
+   category-pill box as the exact same lavender, hard to tell categories
+   apart at a glance. category-color-0..7 are a fixed 8-color palette,
+   assigned to each section/category name via a stable hash
+   (lib/newsItem.ts's categoryColorClass) so "World / Geopolitics" is
+   always the same color everywhere it appears (its own section-header
+   AND every article's pill within that section), without hardcoding the
+   actual category names anywhere — new categories the daily-news task
+   invents just land in whichever bucket their name hashes to.
+
+   Each rule pairs .section-header and .category-pill together (rather
+   than one shared class) so this can be combined with the existing
+   single-color .section-header/.category-pill rules above: two classes
+   in the selector (e.g. .section-header.category-color-3) beats the
+   earlier one-class rule regardless of source order, the same
+   selective-specificity-escalation trick used elsewhere in this file
+   instead of !important. Border/text stay pure black either way — only
+   the background swaps per bucket. */
+:where(html[data-theme="neobrutal"]) .section-header.category-color-0,
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-0 {
+  background: var(--color-purple-200);
+}
+:where(html[data-theme="neobrutal"]) .section-header.category-color-1,
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-1 {
+  background: var(--color-blue-200);
+}
+:where(html[data-theme="neobrutal"]) .section-header.category-color-2,
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-2 {
+  background: var(--color-emerald-200);
+}
+:where(html[data-theme="neobrutal"]) .section-header.category-color-3,
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-3 {
+  background: var(--color-amber-200);
+}
+:where(html[data-theme="neobrutal"]) .section-header.category-color-4,
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-4 {
+  background: var(--color-rose-200);
+}
+:where(html[data-theme="neobrutal"]) .section-header.category-color-5,
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-5 {
+  /* Sky blue — not tied to an existing --color-* family, since every
+     family already maps to one of the buckets above; a category-only
+     hex keeps this bucket visually distinct from all the others. */
+  background: #9fd8f0;
+}
+:where(html[data-theme="neobrutal"]) .section-header.category-color-6,
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-6 {
+  /* Tan/khaki — category-only hex, same reasoning as color-5. */
+  background: #d8c8a0;
+}
+:where(html[data-theme="neobrutal"]) .section-header.category-color-7,
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-7 {
+  /* Mint — category-only hex, same reasoning as color-5. */
+  background: #b8e8d8;
+}
+
 /* News rating buttons (flame/thumbs-up/thumbs-down): same "colored
    block, not a hollow bordered square" preference as the meal-plan
    buttons, but these carry per-tone meaning (love/liked/disliked) that
@@ -437,6 +516,23 @@ html[data-theme="neobrutal"] {
 :where(html[data-theme="neobrutal"]) .news-rate-btn.bg-rose-50 {
   background: var(--color-rose-600);
   color: #fff;
+}
+
+/* News briefing footer ("Processed this run" log at the bottom of the
+   page): only ever had border-t (a top divider) plus pt-4 in the
+   component markup — but the general single-side border rules further
+   up this file set the CSS `border-width`/`border-color` shorthands
+   (not the top-only longhand), which apply to all four sides of
+   whatever they match, not just the one the Tailwind utility name
+   suggests. That's what turns this into a fully enclosed box under
+   Neobrutal even though the JSX never asked for one — consistent with
+   the theme's boxed-everything look, so left as-is rather than
+   "fixed", but the padding that resulted (pt-4 on top, nothing on the
+   other three sides) read as far too tight once it became a real box.
+   Bumped to an even 1.5rem on every side — briefing-footer is a plain
+   hook added in app/news/page.tsx with no effect in other themes. */
+:where(html[data-theme="neobrutal"]) .briefing-footer {
+  padding: 1.5rem;
 }
 
 /* News byline box: was plain white inside its black border. Linh asked

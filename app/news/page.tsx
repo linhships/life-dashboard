@@ -63,7 +63,7 @@ export default async function NewsPage() {
       <NewsFeed items={briefing.items} initialFeedback={feedback} />
 
       {briefing.footer && (
-        <footer className="whitespace-pre-wrap border-t border-slate-200 pt-4 text-xs text-slate-400">
+        <footer className="briefing-footer whitespace-pre-wrap border-t border-slate-200 pt-4 text-xs text-slate-400">
           {briefing.footer}
         </footer>
       )}
