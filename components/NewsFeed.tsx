@@ -86,7 +86,7 @@ function ArticleCard({
   }, [excerpt, expanded]);
 
   const content = (
-    <div className="p-5">
+    <div className="article-card-body p-5">
       <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
         <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
         {pillLabel}
@@ -208,7 +208,7 @@ function ArticleCard({
   );
 
   return (
-    <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <article className="article-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       {content}
     </article>
   );

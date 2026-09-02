@@ -300,6 +300,41 @@ html[data-theme="neobrutal"] {
   border: 2px solid #000;
   border-radius: 0;
   padding: 0.75rem;
+  /* Pins the box to the card's bottom edge (see article-card/
+     article-card-body below) instead of sitting wherever normal flow
+     leaves it after a headline+excerpt of whatever length that
+     particular story happens to have — which was why two cards side by
+     side in the same grid row (one with a short excerpt, one with a
+     long one) ended up with different amounts of empty space below
+     their boxes. margin-top: auto in a flex column consumes all the
+     leftover vertical space above this element, so the box always ends
+     up flush against the bottom with the same 0.75rem margin — same
+     idea as the right edge, which was already consistent because it's
+     just this box's own padding against the card's own padding on
+     every card, not something that varies with content length. */
+  margin-top: auto;
+}
+
+/* News article card (grid layout): a row can hold two cards whose
+   headline+excerpt naturally take up different amounts of space.
+   CSS Grid already stretches both cards in a row to match the taller
+   one's height by default, but the card's own content wasn't using
+   that extra height for anything — it just left blank space below the
+   byline box. Turning the card and its body into flex columns lets the
+   byline box's margin-top: auto (above) claim that leftover space
+   instead, so it lands at a consistent distance from the bottom on
+   every card regardless of story length. article-card /
+   article-card-body are plain hooks added in components/NewsFeed.tsx
+   with no effect in other themes. */
+:where(html[data-theme="neobrutal"]) .article-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+:where(html[data-theme="neobrutal"]) .article-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 }
 
 /* Meal-plan rating buttons (thumbs up/down under Milo/Arlo on each day
