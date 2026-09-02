@@ -37,7 +37,7 @@ function RateButton({
       title={label}
       aria-label={label}
       aria-pressed={active}
-      className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors ${
+      className={`news-rate-btn news-rate-btn-${tone} flex h-7 w-7 items-center justify-center rounded-lg border transition-colors ${
         active
           ? TONE_CLASSES[tone]
           : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
@@ -87,8 +87,8 @@ function ArticleCard({
 
   const content = (
     <div className="article-card-body p-5">
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
-        <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
+      <span className="category-pill inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
+        <span className="category-pill-dot h-1.5 w-1.5 rounded-full bg-slate-900" />
         {pillLabel}
       </span>
 

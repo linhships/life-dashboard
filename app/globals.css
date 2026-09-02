@@ -359,3 +359,74 @@ html[data-theme="neobrutal"] {
   background: var(--color-rose-600);
   color: #fff;
 }
+
+/* News category pill ("Top Stories / Breaking News" etc.): turning
+   article-card-body into a flex column (above, for the bottom-pinned
+   byline box) left this inline-flex pill stretched to the container's
+   full cross-axis width, since align-items defaults to stretch for
+   every flex item that doesn't say otherwise — every other child here
+   (h3, p, div) is meant to fill that width, so the fix is scoped to
+   just this one item rather than changing the container's default.
+   align-self overrides only this element's own stretch behavior,
+   letting it size to its own content again like it did before the
+   flex-column change. category-pill / category-pill-dot are plain
+   hooks added in components/NewsFeed.tsx with no effect in other
+   themes. */
+:where(html[data-theme="neobrutal"]) .category-pill {
+  align-self: flex-start;
+  border-color: var(--color-purple-600);
+  background: var(--color-purple-100);
+  color: var(--color-purple-700);
+}
+:where(html[data-theme="neobrutal"]) .category-pill-dot {
+  background: var(--color-purple-600);
+}
+
+/* News rating buttons (flame/thumbs-up/thumbs-down): same "colored
+   block, not a hollow bordered square" preference as the meal-plan
+   buttons, but these carry per-tone meaning (love/liked/disliked) that
+   the meal-plan ones don't, so each tone gets its own pastel fill even
+   at rest instead of a single neutral grey — news-rate-btn-love/up/down
+   hooks (added alongside the existing tone prop, not replacing it) give
+   CSS something to target regardless of active state. Active reuses
+   the tone classes the component already renders when selected
+   (bg-amber-50/bg-emerald-50/bg-rose-50) as hooks for a bolder, solid
+   fill — same trick as meal-rate-btn. news-rate-btn* are plain hooks
+   added in components/NewsFeed.tsx with no effect in other themes. */
+:where(html[data-theme="neobrutal"]) .news-rate-btn {
+  border: none;
+}
+:where(html[data-theme="neobrutal"]) .news-rate-btn-love {
+  background: var(--color-amber-100);
+  color: var(--color-amber-700);
+}
+:where(html[data-theme="neobrutal"]) .news-rate-btn-up {
+  background: var(--color-emerald-100);
+  color: var(--color-emerald-700);
+}
+:where(html[data-theme="neobrutal"]) .news-rate-btn-down {
+  background: var(--color-rose-100);
+  color: var(--color-rose-700);
+}
+:where(html[data-theme="neobrutal"]) .news-rate-btn.bg-amber-50 {
+  background: var(--color-amber-600);
+  color: #fff;
+}
+:where(html[data-theme="neobrutal"]) .news-rate-btn.bg-emerald-50 {
+  background: var(--color-emerald-600);
+  color: #fff;
+}
+:where(html[data-theme="neobrutal"]) .news-rate-btn.bg-rose-50 {
+  background: var(--color-rose-600);
+  color: #fff;
+}
+
+/* News byline box: was plain white inside its black border. Linh asked
+   for it to be colored too — a pale tint of the theme's primary accent
+   (the same orange used for buttons/links/active nav throughout) ties
+   it into the rest of the palette rather than introducing a fourth hue
+   alongside the purple pill and the three rate-button tones. Border
+   stays black per the earlier "black-lined" request. */
+:where(html[data-theme="neobrutal"]) .byline-row.border-t.border-slate-100 {
+  background: var(--color-blue-50);
+}
