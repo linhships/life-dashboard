@@ -257,6 +257,20 @@ html[data-theme="neobrutal"] {
   margin: 0.75rem 0.75rem 0;
 }
 
+/* News section headers ("Top Stories / Breaking News" etc.): in
+   Classic/Haven this is bare text sitting right on a thin underline
+   (border-b pb-3, no other padding) — a lightweight divider look that
+   works fine there. Once that line goes bold black under Neobrutal it
+   reads as a proper box around the label, and the missing top/left
+   padding (only pb-3 existed) made the text look pinned to two of its
+   three visible edges instead of evenly spaced. Matched to a uniform
+   0.75rem — the same value pb-3 already was, so the bottom doesn't
+   move. section-header is a plain hook added in components/NewsFeed.tsx
+   with no effect in other themes. */
+:where(html[data-theme="neobrutal"]) .section-header {
+  padding: 0.75rem;
+}
+
 /* Meal-plan rating buttons (thumbs up/down under Milo/Arlo on each day
    card): Linh flagged the hollow bordered-square look as ugly and asked
    for colored blocks instead. meal-rate-btn is a plain hook added to

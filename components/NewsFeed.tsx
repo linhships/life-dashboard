@@ -297,7 +297,7 @@ export function NewsFeed({
           const isFeatured = sectionIndex === 0;
           return (
             <div key={section.name} id={`section-${slugify(section.name)}`} className="scroll-mt-6">
-              <div className="mb-4 border-b border-slate-200 pb-3">
+              <div className="section-header mb-4 border-b border-slate-200 pb-3">
                 <button
                   type="button"
                   onClick={() => toggleSection(section.name)}
