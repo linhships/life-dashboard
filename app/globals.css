@@ -150,6 +150,21 @@ html[data-theme="neobrutal"] {
   --radius-2xl: 0.375rem;
 }
 
+/* From here down, every selector wraps the theme condition in :where(),
+   which matches the same elements but contributes zero specificity. That
+   keeps these overrides exactly as strong as the plain Tailwind utility
+   classes they're repainting (border-t, shadow-md, ...) and no stronger —
+   so Tailwind's own higher-specificity variants (first:border-0,
+   hover:shadow-md, etc.) still correctly win over them, same as they
+   would without a theme active. Using the plain "html[data-theme=...] ..."
+   form here instead would silently out-rank those variants (an extra
+   type-selector on top of the same class count) and could make things
+   like a first-child's "no divider" rule stop working — which is
+   genuinely what happened with the meal-plan day cards below before this
+   was fixed: a first (only) meal row's divider was supposed to be
+   suppressed by first:border-0, but the old, higher-specificity form of
+   this rule beat it and drew an unwanted line above the row's content. */
+
 /* Borders: bold and pure black for structural/card boundaries — but not
    every border. border-slate-100 is this app's "quiet divider inside a
    card" shade (byline rows, recipe-modal section breaks, etc.); giving
@@ -158,38 +173,38 @@ html[data-theme="neobrutal"] {
    are now treated differently: slate-200/300 (card/table/pill edges) go
    bold black; slate-100 dividers stay a soft hairline. rounded-full
    circles (avatars, dots) are left untouched on purpose. */
-html[data-theme="neobrutal"] .border,
-html[data-theme="neobrutal"] .border-2,
-html[data-theme="neobrutal"] .border-t,
-html[data-theme="neobrutal"] .border-b,
-html[data-theme="neobrutal"] .border-l,
-html[data-theme="neobrutal"] .border-r {
+:where(html[data-theme="neobrutal"]) .border,
+:where(html[data-theme="neobrutal"]) .border-2,
+:where(html[data-theme="neobrutal"]) .border-t,
+:where(html[data-theme="neobrutal"]) .border-b,
+:where(html[data-theme="neobrutal"]) .border-l,
+:where(html[data-theme="neobrutal"]) .border-r {
   border-width: 2px;
 }
-html[data-theme="neobrutal"] .border-slate-200,
-html[data-theme="neobrutal"] .border-slate-300 {
+:where(html[data-theme="neobrutal"]) .border-slate-200,
+:where(html[data-theme="neobrutal"]) .border-slate-300 {
   border-color: #000;
 }
-html[data-theme="neobrutal"] .border-slate-100 {
+:where(html[data-theme="neobrutal"]) .border-slate-100 {
   border-color: #ded8c4;
 }
-html[data-theme="neobrutal"] .border-t.border-slate-100,
-html[data-theme="neobrutal"] .border-b.border-slate-100 {
+:where(html[data-theme="neobrutal"]) .border-t.border-slate-100,
+:where(html[data-theme="neobrutal"]) .border-b.border-slate-100 {
   border-width: 1px;
 }
 
 /* Shadows: flat, hard-edged, offset — no blur, no soft ambient shade. */
-html[data-theme="neobrutal"] .shadow-sm {
+:where(html[data-theme="neobrutal"]) .shadow-sm {
   box-shadow: 2px 2px 0 0 #000 !important;
 }
-html[data-theme="neobrutal"] .shadow-md,
-html[data-theme="neobrutal"] .hover\:shadow-md:hover {
+:where(html[data-theme="neobrutal"]) .shadow-md,
+:where(html[data-theme="neobrutal"]) .hover\:shadow-md:hover {
   box-shadow: 3px 3px 0 0 #000 !important;
 }
-html[data-theme="neobrutal"] .shadow-lg {
+:where(html[data-theme="neobrutal"]) .shadow-lg {
   box-shadow: 5px 5px 0 0 #000 !important;
 }
-html[data-theme="neobrutal"] .shadow-xl {
+:where(html[data-theme="neobrutal"]) .shadow-xl {
   box-shadow: 7px 7px 0 0 #000 !important;
 }
 
@@ -197,7 +212,7 @@ html[data-theme="neobrutal"] .shadow-xl {
    cramped once their borders went bold — p-5 is only used by KpiCard and
    the news ArticleCard, so this is safe to bump without touching padding
    anywhere else in the app. */
-html[data-theme="neobrutal"] .p-5 {
+:where(html[data-theme="neobrutal"]) .p-5 {
   padding: 1.75rem;
 }
 
@@ -212,17 +227,34 @@ html[data-theme="neobrutal"] .p-5 {
    parent items' own edges — same treatment, just indented by padding
    instead of a margin+border. sidebar-subnav / sidebar-subnav-item are
    plain hooks added in Sidebar.tsx with no effect in other themes. */
-html[data-theme="neobrutal"] .sidebar-subnav {
+:where(html[data-theme="neobrutal"]) .sidebar-subnav {
   border-left: none;
   padding-left: 0;
 }
-html[data-theme="neobrutal"] .sidebar-subnav-item {
+:where(html[data-theme="neobrutal"]) .sidebar-subnav-item {
   border-radius: 0 !important;
   padding-left: 1.5rem;
 }
-html[data-theme="neobrutal"] .shadow-lg {
-  box-shadow: 5px 5px 0 0 #000 !important;
+
+/* Meal-plan rating buttons (thumbs up/down under Milo/Arlo on each day
+   card): Linh flagged the hollow bordered-square look as ugly and asked
+   for colored blocks instead. meal-rate-btn is a plain hook added to
+   just that one component (components/MealPlanGrid.tsx) — the visually
+   identical rate buttons on the news page are untouched, since this
+   feedback was specifically about the meal-plan cards. Inactive becomes
+   a plain neutral-fill chip (no border); active reuses the tone classes
+   the component already renders (bg-emerald-50 for "up", bg-rose-50 for
+   "down") as hooks for a solid, bold fill instead of a pale tint. */
+:where(html[data-theme="neobrutal"]) .meal-rate-btn {
+  border: none;
+  background: var(--color-slate-100);
+  color: var(--color-slate-400);
 }
-html[data-theme="neobrutal"] .shadow-xl {
-  box-shadow: 7px 7px 0 0 #000 !important;
+:where(html[data-theme="neobrutal"]) .meal-rate-btn.bg-emerald-50 {
+  background: var(--color-emerald-600);
+  color: #fff;
+}
+:where(html[data-theme="neobrutal"]) .meal-rate-btn.bg-rose-50 {
+  background: var(--color-rose-600);
+  color: #fff;
 }

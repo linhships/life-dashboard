@@ -53,7 +53,7 @@ function RateButton({
       title={label}
       aria-label={label}
       aria-pressed={active}
-      className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
+      className={`meal-rate-btn flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
         active
           ? TONE_CLASSES[tone]
           : "border-slate-200 text-slate-300 hover:bg-slate-50 hover:text-slate-500"
