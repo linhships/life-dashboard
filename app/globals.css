@@ -216,24 +216,21 @@ html[data-theme="neobrutal"] {
   padding: 1.75rem;
 }
 
-/* Sidebar sub-nav (Food/Milo & Arlo/Finance children): in Classic/Haven
-   these are an indented list with a thin guide line down the left and a
-   small rounded pill for the active item — that reads fine against those
-   themes' soft, contained look. Under Neobrutal it read as a weak,
-   gapped-out version of the bold parent items above it (see feedback:
-   the active highlight didn't reach the left edge the way every other
-   block in this theme does). So here the indent guide is dropped and the
-   active item becomes a full-width, square-cornered block flush with the
-   parent items' own edges — same treatment, just indented by padding
-   instead of a margin+border. sidebar-subnav / sidebar-subnav-item are
-   plain hooks added in Sidebar.tsx with no effect in other themes. */
-:where(html[data-theme="neobrutal"]) .sidebar-subnav {
-  border-left: none;
-  padding-left: 0;
-}
+/* Sidebar sub-nav (Food/Milo & Arlo/Finance children): the indent guide
+   line (border-l on the <ul>, same slate-200-> black treatment as any
+   other card edge) is kept — Linh preferred it back over the plain look
+   without one. What changed instead: the active item's block now
+   reaches all the way to that line rather than floating indented behind
+   it. The <ul>'s own pl-4 pushes every item 1rem in; each item cancels
+   that with a matching negative margin, then adds the same 1rem back as
+   padding so the text lands in exactly the same spot as before — only
+   the block's background (and square corners) now extend the full 1rem
+   further left, flush against the border. sidebar-subnav-item is a
+   plain hook added in Sidebar.tsx with no effect in other themes. */
 :where(html[data-theme="neobrutal"]) .sidebar-subnav-item {
   border-radius: 0 !important;
-  padding-left: 1.5rem;
+  margin-left: -1rem;
+  padding-left: 1.75rem;
 }
 
 /* Meal-plan rating buttons (thumbs up/down under Milo/Arlo on each day
