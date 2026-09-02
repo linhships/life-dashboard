@@ -290,7 +290,7 @@ export function Sidebar() {
 
                 {isGroupOpen && (
                   <ul
-                    className={`mt-1 space-y-1 border-l border-slate-200 pl-4 ${
+                    className={`sidebar-subnav mt-1 space-y-1 border-l border-slate-200 pl-4 ${
                       collapsed ? "md:hidden" : ""
                     }`}
                   >
@@ -301,7 +301,7 @@ export function Sidebar() {
                           <Link
                             href={item.href}
                             onClick={() => setMobileOpen(false)}
-                            className={`block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                            className={`sidebar-subnav-item block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
                               isActive
                                 ? "bg-blue-50 text-blue-600"
                                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -343,7 +343,7 @@ export function Sidebar() {
           {/* Sub-items */}
           {financeOpen && (
             <ul
-              className={`mt-1 space-y-1 border-l border-slate-200 pl-4 ${
+              className={`sidebar-subnav mt-1 space-y-1 border-l border-slate-200 pl-4 ${
                 collapsed ? "md:hidden" : ""
               }`}
             >
@@ -354,7 +354,7 @@ export function Sidebar() {
                     <button
                       type="button"
                       onClick={() => handleNavClick(item.id)}
-                      className={`block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                      className={`sidebar-subnav-item block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
                         isActive
                           ? "bg-blue-50 text-blue-600"
                           : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"

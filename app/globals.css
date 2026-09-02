@@ -200,6 +200,26 @@ html[data-theme="neobrutal"] .shadow-xl {
 html[data-theme="neobrutal"] .p-5 {
   padding: 1.75rem;
 }
+
+/* Sidebar sub-nav (Food/Milo & Arlo/Finance children): in Classic/Haven
+   these are an indented list with a thin guide line down the left and a
+   small rounded pill for the active item — that reads fine against those
+   themes' soft, contained look. Under Neobrutal it read as a weak,
+   gapped-out version of the bold parent items above it (see feedback:
+   the active highlight didn't reach the left edge the way every other
+   block in this theme does). So here the indent guide is dropped and the
+   active item becomes a full-width, square-cornered block flush with the
+   parent items' own edges — same treatment, just indented by padding
+   instead of a margin+border. sidebar-subnav / sidebar-subnav-item are
+   plain hooks added in Sidebar.tsx with no effect in other themes. */
+html[data-theme="neobrutal"] .sidebar-subnav {
+  border-left: none;
+  padding-left: 0;
+}
+html[data-theme="neobrutal"] .sidebar-subnav-item {
+  border-radius: 0 !important;
+  padding-left: 1.5rem;
+}
 html[data-theme="neobrutal"] .shadow-lg {
   box-shadow: 5px 5px 0 0 #000 !important;
 }
