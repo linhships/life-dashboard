@@ -243,17 +243,18 @@ html[data-theme="neobrutal"] {
   padding-left: 1.75rem;
 }
 
-/* Sidebar header (logo + "Life Dashboard"): its border-b used to span
-   the full sidebar width, flush with the outer frame on both sides —
-   inconsistent with the Food/Finance sub-nav boxes below it, which sit
-   inset within nav's own 0.75rem side padding. Giving the header that
-   same 0.75rem side margin makes its border match the sub-nav boxes'
-   width and margin, so the whole sidebar reads as one consistent set of
-   inset black-bordered blocks rather than one full-bleed one and
-   several narrower ones. sidebar-header is a plain hook added in
-   Sidebar.tsx with no effect in other themes. */
+/* Sidebar header (logo + "Life Dashboard"): its border used to span the
+   full sidebar width, flush with the outer frame — inconsistent with
+   the Food/Finance sub-nav boxes below it, which sit inset within nav's
+   own 0.75rem side padding. Matching that side margin (see the earlier
+   fix) still left the header flush with the very top of the sidebar
+   while every other edge had breathing room, so the top gets the same
+   0.75rem too — bottom is left at 0 since py-5 already gives the
+   header's own content room before "MENU" starts below it.
+   sidebar-header is a plain hook added in Sidebar.tsx with no effect in
+   other themes. */
 :where(html[data-theme="neobrutal"]) .sidebar-header {
-  margin: 0 0.75rem;
+  margin: 0.75rem 0.75rem 0;
 }
 
 /* Meal-plan rating buttons (thumbs up/down under Milo/Arlo on each day
