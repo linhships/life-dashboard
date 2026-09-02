@@ -76,7 +76,6 @@ function ArticleCard({
   featured: boolean;
 }) {
   const { sources, excerpt } = useMemo(() => parseNewsItemBody(item.markdown), [item.markdown]);
-  const primarySource = sources[0];
   const pillLabel = item.subheading || item.section;
 
   const excerptRef = useRef<HTMLDivElement>(null);
@@ -157,40 +156,23 @@ function ArticleCard({
       </div>
 
       <div className="byline-row mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {primarySource ? (
-            <>
-              <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(
-                  primarySource.name
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          {sources.length > 0 ? (
+            sources.map((s, i) => (
+              <a
+                key={`${s.url}-${i}`}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={s.name}
+                aria-label={s.name}
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold hover:opacity-80 ${avatarColor(
+                  s.name
                 )}`}
               >
-                {primarySource.name.charAt(0).toUpperCase()}
-              </span>
-              <span className="truncate text-sm text-slate-700">
-                <a
-                  href={primarySource.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium hover:underline"
-                >
-                  {primarySource.name}
-                </a>
-                {sources.slice(1).map((s) => (
-                  <span key={s.url}>
-                    {", "}
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium hover:underline"
-                    >
-                      {s.name}
-                    </a>
-                  </span>
-                ))}
-              </span>
-            </>
+                {s.name.charAt(0).toUpperCase()}
+              </a>
+            ))
           ) : (
             <span className="text-sm text-slate-400">Source not linked</span>
           )}
