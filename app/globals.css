@@ -243,6 +243,19 @@ html[data-theme="neobrutal"] {
   padding-left: 1.75rem;
 }
 
+/* Sidebar header (logo + "Life Dashboard"): its border-b used to span
+   the full sidebar width, flush with the outer frame on both sides —
+   inconsistent with the Food/Finance sub-nav boxes below it, which sit
+   inset within nav's own 0.75rem side padding. Giving the header that
+   same 0.75rem side margin makes its border match the sub-nav boxes'
+   width and margin, so the whole sidebar reads as one consistent set of
+   inset black-bordered blocks rather than one full-bleed one and
+   several narrower ones. sidebar-header is a plain hook added in
+   Sidebar.tsx with no effect in other themes. */
+:where(html[data-theme="neobrutal"]) .sidebar-header {
+  margin: 0 0.75rem;
+}
+
 /* Meal-plan rating buttons (thumbs up/down under Milo/Arlo on each day
    card): Linh flagged the hollow bordered-square look as ugly and asked
    for colored blocks instead. meal-rate-btn is a plain hook added to

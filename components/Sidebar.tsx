@@ -209,7 +209,7 @@ export function Sidebar() {
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div
-          className={`flex items-center gap-2 border-b border-slate-200 px-5 py-5 ${
+          className={`sidebar-header flex items-center gap-2 border-b border-slate-200 px-5 py-5 ${
             collapsed ? "md:justify-center md:px-0" : ""
           }`}
         >
