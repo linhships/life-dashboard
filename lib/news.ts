@@ -22,18 +22,26 @@ import { splitHeadline } from "./newsItem";
 //   ## Section Name                      <- h2 = a real section boundary
 //   ### Subsection Name                  <- h3 = optional pill/category tag,
 //                                            resets at the next "## "
-//   - **Headline** ([Source](url), ...): Excerpt text.
+//   - **Headline** Summary, its own fresh sentence. Source: [Name](url), ...
 //   ---                                  <- only the LAST "---" in the
 //   ## Processed this run                   whole file starts footer capture;
 //   Free text, shown raw/unformatted        everything from there on is
 //                                            dumped verbatim, not parsed.
+// As of 2026-09-02, sources moved from a parenthetical group right after
+// the headline to a trailing "Source: [Name](url), ..." sentence — see
+// ./newsItem's own top comment for the full current shape, including the
+// interest-tier note ("*(medium)*", ...) that may follow the sources and
+// is intentionally dropped rather than parsed/displayed. The pre-2026-09-02
+// shape ("**Headline** ([Source](url), ...): Excerpt.") is still accepted
+// as a fallback in case a run ever slips back to it.
+//
 // A bullet without a **bold** headline still renders — splitHeadline() (in
 // ./newsItem, shared with the client-side excerpt/source parsing) falls
-// back to cutting the text right before the "([" source-links group
-// instead of a blind 80-char truncation, so it still produces a clean
-// headline as long as a "(...)" source group follows. Only a bullet with
-// neither a bold marker nor a source group falls back to a blunt 80-char
-// slice.
+// back to cutting the text right before the "Source:" label (or, for the
+// older shape, the "([" source-links group) instead of a blind 80-char
+// truncation, so it still produces a clean headline as long as one of
+// those follows. Only a bullet with neither a bold marker nor a
+// recognizable source marker falls back to a blunt 80-char slice.
 //
 // Every story is also allowed to skip the leading "- " bullet marker
 // entirely and just be its own paragraph line (one line = one story) —
