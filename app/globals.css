@@ -16,3 +16,68 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Haven theme: a second, warmer/rounder color scheme, toggled by setting
+   data-theme=haven on the html element (see components/ThemePicker.tsx and
+   lib/themePrefs.ts). Overrides the same CSS variables Tailwind utilities
+   already read (--color-slate-*, --color-blue-*, etc.), so every existing
+   bg/text/border class repaints automatically, no markup changes needed.
+   Without the attribute set, the look stays exactly as it is today. */
+html[data-theme="haven"] {
+  --background: #faf8f3;
+  --foreground: #26231d;
+
+  /* Neutrals: cool slate -> warm cream/sage */
+  --color-slate-50: #f7f5f0;
+  --color-slate-100: #efece3;
+  --color-slate-200: #e2ddd0;
+  --color-slate-300: #cec7b4;
+  --color-slate-400: #a9a08a;
+  --color-slate-500: #8a8069;
+  --color-slate-600: #6b6354;
+  --color-slate-700: #524c40;
+  --color-slate-800: #3a362d;
+  --color-slate-900: #26231d;
+
+  /* Primary accent: blue -> teal */
+  --color-blue-50: #ecfaf7;
+  --color-blue-100: #d2f3ec;
+  --color-blue-200: #a6e6d9;
+  --color-blue-300: #72d3c0;
+  --color-blue-600: #1f9c8a;
+  --color-blue-700: #187e70;
+  --color-blue-800: #146457;
+
+  /* Secondary accent: emerald -> mint */
+  --color-emerald-50: #eefaf3;
+  --color-emerald-100: #d3f2e2;
+  --color-emerald-200: #a7e4c5;
+  --color-emerald-600: #2fa876;
+  --color-emerald-700: #248761;
+
+  /* Negative/danger: rose -> softer coral (keeps "warning" read) */
+  --color-rose-50: #fdf1ee;
+  --color-rose-100: #fbdfd8;
+  --color-rose-200: #f5bcae;
+  --color-rose-600: #e2694f;
+  --color-rose-700: #c04f38;
+
+  /* Purple -> lavender */
+  --color-purple-50: #f5f1fb;
+  --color-purple-100: #e8def5;
+  --color-purple-600: #8b6cc9;
+  --color-purple-700: #7152a8;
+
+  /* Amber -> peach */
+  --color-amber-50: #fef6ec;
+  --color-amber-100: #fce8cc;
+  --color-amber-200: #f8d3a0;
+  --color-amber-600: #d98f3b;
+  --color-amber-700: #b8722a;
+
+  /* Softer, rounder corners throughout */
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+}

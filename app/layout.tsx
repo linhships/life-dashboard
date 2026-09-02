@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
+import { THEME_INIT_SCRIPT } from "@/lib/themePrefs";
 
 // Tab icon = Linh's emoji from the Troettger AI calendar convention (👩🏻),
 // inlined as an SVG data URL so no separate icon file is needed.
@@ -21,6 +22,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full scroll-smooth antialiased">
+      <head>
+        {/* Applies a saved "haven" theme before first paint, so there's no
+            flash of the default look on reload. See lib/themePrefs.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full bg-slate-50 font-sans">
         <div className="flex min-h-full flex-col md:flex-row">
           <Sidebar />

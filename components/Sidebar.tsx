@@ -12,6 +12,7 @@ import {
   Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
+  Settings,
   UtensilsCrossed,
   X,
   type LucideIcon,
@@ -369,6 +370,20 @@ export function Sidebar() {
         </nav>
 
         <div className="border-t border-slate-200 p-3">
+          <Link
+            href="/settings"
+            onClick={() => setMobileOpen(false)}
+            title={collapsed ? "Settings" : undefined}
+            className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+              pathname?.startsWith("/settings")
+                ? "bg-blue-50 text-blue-600"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            } ${collapsed ? "justify-center" : ""}`}
+          >
+            <Settings className="h-[18px] w-[18px] shrink-0" />
+            <span className={collapsed ? "hidden" : ""}>Settings</span>
+          </Link>
+
           <button
             type="button"
             onClick={toggleCollapsed}
