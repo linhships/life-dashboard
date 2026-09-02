@@ -225,10 +225,20 @@ html[data-theme="neobrutal"] {
    that with a matching negative margin, then adds the same 1rem back as
    padding so the text lands in exactly the same spot as before — only
    the block's background (and square corners) now extend the full 1rem
-   further left, flush against the border. sidebar-subnav-item is a
-   plain hook added in Sidebar.tsx with no effect in other themes. */
+   further left, flush against the border.
+
+   The item is also Tailwind's w-full, which is width:100% of its <li> —
+   a negative margin-left on a fixed-width box shifts the whole box left
+   without growing it, so the first pass here pulled the *right* edge
+   left by the same 1rem too, opening a new gap on the right that wasn't
+   there before. width: calc(100% + 1rem) grows the box by exactly the
+   amount the margin shifts it, so the left edge reaches the border and
+   the right edge stays exactly where it always was (flush with the
+   parent items above it). sidebar-subnav-item is a plain hook added in
+   Sidebar.tsx with no effect in other themes. */
 :where(html[data-theme="neobrutal"]) .sidebar-subnav-item {
   border-radius: 0 !important;
+  width: calc(100% + 1rem);
   margin-left: -1rem;
   padding-left: 1.75rem;
 }

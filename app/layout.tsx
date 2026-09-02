@@ -21,10 +21,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full scroll-smooth antialiased">
+    // suppressHydrationWarning: the script below deliberately sets
+    // data-theme on this element before React hydrates (see
+    // lib/themePrefs.ts), so the server-rendered HTML (no attribute) and
+    // the client DOM at hydration time (attribute present, for anyone
+    // who's picked Haven or Neobrutal) never match. That's expected and
+    // is the standard fix for this pattern — this only silences the
+    // mismatch warning for html's own attributes, not for its children.
+    <html lang="en" className="h-full scroll-smooth antialiased" suppressHydrationWarning>
       <head>
-        {/* Applies a saved "haven" theme before first paint, so there's no
-            flash of the default look on reload. See lib/themePrefs.ts. */}
+        {/* Applies a saved non-default theme before first paint, so
+            there's no flash of the default look on reload. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full bg-slate-50 font-sans">
