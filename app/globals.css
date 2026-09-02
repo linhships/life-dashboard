@@ -426,57 +426,95 @@ html[data-theme="neobrutal"] {
 /* Per-category accent colors: Linh flagged every section-header/
    category-pill box as the exact same lavender, hard to tell categories
    apart at a glance. category-color-0..7 are a fixed 8-color palette,
-   assigned to each section/category name via a stable hash
-   (lib/newsItem.ts's categoryColorClass) so "World / Geopolitics" is
-   always the same color everywhere it appears (its own section-header
-   AND every article's pill within that section), without hardcoding the
-   actual category names anywhere — new categories the daily-news task
-   invents just land in whichever bucket their name hashes to.
+   assigned to each section/category (or, for the meal-plan grid below,
+   each meal type) name via a stable hash (lib/colorHash.ts's
+   categoryColorClass) so "World / Geopolitics" — or "Dinner" — is
+   always the same color everywhere it appears (a section's own
+   section-header AND every article's pill within it; a meal's own
+   meal-row wherever that meal type shows up), without hardcoding the
+   actual names anywhere — a new category or meal type just lands in
+   whichever bucket its name hashes to.
 
-   Each rule pairs .section-header and .category-pill together (rather
-   than one shared class) so this can be combined with the existing
-   single-color .section-header/.category-pill rules above: two classes
-   in the selector (e.g. .section-header.category-color-3) beats the
-   earlier one-class rule regardless of source order, the same
-   selective-specificity-escalation trick used elsewhere in this file
-   instead of !important. Border/text stay pure black either way — only
-   the background swaps per bucket. */
+   Each rule pairs .section-header, .category-pill and .meal-row
+   together (rather than one shared class) so this can be combined with
+   the existing single-color .section-header/.category-pill rules
+   above: two classes in the selector (e.g.
+   .section-header.category-color-3) beats the earlier one-class rule
+   regardless of source order, the same selective-specificity-escalation
+   trick used elsewhere in this file instead of !important. Border/text
+   stay pure black either way — only the background swaps per bucket. */
 :where(html[data-theme="neobrutal"]) .section-header.category-color-0,
-:where(html[data-theme="neobrutal"]) .category-pill.category-color-0 {
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-0,
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-0 {
   background: var(--color-purple-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-1,
-:where(html[data-theme="neobrutal"]) .category-pill.category-color-1 {
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-1,
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-1 {
   background: var(--color-blue-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-2,
-:where(html[data-theme="neobrutal"]) .category-pill.category-color-2 {
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-2,
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-2 {
   background: var(--color-emerald-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-3,
-:where(html[data-theme="neobrutal"]) .category-pill.category-color-3 {
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-3,
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-3 {
   background: var(--color-amber-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-4,
-:where(html[data-theme="neobrutal"]) .category-pill.category-color-4 {
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-4,
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-4 {
   background: var(--color-rose-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-5,
-:where(html[data-theme="neobrutal"]) .category-pill.category-color-5 {
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-5,
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-5 {
   /* Sky blue — not tied to an existing --color-* family, since every
      family already maps to one of the buckets above; a category-only
      hex keeps this bucket visually distinct from all the others. */
   background: #9fd8f0;
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-6,
-:where(html[data-theme="neobrutal"]) .category-pill.category-color-6 {
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-6,
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-6 {
   /* Tan/khaki — category-only hex, same reasoning as color-5. */
   background: #d8c8a0;
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-7,
-:where(html[data-theme="neobrutal"]) .category-pill.category-color-7 {
+:where(html[data-theme="neobrutal"]) .category-pill.category-color-7,
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-7 {
   /* Mint — category-only hex, same reasoning as color-5. */
   background: #b8e8d8;
+}
+
+/* Meal-plan day cards (LUNCH/DINNER/... rows): previously just a plain
+   border-t border-slate-100 divider between meals stacked in the same
+   day card. Under Neobrutal, the general single-side border rules
+   earlier in this file (border-width/border-color are CSS shorthands,
+   so they paint all four sides of whatever they match, not only the
+   named side) already turned this into a thin, low-contrast tan box —
+   Linh flagged it as "ugly grey boxes" and suggested black boxes with a
+   different fill per meal, which is exactly the per-category palette
+   above, keyed on the meal name instead of a news category.
+
+   first:border-0 first:pt-0 (Tailwind, kept in the JSX for Classic/
+   Haven, where each day's first meal still has no divider above it)
+   would otherwise also strip this box's border/padding on the day's
+   first meal — first:border-0 compiles to a class+pseudo-class
+   selector, higher specificity than a plain :where()-wrapped class, so
+   it'd normally win. Repeating :first-child here matches that same
+   specificity level, so the explicit box wins on every row including
+   the first — see the :where() note near the top of this section for
+   why a plain (non-:where()) selector isn't the right way to do that.
+   meal-row is a plain hook added in components/MealPlanGrid.tsx with no
+   effect in other themes. */
+:where(html[data-theme="neobrutal"]) .meal-row,
+:where(html[data-theme="neobrutal"]) .meal-row:first-child {
+  border: 2px solid #000;
+  border-radius: 0;
+  padding: 1rem;
 }
 
 /* News rating buttons (flame/thumbs-up/thumbs-down): same "colored
@@ -543,4 +581,26 @@ html[data-theme="neobrutal"] {
    stays black per the earlier "black-lined" request. */
 :where(html[data-theme="neobrutal"]) .byline-row.border-t.border-slate-100 {
   background: var(--color-blue-50);
+}
+
+/* Recipe modal body (title/Quelle/notes/ingredients block, or the "No
+   local recipe file saved" fallback line): same underlying cause as
+   briefing-footer/meal-row above — a bare border-t border-slate-100
+   divider becomes a full thin tan box once the general single-side
+   border rules paint all four sides. Linh called it a "grey line box"
+   and asked for something consistent with the rest of the theme, so
+   this gets the same explicit black-border, sharp-corner treatment as
+   every other Neobrutal box, plus a cream fill (--color-slate-50, the
+   theme's page background) so it visually separates from the modal's
+   plain white card rather than just adding an outline on more white.
+   No per-category color here — unlike the news pills or meal-plan
+   rows, this box represents a single recipe's own details rather than
+   one of several same-shaped items that benefit from being told apart
+   by color. recipe-body is a plain hook added in components/
+   RecipesBoard.tsx with no effect in other themes. */
+:where(html[data-theme="neobrutal"]) .recipe-body {
+  border: 2px solid #000;
+  border-radius: 0;
+  padding: 1.25rem;
+  background: var(--color-slate-50);
 }

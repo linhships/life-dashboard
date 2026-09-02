@@ -111,19 +111,9 @@ export function avatarColor(name: string): string {
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
 
-// Number of distinct box colors defined for .category-color-N in
-// globals.css's Neobrutal section — keep in sync if the palette there
-// grows or shrinks.
-const CATEGORY_COLOR_COUNT = 8;
-
-// Deterministic per-category accent color, same hash approach as
-// avatarColor above (just a different bucket count/target). Used on both
-// a section's .section-header box and every .category-pill inside that
-// section's cards, keyed on the section name so they always match each
-// other — a plain className hook with zero effect in Classic/Haven,
-// which don't read .category-color-N at all.
-export function categoryColorClass(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return `category-color-${h % CATEGORY_COLOR_COUNT}`;
-}
+// Deterministic per-category accent color (section-header/category-pill
+// boxes) — moved into lib/colorHash.ts so the meal-plan grid can share
+// the exact same hash + 8-color palette for its own meal-type boxes.
+// Re-exported here so existing `from "@/lib/newsItem"` imports keep
+// working unchanged.
+export { categoryColorClass } from "./colorHash";

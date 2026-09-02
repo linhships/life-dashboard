@@ -159,11 +159,11 @@ function RecipeModal({ recipe, onClose }: { recipe: RecipeCardData; onClose: () 
           )}
 
           {recipe.markdown ? (
-            <div className="prose-slate mt-5 max-w-none border-t border-slate-100 pt-5 text-sm text-slate-700 [&_h1]:mb-2 [&_h1]:text-base [&_h1]:font-bold [&_h1]:text-slate-900 [&_h2]:mb-2 [&_h2]:mt-5 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:first:mt-0 [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_a]:text-blue-600 [&_a:hover]:underline [&_em]:text-slate-500 [&_strong]:font-semibold [&_strong]:text-slate-900 [&_p]:mt-2">
+            <div className="recipe-body prose-slate mt-5 max-w-none border-t border-slate-100 pt-5 text-sm text-slate-700 [&_h1]:mb-2 [&_h1]:text-base [&_h1]:font-bold [&_h1]:text-slate-900 [&_h2]:mb-2 [&_h2]:mt-5 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:first:mt-0 [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_a]:text-blue-600 [&_a:hover]:underline [&_em]:text-slate-500 [&_strong]:font-semibold [&_strong]:text-slate-900 [&_p]:mt-2">
               <ReactMarkdown>{recipe.markdown}</ReactMarkdown>
             </div>
           ) : (
-            <p className="mt-5 border-t border-slate-100 pt-5 text-sm text-slate-500">
+            <p className="recipe-body mt-5 border-t border-slate-100 pt-5 text-sm text-slate-500">
               No local recipe file saved for this dish yet — use the source link above.
             </p>
           )}

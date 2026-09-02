@@ -7,6 +7,7 @@ import type { Kid, KidRating, MealFeedbackEntry, MealRow } from "@/lib/mealplan"
 import { dateForDay } from "@/lib/weekdays";
 import { splitDishes } from "@/lib/dishes";
 import { hashId } from "@/lib/hash";
+import { categoryColorClass } from "@/lib/colorHash";
 
 const markdownComponents = {
   p: (props: React.ComponentProps<"p">) => <p className="m-0" {...props} />,
@@ -172,7 +173,12 @@ export function MealPlanGrid({
           </h2>
           <div className="space-y-3">
             {group.rows.map((row) => (
-              <div key={row.id} className="border-t border-slate-100 pt-3 first:border-0 first:pt-0">
+              <div
+                key={row.id}
+                className={`meal-row ${categoryColorClass(
+                  row.meal
+                )} border-t border-slate-100 pt-3 first:border-0 first:pt-0`}
+              >
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   {row.meal}
                 </p>
