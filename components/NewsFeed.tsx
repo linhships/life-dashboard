@@ -95,6 +95,7 @@ function ArticleCard({
       <h3 className="mt-3 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
         {item.headline}
       </h3>
+      <p className="mt-1 text-xs text-slate-400">{item.date}</p>
 
       {excerpt && (
         <>
@@ -174,34 +175,31 @@ function ArticleCard({
             <span className="text-sm text-slate-400">Source not linked</span>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <span className="text-xs text-slate-400">{item.date}</span>
-          <div className="flex items-center gap-1.5">
-            <RateButton
-              active={rating === "love"}
-              tone="love"
-              label="Loved it"
-              onClick={() => onRate(item, "love")}
-            >
-              <Flame className="h-3.5 w-3.5" />
-            </RateButton>
-            <RateButton
-              active={rating === "up"}
-              tone="up"
-              label="Liked it"
-              onClick={() => onRate(item, "up")}
-            >
-              <ThumbsUp className="h-3.5 w-3.5" />
-            </RateButton>
-            <RateButton
-              active={rating === "down"}
-              tone="down"
-              label="Not interested"
-              onClick={() => onRate(item, "down")}
-            >
-              <ThumbsDown className="h-3.5 w-3.5" />
-            </RateButton>
-          </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <RateButton
+            active={rating === "love"}
+            tone="love"
+            label="Loved it"
+            onClick={() => onRate(item, "love")}
+          >
+            <Flame className="h-3.5 w-3.5" />
+          </RateButton>
+          <RateButton
+            active={rating === "up"}
+            tone="up"
+            label="Liked it"
+            onClick={() => onRate(item, "up")}
+          >
+            <ThumbsUp className="h-3.5 w-3.5" />
+          </RateButton>
+          <RateButton
+            active={rating === "down"}
+            tone="down"
+            label="Not interested"
+            onClick={() => onRate(item, "down")}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" />
+          </RateButton>
         </div>
       </div>
     </div>
