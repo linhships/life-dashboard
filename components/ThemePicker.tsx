@@ -6,7 +6,17 @@ import { THEMES, applyTheme, getStoredTheme, type ThemeId } from "@/lib/themePre
 
 // Small static swatch previews so each option is recognizable before it's
 // selected — hand-picked to match the palettes defined in globals.css.
-const SWATCHES: Record<ThemeId, { bg: string; card: string; accent: string; accent2: string; radius: string }> = {
+interface Swatch {
+  bg: string;
+  card: string;
+  accent: string;
+  accent2: string;
+  radius: string;
+  border?: string;
+  shadow?: string;
+}
+
+const SWATCHES: Record<ThemeId, Swatch> = {
   classic: {
     bg: "#f8fafc",
     card: "#ffffff",
@@ -20,6 +30,15 @@ const SWATCHES: Record<ThemeId, { bg: string; card: string; accent: string; acce
     accent: "#1f9c8a",
     accent2: "#8b6cc9",
     radius: "1.125rem",
+  },
+  neobrutal: {
+    bg: "#fdfcf2",
+    card: "#ffffff",
+    accent: "#2547f4",
+    accent2: "#d9a300",
+    radius: "0.1875rem",
+    border: "2px solid #000",
+    shadow: "3px 3px 0 0 #000",
   },
 };
 
@@ -38,7 +57,7 @@ export function ThemePicker() {
   }
 
   return (
-    <div className={`grid gap-4 sm:grid-cols-2 ${ready ? "" : "opacity-0"}`}>
+    <div className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 ${ready ? "" : "opacity-0"}`}>
       {THEMES.map((option) => {
         const swatch = SWATCHES[option.id];
         const selected = theme === option.id;
@@ -60,24 +79,41 @@ export function ThemePicker() {
             )}
 
             {/* Mini preview card rendered with the theme's own literal hex
-                values (not live CSS vars) so both options are visible
+                values (not live CSS vars) so all options are visible
                 side-by-side regardless of which theme is currently active. */}
             <div
-              className="mb-3 flex h-20 items-center gap-2 border border-slate-200 p-3"
-              style={{ background: swatch.bg, borderRadius: swatch.radius }}
+              className="mb-3 flex h-20 items-center gap-2 p-3"
+              style={{
+                background: swatch.bg,
+                borderRadius: swatch.radius,
+                border: swatch.border ?? "1px solid #e2e8f0",
+                boxShadow: swatch.shadow,
+              }}
             >
               <div
                 className="h-10 w-10 shrink-0"
-                style={{ background: swatch.accent, borderRadius: swatch.radius }}
+                style={{
+                  background: swatch.accent,
+                  borderRadius: swatch.radius,
+                  border: swatch.border,
+                }}
               />
               <div className="flex flex-1 flex-col gap-1.5">
                 <div
                   className="h-3 w-3/4"
-                  style={{ background: swatch.card, borderRadius: "999px" }}
+                  style={{
+                    background: swatch.card,
+                    borderRadius: swatch.border ? "2px" : "999px",
+                    border: swatch.border,
+                  }}
                 />
                 <div
                   className="h-3 w-1/2"
-                  style={{ background: swatch.accent2, opacity: 0.5, borderRadius: "999px" }}
+                  style={{
+                    background: swatch.accent2,
+                    opacity: swatch.border ? 1 : 0.5,
+                    borderRadius: swatch.border ? "2px" : "999px",
+                  }}
                 />
               </div>
             </div>

@@ -81,3 +81,96 @@ html[data-theme="haven"] {
   --radius-xl: 1.125rem;
   --radius-2xl: 1.5rem;
 }
+
+/* Neobrutal theme: bold flat color, thick black borders, hard offset
+   shadows, sharp corners — in the spirit of the "neobrutalism" web design
+   trend (e.g. lovable.dev/templates/apps/saas/neobrutal-landing-creator).
+   Same swap-the-variables mechanism as Haven for backgrounds/accent
+   colors and corner radius. Borders and shadows aren't exposed as
+   overridable design tokens by Tailwind, so those are repainted by
+   targeting the compiled utility classes directly (still zero component
+   markup changes) rather than a variable. */
+html[data-theme="neobrutal"] {
+  --background: #fdfcf2;
+  --foreground: #0a0a0a;
+
+  /* Page/card background: stark cream paper. Leaves slate-200 and up
+     alone (they're the border/secondary-text shades used all over —
+     see the block below for how borders get their black treatment). */
+  --color-slate-50: #fdfcf2;
+  --color-slate-100: #f7f4e3;
+
+  /* Primary accent: blue -> electric cobalt */
+  --color-blue-50: #eaf0ff;
+  --color-blue-100: #d1defe;
+  --color-blue-200: #a3bdfd;
+  --color-blue-300: #7a9dfb;
+  --color-blue-600: #2547f4;
+  --color-blue-700: #1c35c2;
+  --color-blue-800: #16299a;
+
+  /* Secondary accent: emerald -> bold kelly green */
+  --color-emerald-50: #e9f9ee;
+  --color-emerald-100: #c9f0d6;
+  --color-emerald-200: #97e0b1;
+  --color-emerald-600: #0f9d58;
+  --color-emerald-700: #0b7a44;
+
+  /* Negative/danger: rose -> hot red */
+  --color-rose-50: #ffe9ea;
+  --color-rose-100: #ffc9cc;
+  --color-rose-200: #ff9ba0;
+  --color-rose-600: #ef1f2e;
+  --color-rose-700: #c0141f;
+
+  /* Purple -> electric violet */
+  --color-purple-50: #f2ebff;
+  --color-purple-100: #e0cfff;
+  --color-purple-600: #7c2ff0;
+  --color-purple-700: #5f1fc2;
+
+  /* Amber -> mustard/brutalist yellow */
+  --color-amber-50: #fff8dc;
+  --color-amber-100: #fdecab;
+  --color-amber-200: #fbdd6e;
+  --color-amber-600: #d9a300;
+  --color-amber-700: #a97e00;
+
+  /* Sharp, minimal corners */
+  --radius-md: 0.1875rem;
+  --radius-lg: 0.1875rem;
+  --radius-xl: 0.3125rem;
+  --radius-2xl: 0.375rem;
+}
+
+/* Borders: heavier and pure black, regardless of which shade of slate a
+   component happened to use for its border color. rounded-full circles
+   (avatars, dots) are left untouched on purpose. */
+html[data-theme="neobrutal"] .border,
+html[data-theme="neobrutal"] .border-2,
+html[data-theme="neobrutal"] .border-t,
+html[data-theme="neobrutal"] .border-b,
+html[data-theme="neobrutal"] .border-l,
+html[data-theme="neobrutal"] .border-r {
+  border-width: 2px;
+}
+html[data-theme="neobrutal"] .border-slate-100,
+html[data-theme="neobrutal"] .border-slate-200,
+html[data-theme="neobrutal"] .border-slate-300 {
+  border-color: #000;
+}
+
+/* Shadows: flat, hard-edged, offset — no blur, no soft ambient shade. */
+html[data-theme="neobrutal"] .shadow-sm {
+  box-shadow: 2px 2px 0 0 #000 !important;
+}
+html[data-theme="neobrutal"] .shadow-md,
+html[data-theme="neobrutal"] .hover\:shadow-md:hover {
+  box-shadow: 3px 3px 0 0 #000 !important;
+}
+html[data-theme="neobrutal"] .shadow-lg {
+  box-shadow: 5px 5px 0 0 #000 !important;
+}
+html[data-theme="neobrutal"] .shadow-xl {
+  box-shadow: 7px 7px 0 0 #000 !important;
+}
