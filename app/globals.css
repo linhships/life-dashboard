@@ -313,19 +313,20 @@ html[data-theme="neobrutal"] {
   border: 2px solid #000;
   border-radius: 0;
   padding: 0.75rem;
-  /* Was margin-top: auto, to pin the box flush against the card's
-     bottom edge regardless of story length (see article-card/
-     article-card-body below) — but an auto margin claims *all* the
-     leftover space in the column, so the gap above the box ended up
-     smaller than its left/right/bottom padding on cards with a longer
-     excerpt, which Linh then flagged as inconsistent. Fixed to the
-     same 1.75rem as the card's own p-5 padding (see article-card-body),
-     matching all four sides exactly. Trade-off: on a row where one
-     card's content is much shorter than its sibling, the box on the
-     shorter card may now sit a bit above the very bottom edge rather
-     than perfectly flush with it — a fixed, always-even margin was the
-     more recent, more specific ask, so that's what this now guarantees. */
-  margin-top: 1.75rem;
+  /* margin-top: auto claims all the leftover space in the column,
+     pinning the box flush against the card's bottom edge regardless of
+     story length (see article-card/article-card-body below, which make
+     the card and its body flex columns for exactly this). A fixed
+     margin-top was tried instead (same 1.75rem as the card's p-5) so
+     all four sides matched evenly, but on a grid row where one card's
+     excerpt is shorter than its sibling's, that left visible dead space
+     below the box instead of the box sitting flush with the bottom —
+     which Linh flagged as "still not fixed to the bottom." A flush
+     bottom (and, since the box is full-width inside the padded card
+     body, an equally fixed right margin) is the more important
+     guarantee, so this reverts to auto; the top gap is now whatever's
+     left over rather than a fixed value. */
+  margin-top: auto;
 }
 
 /* News article card (grid layout): a row can hold two cards whose
