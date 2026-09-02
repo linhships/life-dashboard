@@ -348,7 +348,12 @@ export function Sidebar() {
               }`}
             >
               {FINANCE_ITEMS.map((item) => {
-                const isActive = activeId === item.id;
+                // activeId is only kept in sync by the scroll observer
+                // while onHome (see the useEffect above) — off the home
+                // page it just holds whatever it was last set to, so
+                // without the onHome check here "Overview" (its default
+                // value) would show as active on every other page too.
+                const isActive = onHome && activeId === item.id;
                 return (
                   <li key={item.id}>
                     <button
