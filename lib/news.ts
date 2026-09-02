@@ -52,7 +52,10 @@ function newsDir(): string {
 
 const SUMMARY_RE = /^(\d{4}-\d{2}-\d{2})-news-summary\.md$/;
 
-export type Rating = "down" | "up" | "love";
+// "none" represents a cleared/undone rating — clicking an already-active
+// rate button sends this so the log's "last line wins" reduction (see
+// readLatestFeedback below) correctly shows the item as unrated again.
+export type Rating = "down" | "up" | "love" | "none";
 
 export interface NewsItem {
   id: string;

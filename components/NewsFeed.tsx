@@ -11,7 +11,13 @@ interface FeedbackEntry {
   rating: Rating;
 }
 
-const TONE_CLASSES: Record<Rating, string> = {
+// The tone a single button represents is always one of these three —
+// "none" (in Rating) is the absence of a rating, never a button's own
+// tone, same split as MealPlanGrid's KidRating ("up"|"down"|"none") vs.
+// its TONE_CLASSES (Record<"up" | "down", string>).
+type RateTone = "down" | "up" | "love";
+
+const TONE_CLASSES: Record<RateTone, string> = {
   down: "bg-rose-50 text-rose-600 border-rose-200",
   up: "bg-emerald-50 text-emerald-600 border-emerald-200",
   love: "bg-amber-50 text-amber-600 border-amber-200",
@@ -25,7 +31,7 @@ function RateButton({
   children,
 }: {
   active: boolean;
-  tone: Rating;
+  tone: RateTone;
   label: string;
   onClick: () => void;
   children: React.ReactNode;
@@ -59,7 +65,7 @@ function ArticleCard({
 }: {
   item: NewsItem;
   rating: Rating | undefined;
-  onRate: (item: NewsItem, rating: Rating) => void;
+  onRate: (item: NewsItem, rating: RateTone) => void;
 }) {
   const { sources, excerpt } = useMemo(() => parseNewsItemBody(item.markdown), [item.markdown]);
   const primarySource = sources[0];
@@ -238,12 +244,24 @@ export function NewsFeed({
   initialFeedback: Record<string, FeedbackEntry>;
 }) {
   const [feedback, setFeedback] = useState<Record<string, Rating>>(() =>
-    Object.fromEntries(Object.entries(initialFeedback).map(([id, f]) => [id, f.rating]))
+    Object.fromEntries(
+      Object.entries(initialFeedback)
+        .filter(([, f]) => f.rating !== "none")
+        .map(([id, f]) => [id, f.rating])
+    )
   );
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const rate = (item: NewsItem, rating: Rating) => {
-    setFeedback((prev) => ({ ...prev, [item.id]: rating }));
+  const rate = (item: NewsItem, clicked: RateTone) => {
+    // Clicking the already-active button clears the rating — same
+    // toggle-to-undo behavior as the meal-plan rate buttons.
+    const rating: Rating = feedback[item.id] === clicked ? "none" : clicked;
+    setFeedback((prev) => {
+      const next = { ...prev };
+      if (rating === "none") delete next[item.id];
+      else next[item.id] = rating;
+      return next;
+    });
     fetch("/api/news/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

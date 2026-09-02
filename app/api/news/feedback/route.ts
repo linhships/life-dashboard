@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   if (!id || !date || !section || !headline || !rating) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
-  if (!["down", "up", "love"].includes(rating)) {
+  if (!["down", "up", "love", "none"].includes(rating)) {
     return NextResponse.json({ error: "Invalid rating" }, { status: 400 });
   }
 

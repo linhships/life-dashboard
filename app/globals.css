@@ -266,9 +266,17 @@ html[data-theme="neobrutal"] {
    three visible edges instead of evenly spaced. Matched to a uniform
    0.75rem — the same value pb-3 already was, so the bottom doesn't
    move. section-header is a plain hook added in components/NewsFeed.tsx
-   with no effect in other themes. */
+   with no effect in other themes. Colored to match the category-pill
+   treatment inside each card below it — both represent the same idea
+   (a section/category label), so they share the same lavender/purple
+   rather than introducing a separate hue just for this one element. */
 :where(html[data-theme="neobrutal"]) .section-header {
   padding: 0.75rem;
+  border-color: var(--color-purple-600);
+  background: var(--color-purple-100);
+}
+:where(html[data-theme="neobrutal"]) .section-header h2 {
+  color: var(--color-purple-700);
 }
 
 /* News article byline row (source names, date, rating buttons): in
@@ -300,19 +308,19 @@ html[data-theme="neobrutal"] {
   border: 2px solid #000;
   border-radius: 0;
   padding: 0.75rem;
-  /* Pins the box to the card's bottom edge (see article-card/
-     article-card-body below) instead of sitting wherever normal flow
-     leaves it after a headline+excerpt of whatever length that
-     particular story happens to have — which was why two cards side by
-     side in the same grid row (one with a short excerpt, one with a
-     long one) ended up with different amounts of empty space below
-     their boxes. margin-top: auto in a flex column consumes all the
-     leftover vertical space above this element, so the box always ends
-     up flush against the bottom with the same 0.75rem margin — same
-     idea as the right edge, which was already consistent because it's
-     just this box's own padding against the card's own padding on
-     every card, not something that varies with content length. */
-  margin-top: auto;
+  /* Was margin-top: auto, to pin the box flush against the card's
+     bottom edge regardless of story length (see article-card/
+     article-card-body below) — but an auto margin claims *all* the
+     leftover space in the column, so the gap above the box ended up
+     smaller than its left/right/bottom padding on cards with a longer
+     excerpt, which Linh then flagged as inconsistent. Fixed to the
+     same 1.75rem as the card's own p-5 padding (see article-card-body),
+     matching all four sides exactly. Trade-off: on a row where one
+     card's content is much shorter than its sibling, the box on the
+     shorter card may now sit a bit above the very bottom edge rather
+     than perfectly flush with it — a fixed, always-even margin was the
+     more recent, more specific ask, so that's what this now guarantees. */
+  margin-top: 1.75rem;
 }
 
 /* News article card (grid layout): a row can hold two cards whose
