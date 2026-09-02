@@ -69,6 +69,14 @@ function newsDir(): string {
 
 const SUMMARY_RE = /^(\d{4}-\d{2}-\d{2})-news-summary\.md$/;
 
+// The daily-news task splits AI-related stories into their own dated file
+// (added 2026-08-31 per that task's own CLAUDE.md, "AI news — separate
+// briefing file") — same folder, same markdown shape as the main summary,
+// just a different filename suffix and read/rendered as a fully separate
+// briefing (own page, own feedback log) rather than merged into the main
+// one.
+const AI_SUMMARY_RE = /^(\d{4}-\d{2}-\d{2})-ai-briefing\.md$/;
+
 // "none" represents a cleared/undone rating — clicking an already-active
 // rate button sends this so the log's "last line wins" reduction (see
 // readLatestFeedback below) correctly shows the item as unrated again.
@@ -228,6 +236,25 @@ export function getLatestBriefing(): NewsBriefing | null {
   return parseBriefing(raw, date);
 }
 
+export function listAiBriefingDates(): string[] {
+  const dir = newsDir();
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(/* turbopackIgnore: true */ dir)
+    .map((f) => f.match(AI_SUMMARY_RE)?.[1])
+    .filter((d): d is string => Boolean(d))
+    .sort()
+    .reverse();
+}
+
+export function getLatestAiBriefing(): NewsBriefing | null {
+  const dates = listAiBriefingDates();
+  if (dates.length === 0) return null;
+  const date = dates[0];
+  const raw = fs.readFileSync(path.join(newsDir(), `${date}-ai-briefing.md`), "utf-8");
+  return parseBriefing(raw, date);
+}
+
 function feedbackPath(): string {
   return path.join(newsDir(), "feedback.jsonl");
 }
@@ -238,11 +265,41 @@ export function appendFeedback(entry: FeedbackEntry): void {
   fs.appendFileSync(feedbackPath(), JSON.stringify(entry) + "\n", "utf-8");
 }
 
+// Kept as a separate log from feedbackPath() above rather than shared —
+// mirrors the daily-news task's own choice to keep AI content in a
+// wholly separate dated file from the main summary, so ratings for one
+// briefing never get mixed into the other's history.
+function aiFeedbackPath(): string {
+  return path.join(newsDir(), "ai-feedback.jsonl");
+}
+
+export function appendAiFeedback(entry: FeedbackEntry): void {
+  const dir = newsDir();
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.appendFileSync(aiFeedbackPath(), JSON.stringify(entry) + "\n", "utf-8");
+}
+
 // Append-only log — last line for a given id wins, so this reduces the log
 // to "current" ratings while keeping the full history on disk for the
 // daily-news task to mine later (e.g. re-deriving topic preferences).
 export function readLatestFeedback(): Record<string, FeedbackEntry> {
   const p = feedbackPath();
+  if (!fs.existsSync(p)) return {};
+  const lines = fs.readFileSync(p, "utf-8").split("\n").filter(Boolean);
+  const map: Record<string, FeedbackEntry> = {};
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line) as FeedbackEntry;
+      map[entry.id] = entry;
+    } catch {
+      // skip malformed lines rather than fail the whole read
+    }
+  }
+  return map;
+}
+
+export function readLatestAiFeedback(): Record<string, FeedbackEntry> {
+  const p = aiFeedbackPath();
   if (!fs.existsSync(p)) return {};
   const lines = fs.readFileSync(p, "utf-8").split("\n").filter(Boolean);
   const map: Record<string, FeedbackEntry> = {};

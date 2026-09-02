@@ -41,17 +41,29 @@ interface RouteGroup {
   items: RouteSubItem[];
 }
 
-const TOP_LEVEL_LINKS: TopLevelLink[] = [
-  { href: "/news", label: "Daily Briefing", icon: Newspaper },
-  { href: "/links", label: "Links", icon: Link2 },
-];
+const TOP_LEVEL_LINKS: TopLevelLink[] = [{ href: "/links", label: "Links", icon: Link2 }];
 
 // Collapsible parent groups for routes that belong together — each one
 // starts collapsed and only auto-expands when the page currently open is
 // one of its own children (see the useEffect below). Adding a new grouped
 // section is just adding an entry here; the open/close state and active
 // highlighting are handled generically for all of them.
+//
+// Every child href here needs to NOT be a path-prefix of another child's
+// href (in this group or any other) — active-state checks below use
+// pathname?.startsWith(item.href), so e.g. "/news" and "/news/ai" would
+// both light up while actually on "/news/ai". That's why the AI briefing
+// route is the sibling "/ai-news" rather than a nested "/news/ai".
 const ROUTE_GROUPS: RouteGroup[] = [
+  {
+    key: "news",
+    label: "News",
+    icon: Newspaper,
+    items: [
+      { href: "/news", label: "Daily Briefing" },
+      { href: "/ai-news", label: "AI Briefing" },
+    ],
+  },
   {
     key: "food",
     label: "Food",

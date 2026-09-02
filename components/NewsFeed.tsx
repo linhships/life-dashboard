@@ -239,9 +239,15 @@ function groupBySection(items: NewsItem[]): Section[] {
 export function NewsFeed({
   items,
   initialFeedback,
+  feedbackUrl = "/api/news/feedback",
 }: {
   items: NewsItem[];
   initialFeedback: Record<string, FeedbackEntry>;
+  // Lets a second briefing (the AI daily briefing, app/ai-news/page.tsx)
+  // reuse this exact component while logging ratings to its own separate
+  // feedback file instead of the main briefing's — see lib/news.ts's
+  // appendAiFeedback/readLatestAiFeedback.
+  feedbackUrl?: string;
 }) {
   const [feedback, setFeedback] = useState<Record<string, Rating>>(() =>
     Object.fromEntries(
@@ -262,7 +268,7 @@ export function NewsFeed({
       else next[item.id] = rating;
       return next;
     });
-    fetch("/api/news/feedback", {
+    fetch(feedbackUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
