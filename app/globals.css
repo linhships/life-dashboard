@@ -497,15 +497,25 @@ html[data-theme="neobrutal"] {
   background: #b8e8d8;
 }
 
-/* Calendar month grid (components/CalendarMonthView.tsx), styled after
-   Untitled UI's calendar component. Day-cell borders and the card/shadow
-   chrome already repaint via the generic .border-slate-200/.shadow-sm
-   rules above — event-chip is the one bit that needs its own rule, same
-   "colored background, black border/text" treatment as category-pill,
-   with the actual fill coming from the category-color-N pairing above.
+/* Calendar (components/CalendarView.tsx: month grid, week/day timeline),
+   styled after Untitled UI's calendar component and, for the week/day
+   timeline specifically, Apple Calendar's readable event blocks (title +
+   time + location, not just a color sliver). Day-cell/timeline-column
+   borders and the card/shadow chrome already repaint via the generic
+   .border-slate-200/.shadow-sm rules above — event-chip is the one bit
+   that needs its own rule, same "colored fill, black border/text"
+   treatment as category-pill, with the actual fill coming from the
+   category-color-N pairing above. Classic/Haven give event-chip a
+   border-l-4 accent bar (see CHIP_ACCENTS in the component); Neobrutal
+   only has one visible border side to repaint here too, so the same
+   border-color: #000 rule works whether it's a full border (month-grid
+   compact chip) or just the left bar (timeline block/all-day pill).
    calendar-day-number--today is a plain hook with no effect in other
    themes, kept square instead of Classic/Haven's rounded-full dot to
-   match the flat/sharp Neobrutal language used everywhere else. */
+   match the flat/sharp Neobrutal language used everywhere else.
+   calendar-now-line (the live current-time marker in the timeline) is
+   left alone — rose-500 already reads correctly against Neobrutal's own
+   remapped rose/crimson via the color-var system, no override needed. */
 :where(html[data-theme="neobrutal"]) .event-chip {
   border-color: #000;
   color: #000;

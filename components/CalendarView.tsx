@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import type { CalendarEvent } from "@/lib/troettgerCalendar";
 import { categoryColorClass } from "@/lib/colorHash";
 
@@ -18,28 +18,34 @@ type ViewMode = "month" | "week" | "day";
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_VISIBLE_PER_DAY = 3;
-const HOUR_HEIGHT = 48; // px per hour in the week/day timeline
+const HOUR_HEIGHT = 64; // px per hour in the week/day timeline — tall enough
+// for a title + time + location line to actually be readable, not just a
+// sliver of color (Linh's "make the view more like this so one can read
+// more" feedback, referencing Apple Calendar's week view).
+const GUTTER_WIDTH = 56; // px, the hour-label column in the timeline
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-// Pastel chip palette for Classic/Haven, one entry per colorHash bucket so
-// an event's color stays stable across renders. Neobrutal repaints the
-// same category-color-N hook class with its own flat/bold palette (see
-// globals.css) — this array is only what Classic/Haven actually see.
-const CHIP_PALETTES = [
-  "bg-purple-50 text-purple-700 border-purple-200",
-  "bg-blue-50 text-blue-700 border-blue-200",
-  "bg-emerald-50 text-emerald-700 border-emerald-200",
-  "bg-amber-50 text-amber-700 border-amber-200",
-  "bg-rose-50 text-rose-700 border-rose-200",
-  "bg-sky-50 text-sky-700 border-sky-200",
-  "bg-orange-50 text-orange-700 border-orange-200",
-  "bg-teal-50 text-teal-700 border-teal-200",
+// Color-per-event accent for Classic/Haven — a light tint fill plus a
+// stronger left border bar (Apple Calendar-style block), one entry per
+// colorHash bucket so an event's color stays stable across renders.
+// Neobrutal repaints the same category-color-N hook class with its own
+// flat/bold palette (see globals.css) — this array is only what
+// Classic/Haven actually see.
+const CHIP_ACCENTS = [
+  { bg: "bg-purple-50", border: "border-purple-400" },
+  { bg: "bg-blue-50", border: "border-blue-400" },
+  { bg: "bg-emerald-50", border: "border-emerald-400" },
+  { bg: "bg-amber-50", border: "border-amber-400" },
+  { bg: "bg-rose-50", border: "border-rose-400" },
+  { bg: "bg-sky-50", border: "border-sky-400" },
+  { bg: "bg-orange-50", border: "border-orange-400" },
+  { bg: "bg-teal-50", border: "border-teal-400" },
 ];
 
-function chipPalette(name: string): string {
+function chipAccent(name: string): { bg: string; border: string } {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return CHIP_PALETTES[h % CHIP_PALETTES.length];
+  return CHIP_ACCENTS[h % CHIP_ACCENTS.length];
 }
 
 function dayKey(iso: string): string {
@@ -52,6 +58,11 @@ function isoDateKey(d: Date): string {
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" });
+}
+
+function formatTimeRange(event: CalendarEvent): string {
+  if (!event.end) return formatTime(event.start);
+  return `${formatTime(event.start)} – ${formatTime(event.end)}`;
 }
 
 function formatHourLabel(h: number): string {
@@ -139,24 +150,73 @@ function layoutDayTimedEvents(dayEvents: CalendarEvent[]): LaidOutEvent[] {
   return placed.map((p) => ({
     event: p.event,
     top: (p.startMinutes / 60) * HOUR_HEIGHT,
-    height: Math.max(((p.endMinutes - p.startMinutes) / 60) * HOUR_HEIGHT, 20),
+    height: Math.max(((p.endMinutes - p.startMinutes) / 60) * HOUR_HEIGHT, 34),
     lane: p.lane,
     laneCount,
   }));
 }
 
+// Compact single-line chip — used in the month grid, where each day cell
+// is small and just needs to hint what's there.
 function EventChip({ event, showTime }: { event: CalendarEvent; showTime: boolean }) {
+  const accent = chipAccent(event.title);
   return (
     <div
       title={event.title}
-      className={`event-chip ${chipPalette(event.title)} ${categoryColorClass(
+      className={`event-chip ${accent.bg} ${accent.border} ${categoryColorClass(
         event.title
-      )} truncate rounded border px-1.5 py-0.5 text-[11px] font-medium`}
+      )} truncate rounded-md border-l-4 px-1.5 py-0.5 text-[11px] font-medium text-slate-800`}
     >
       {showTime && !event.allDay && (
         <span className="event-chip-time opacity-70">{formatTime(event.start)} </span>
       )}
       {event.title}
+    </div>
+  );
+}
+
+// Rounded pill for the all-day row in week/day view — roomier than the
+// month-grid chip since there's a whole row's height to use.
+function AllDayPill({ event }: { event: CalendarEvent }) {
+  const accent = chipAccent(event.title);
+  return (
+    <div
+      title={event.title}
+      className={`event-chip ${accent.bg} ${accent.border} ${categoryColorClass(
+        event.title
+      )} truncate rounded-full border-l-4 px-3 py-1 text-[12px] font-medium text-slate-800`}
+    >
+      {event.title}
+    </div>
+  );
+}
+
+// Full detail block for the week/day hourly timeline: title, time range,
+// and location all readable (wrapped where needed) rather than a
+// single truncated line, per Linh's "make the view more like this so one
+// can read more" feedback against Apple Calendar's week view.
+function TimelineEventBlock({ event, style }: { event: CalendarEvent; style: CSSProperties }) {
+  const accent = chipAccent(event.title);
+  return (
+    <div
+      style={style}
+      title={event.title}
+      className={`event-chip ${accent.bg} ${accent.border} ${categoryColorClass(
+        event.title
+      )} absolute overflow-hidden rounded-md border-l-4 px-2 py-1 text-slate-900`}
+    >
+      <p className="line-clamp-2 text-[12px] font-semibold leading-tight">{event.title}</p>
+      {!event.allDay && (
+        <p className="event-chip-time mt-0.5 truncate text-[10.5px] leading-tight opacity-70">
+          {formatTimeRange(event)}
+        </p>
+      )}
+      {event.location && (
+        <p className="mt-0.5 flex items-center gap-1 truncate text-[10.5px] leading-tight opacity-70">
+          <MapPin className="h-2.5 w-2.5 shrink-0" />
+          <span className="truncate">{event.location}</span>
+        </p>
+      )}
     </div>
   );
 }
@@ -213,7 +273,7 @@ function MonthGrid({
                   aria-label={`Open ${date.toDateString()} in day view`}
                   className={`calendar-day-number inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                     isToday
-                      ? "calendar-day-number--today bg-slate-900 text-white"
+                      ? "calendar-day-number--today bg-rose-500 text-white"
                       : inMonth
                         ? "text-slate-700 hover:bg-slate-100"
                         : "text-slate-300 hover:bg-slate-100"
@@ -253,21 +313,52 @@ function MonthGrid({
   );
 }
 
+function CurrentTimeIndicator({ now, days, todayKey }: { now: Date; days: Date[]; todayKey: string }) {
+  const todayIndex = days.findIndex((d) => isoDateKey(d) === todayKey);
+  if (todayIndex === -1) return null;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const top = (nowMinutes / 60) * HOUR_HEIGHT;
+  const fraction = todayIndex / days.length;
+  return (
+    <div className="calendar-now-line pointer-events-none absolute inset-x-0 z-20" style={{ top }}>
+      <div className="flex items-center">
+        <div className="flex shrink-0 justify-end pr-1" style={{ width: GUTTER_WIDTH }}>
+          <span className="rounded bg-rose-500 px-1 py-0.5 text-[9px] font-semibold leading-none text-white">
+            {now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
+        <div className="relative h-px flex-1 bg-rose-500">
+          <span
+            className="absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500"
+            style={{ left: `${fraction * 100}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TimelineView({
   days,
   eventsByDay,
   todayKey,
+  now,
 }: {
   days: Date[];
   eventsByDay: Map<string, CalendarEvent[]>;
   todayKey: string;
+  now: Date;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const gridCols = `56px repeat(${days.length}, minmax(0, 1fr))`;
+  const gridCols = `${GUTTER_WIDTH}px repeat(${days.length}, minmax(0, 1fr))`;
+  const includesToday = days.some((d) => isoDateKey(d) === todayKey);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 6.5 * HOUR_HEIGHT;
-  }, [days]);
+    if (!scrollRef.current) return;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const targetHour = includesToday ? Math.max(nowMinutes / 60 - 1, 0) : 6.5;
+    scrollRef.current.scrollTop = targetHour * HOUR_HEIGHT;
+  }, [days, includesToday, now]);
 
   return (
     <div className="calendar-timeline overflow-hidden rounded-lg border border-slate-200">
@@ -283,7 +374,7 @@ function TimelineView({
               </div>
               <div
                 className={`mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-sm font-semibold ${
-                  isToday ? "calendar-day-number--today bg-slate-900 text-white" : "text-slate-700"
+                  isToday ? "calendar-day-number--today bg-rose-500 text-white" : "text-slate-700"
                 }`}
               >
                 {d.getDate()}
@@ -301,16 +392,16 @@ function TimelineView({
           const key = isoDateKey(d);
           const allDayEvents = (eventsByDay.get(key) ?? []).filter((e) => e.allDay);
           return (
-            <div key={key} className="space-y-1 border-l border-slate-200 p-1">
+            <div key={key} className="space-y-1 border-l border-slate-200 p-1.5">
               {allDayEvents.map((e) => (
-                <EventChip key={e.id} event={e} showTime={false} />
+                <AllDayPill key={e.id} event={e} />
               ))}
             </div>
           );
         })}
       </div>
 
-      <div ref={scrollRef} className="calendar-timeline-body max-h-[560px] overflow-y-auto">
+      <div ref={scrollRef} className="calendar-timeline-body relative max-h-[640px] overflow-y-auto">
         <div className="grid" style={{ gridTemplateColumns: gridCols }}>
           <div>
             {HOURS.map((h) => (
@@ -337,27 +428,22 @@ function TimelineView({
                   <div key={h} style={{ height: HOUR_HEIGHT }} className="border-t border-slate-100" />
                 ))}
                 {laidOut.map(({ event, top, height, lane, laneCount }) => (
-                  <div
+                  <TimelineEventBlock
                     key={event.id}
-                    title={event.title}
+                    event={event}
                     style={{
                       top,
                       height,
                       left: `${(lane / laneCount) * 100}%`,
-                      width: `${100 / laneCount}%`,
+                      width: `calc(${100 / laneCount}% - 2px)`,
                     }}
-                    className={`event-chip ${chipPalette(event.title)} ${categoryColorClass(
-                      event.title
-                    )} absolute overflow-hidden rounded border px-1.5 py-0.5 text-[11px] font-medium leading-tight`}
-                  >
-                    <div className="event-chip-time opacity-70">{formatTime(event.start)}</div>
-                    <div className="truncate">{event.title}</div>
-                  </div>
+                  />
                 ))}
               </div>
             );
           })}
         </div>
+        <CurrentTimeIndicator now={now} days={days} todayKey={todayKey} />
       </div>
     </div>
   );
@@ -490,10 +576,10 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
           />
         )}
         {view === "week" && (
-          <TimelineView days={weekDays} eventsByDay={eventsByDay} todayKey={todayKey} />
+          <TimelineView days={weekDays} eventsByDay={eventsByDay} todayKey={todayKey} now={today} />
         )}
         {view === "day" && (
-          <TimelineView days={[cursor]} eventsByDay={eventsByDay} todayKey={todayKey} />
+          <TimelineView days={[cursor]} eventsByDay={eventsByDay} todayKey={todayKey} now={today} />
         )}
       </div>
     </section>
