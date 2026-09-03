@@ -117,6 +117,81 @@ function findCalendarByName(
   );
 }
 
+interface FetchedObject {
+  data?: string | null;
+}
+
+function parseEventObjects(objects: FetchedObject[]): CalendarEvent[] {
+  const events: CalendarEvent[] = [];
+  for (const obj of objects) {
+    if (!obj.data) continue;
+    try {
+      const root = new ICAL.Component(ICAL.parse(obj.data));
+      for (const vevent of root.getAllSubcomponents("vevent")) {
+        const event = new ICAL.Event(vevent);
+        const startTime = event.startDate;
+        const endTime = event.endDate;
+        if (!startTime) continue;
+        const startIso = startTime.toJSDate().toISOString();
+        events.push({
+          id: `${event.uid}|${startIso}`,
+          uid: event.uid,
+          title: event.summary || "(untitled)",
+          start: startIso,
+          end: endTime ? endTime.toJSDate().toISOString() : null,
+          allDay: startTime.isDate,
+          location: event.location || null,
+          notes: event.description || null,
+        });
+      }
+    } catch {
+      // One malformed calendar object shouldn't take down the whole
+      // page — skip it and keep the rest.
+    }
+  }
+  events.sort((a, b) => a.start.localeCompare(b.start));
+  return events;
+}
+
+function parseReminderObjects(objects: FetchedObject[]): ReminderItem[] {
+  const reminders: ReminderItem[] = [];
+  for (const obj of objects) {
+    if (!obj.data) continue;
+    try {
+      const root = new ICAL.Component(ICAL.parse(obj.data));
+      for (const vtodo of root.getAllSubcomponents("vtodo")) {
+        const uid = String(vtodo.getFirstPropertyValue("uid") ?? "");
+        if (!uid) continue;
+        const title = String(vtodo.getFirstPropertyValue("summary") ?? "(untitled)");
+        const status = String(vtodo.getFirstPropertyValue("status") ?? "").toUpperCase();
+        const dueValue = vtodo.getFirstPropertyValue("due");
+        const due =
+          dueValue && typeof dueValue === "object" && "toJSDate" in dueValue
+            ? (dueValue as ICAL.Time).toJSDate().toISOString()
+            : null;
+        const notesValue = vtodo.getFirstPropertyValue("description");
+        reminders.push({
+          uid,
+          title,
+          due,
+          completed: status === "COMPLETED",
+          notes: typeof notesValue === "string" ? notesValue : null,
+        });
+      }
+    } catch {
+      // Skip a malformed reminder rather than fail the whole list.
+    }
+  }
+  reminders.sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    if (a.due && b.due) return a.due.localeCompare(b.due);
+    if (a.due) return -1;
+    if (b.due) return 1;
+    return a.title.localeCompare(b.title);
+  });
+  return reminders;
+}
+
 // Window is intentionally asymmetric — a handful of recent days for
 // context (things that just happened / are still relevant) plus several
 // weeks ahead for planning. Adjustable via params if a page ever wants a
@@ -147,36 +222,7 @@ export async function getUpcomingEvents(
     timeRange: { start: start.toISOString(), end: end.toISOString() },
   });
 
-  const events: CalendarEvent[] = [];
-  for (const obj of objects) {
-    if (!obj.data) continue;
-    try {
-      const root = new ICAL.Component(ICAL.parse(obj.data));
-      for (const vevent of root.getAllSubcomponents("vevent")) {
-        const event = new ICAL.Event(vevent);
-        const startTime = event.startDate;
-        const endTime = event.endDate;
-        if (!startTime) continue;
-        const startIso = startTime.toJSDate().toISOString();
-        events.push({
-          id: `${event.uid}|${startIso}`,
-          uid: event.uid,
-          title: event.summary || "(untitled)",
-          start: startIso,
-          end: endTime ? endTime.toJSDate().toISOString() : null,
-          allDay: startTime.isDate,
-          location: event.location || null,
-          notes: event.description || null,
-        });
-      }
-    } catch {
-      // One malformed calendar object shouldn't take down the whole
-      // page — skip it and keep the rest.
-    }
-  }
-
-  events.sort((a, b) => a.start.localeCompare(b.start));
-  return events;
+  return parseEventObjects(objects);
 }
 
 export async function getReminders(): Promise<ReminderItem[]> {
@@ -188,42 +234,48 @@ export async function getReminders(): Promise<ReminderItem[]> {
   if (!list) return [];
 
   const objects = await client.fetchCalendarObjects({ calendar: list });
+  return parseReminderObjects(objects);
+}
 
-  const reminders: ReminderItem[] = [];
-  for (const obj of objects) {
-    if (!obj.data) continue;
-    try {
-      const root = new ICAL.Component(ICAL.parse(obj.data));
-      for (const vtodo of root.getAllSubcomponents("vtodo")) {
-        const uid = String(vtodo.getFirstPropertyValue("uid") ?? "");
-        if (!uid) continue;
-        const title = String(vtodo.getFirstPropertyValue("summary") ?? "(untitled)");
-        const status = String(vtodo.getFirstPropertyValue("status") ?? "").toUpperCase();
-        const dueValue = vtodo.getFirstPropertyValue("due");
-        const due =
-          dueValue && typeof dueValue === "object" && "toJSDate" in dueValue
-            ? (dueValue as ICAL.Time).toJSDate().toISOString()
-            : null;
-        const notesValue = vtodo.getFirstPropertyValue("description");
-        reminders.push({
-          uid,
-          title,
-          due,
-          completed: status === "COMPLETED",
-          notes: typeof notesValue === "string" ? notesValue : null,
-        });
-      }
-    } catch {
-      // Skip a malformed reminder rather than fail the whole list.
-    }
-  }
+// The /calendar page needs both events and reminders on every load.
+// Calling getUpcomingEvents()+getReminders() separately (even via
+// Promise.all) each does its own full login (iCloud account discovery:
+// well-known redirect, principal PROPFIND, home-set PROPFIND) *and* its
+// own fetchCalendars() PROPFIND — the whole handshake, twice, for the
+// same account. That extra round-trip pair was slow enough that
+// navigating to the page sometimes needed several clicks before
+// Next.js's pending navigation actually resolved. This does the login
+// and the calendar list lookup once, then fetches events and reminders
+// concurrently off that single client.
+export async function getCalendarData(
+  daysAhead = 30,
+  daysBehind = 3
+): Promise<{ events: CalendarEvent[]; reminders: ReminderItem[] }> {
+  if (!isCalendarConfigured()) return { events: [], reminders: [] };
 
-  reminders.sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1;
-    if (a.due && b.due) return a.due.localeCompare(b.due);
-    if (a.due) return -1;
-    if (b.due) return 1;
-    return a.title.localeCompare(b.title);
-  });
-  return reminders;
+  const client = await getClient();
+  const calendars = await client.fetchCalendars();
+  const calendar = findCalendarByName(calendars, "VEVENT", calendarName());
+  const list = findCalendarByName(calendars, "VTODO", remindersListName());
+
+  const start = new Date();
+  start.setDate(start.getDate() - daysBehind);
+  const end = new Date();
+  end.setDate(end.getDate() + daysAhead);
+
+  const [eventObjects, reminderObjects] = await Promise.all([
+    calendar
+      ? client.fetchCalendarObjects({
+          calendar,
+          expand: true,
+          timeRange: { start: start.toISOString(), end: end.toISOString() },
+        })
+      : Promise.resolve([]),
+    list ? client.fetchCalendarObjects({ calendar: list }) : Promise.resolve([]),
+  ]);
+
+  return {
+    events: parseEventObjects(eventObjects),
+    reminders: parseReminderObjects(reminderObjects),
+  };
 }

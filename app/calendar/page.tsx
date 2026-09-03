@@ -1,8 +1,7 @@
 import { CalendarDays, CheckSquare, Square } from "lucide-react";
 import CalendarView from "@/components/CalendarView";
 import {
-  getReminders,
-  getUpcomingEvents,
+  getCalendarData,
   isCalendarConfigured,
   type CalendarEvent,
   type ReminderItem,
@@ -69,8 +68,9 @@ ICLOUD_CALDAV_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx`}
   try {
     // Wide window (45 days back, 180 days forward) so the month-grid's
     // prev/next navigation has data to show without another round trip
-    // to iCloud — everything is fetched once, per page load.
-    [events, reminders] = await Promise.all([getUpcomingEvents(180, 45), getReminders()]);
+    // to iCloud — everything is fetched once, per page load. One shared
+    // login/client for both events and reminders (see getCalendarData).
+    ({ events, reminders } = await getCalendarData(180, 45));
   } catch (e) {
     error = e instanceof Error ? e.message : "Failed to connect to iCloud.";
   }
