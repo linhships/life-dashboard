@@ -79,7 +79,7 @@ ICLOUD_CALDAV_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx`}
   const completedReminders = reminders.filter((r) => r.completed);
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-6 py-10">
+    <main className="mx-auto max-w-7xl space-y-6 px-6 py-10">
       <header>
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
           <CalendarDays className="h-3.5 w-3.5" />
@@ -95,10 +95,10 @@ ICLOUD_CALDAV_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx`}
       )}
 
       {!error && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6">
           <CalendarMonthView events={events} />
 
-          <aside className="space-y-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Reminders</h2>
               {openReminders.length === 0 ? (
@@ -124,7 +124,7 @@ ICLOUD_CALDAV_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx`}
                 </div>
               </section>
             )}
-          </aside>
+          </div>
         </div>
       )}
     </main>
