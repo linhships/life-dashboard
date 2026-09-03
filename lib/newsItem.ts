@@ -104,8 +104,12 @@ export interface SourceTally {
 }
 
 // Ranks sources by how many distinct stories cite them, across a full set
-// of items — used for the "Top sources" sidebar panel.
-export function rankSources(items: { markdown: string }[], limit = 5): SourceTally[] {
+// of items — used for the "Sources today" sidebar panel (both /news and
+// /ai-news share NewsFeed, so this covers both briefings). No limit by
+// default — Linh asked to see every source, not just a top handful — but
+// an explicit `limit` is still accepted in case a future caller wants a
+// capped "top N" view again.
+export function rankSources(items: { markdown: string }[], limit?: number): SourceTally[] {
   const counts = new Map<string, number>();
   for (const item of items) {
     const { sources } = parseNewsItemBody(item.markdown);
@@ -116,10 +120,10 @@ export function rankSources(items: { markdown: string }[], limit = 5): SourceTal
       counts.set(s.name, (counts.get(s.name) ?? 0) + 1);
     }
   }
-  return Array.from(counts.entries())
+  const ranked = Array.from(counts.entries())
     .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, limit);
+    .sort((a, b) => b.count - a.count);
+  return limit === undefined ? ranked : ranked.slice(0, limit);
 }
 
 export function slugify(s: string): string {

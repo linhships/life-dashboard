@@ -288,7 +288,9 @@ export function NewsFeed({
   };
 
   const sections = groupBySection(items);
-  const topSources = useMemo(() => rankSources(items), [items]);
+  // No limit passed — every distinct source gets listed, not just a top
+  // handful (Linh asked to see all sources, not a curated subset).
+  const allSources = useMemo(() => rankSources(items), [items]);
 
   return (
     // Simple two-column layout: one "main" block containing every section
@@ -375,13 +377,13 @@ export function NewsFeed({
           </nav>
         </div>
 
-        {topSources.length > 0 && (
+        {allSources.length > 0 && (
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Top sources today
+              Sources today
             </p>
             <div className="space-y-3">
-              {topSources.map((s, i) => (
+              {allSources.map((s, i) => (
                 <div key={s.name} className="flex items-center gap-3">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-900 text-xs font-bold text-white">
                     {i + 1}
