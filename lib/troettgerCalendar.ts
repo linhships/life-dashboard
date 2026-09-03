@@ -72,8 +72,33 @@ async function getClient(): Promise<DAVClient> {
     authMethod: "Basic",
     defaultAccountType: "caldav",
   });
-  await client.login();
+  try {
+    await client.login();
+  } catch (e) {
+    throw new Error(describeLoginError(e));
+  }
   return client;
+}
+
+// tsdav's account-discovery errors are terse library internals ("cannot
+// find homeUrl", "cannot find principalUrl") that don't say what to
+// actually go check. Translated based on how tsdav's discovery flow
+// works (node_modules/tsdav: fetchPrincipalUrl succeeds first, then
+// fetchHomeUrl does a PROPFIND for calendar-home-set on that principal)
+// — reaching "cannot find homeUrl" specifically means the principal
+// lookup worked but the home-set lookup came back empty or non-ok, which
+// in practice is almost always either bad credentials (iCloud sometimes
+// returns this instead of a clean 401 at this stage) or the Apple ID
+// simply not having iCloud Calendar turned on.
+function describeLoginError(e: unknown): string {
+  const message = e instanceof Error ? e.message : String(e);
+  if (/invalid credentials/i.test(message) || /\b401\b/.test(message)) {
+    return `${message} — double-check ICLOUD_CALDAV_USERNAME is the exact Apple ID and ICLOUD_CALDAV_APP_PASSWORD is a current app-specific password (regenerating or revoking an old one breaks it).`;
+  }
+  if (/cannot find (home|principal)url/i.test(message)) {
+    return `${message} — usually means either the username/app-specific password is wrong, or this Apple ID doesn't have iCloud Calendar turned on (on a device signed into that Apple ID: Settings → [name] → iCloud → make sure Calendars is on). Also confirm a calendar and reminders list actually exist under this account named "Troettger AI" (or whatever ICLOUD_CALENDAR_NAME/ICLOUD_REMINDERS_LIST is set to).`;
+  }
+  return message;
 }
 
 function displayNameOf(collection: { displayName?: string | Record<string, unknown> }): string {
