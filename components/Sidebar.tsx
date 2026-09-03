@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  CalendarDays,
   ChevronUp,
   Heart,
   Landmark,
@@ -41,7 +42,10 @@ interface RouteGroup {
   items: RouteSubItem[];
 }
 
-const TOP_LEVEL_LINKS: TopLevelLink[] = [{ href: "/links", label: "Links", icon: Link2 }];
+const TOP_LEVEL_LINKS: TopLevelLink[] = [
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/links", label: "Links", icon: Link2 },
+];
 
 // Collapsible parent groups for routes that belong together — each one
 // starts collapsed and only auto-expands when the page currently open is

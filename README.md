@@ -131,6 +131,30 @@ the app rather than an external task, but still personal data). See
 a link's category any time from the dropdown on its card as your
 collection grows and a category gets too broad.
 
+## Calendar & Reminders
+
+The `/calendar` page is a read-only view of one iCloud calendar and one
+Reminders list (both named "Troettger AI" by default). Unlike every other
+page in this app, it doesn't read a local file — it connects live to
+Apple's CalDAV server (`https://caldav.icloud.com`) on every page load via
+[`tsdav`](https://github.com/natelindev/tsdav), and parses the returned
+iCalendar data with [`ical.js`](https://github.com/kewisch/ical.js)
+(`lib/troettgerCalendar.ts`). Recurring events are expanded server-side by
+iCloud itself (`expand: true` on the CalDAV time-range query), so a yearly
+birthday just shows up as a normal event on the right day rather than
+needing its own recurrence-rule handling in this app.
+
+Copy `.env.example` to `.env.local` and set `ICLOUD_CALDAV_USERNAME` /
+`ICLOUD_CALDAV_APP_PASSWORD` yourself — generate the app-specific password
+at appleid.apple.com → Sign-In and Security → App-Specific Passwords, and
+never reuse your real Apple ID password here. If unset, the page shows a
+"not connected" message instead of erroring. `ICLOUD_CALENDAR_NAME` /
+`ICLOUD_REMINDERS_LIST` are optional overrides if your calendar/list isn't
+literally named "Troettger AI" (both default to that).
+
+This module has no create/update/delete code paths — it only ever calls
+`fetchCalendars`/`fetchCalendarObjects` (read operations).
+
 ## How the retirement model works
 
 - **Accumulation**: from your current age to target retirement age, ISA/GIA/
