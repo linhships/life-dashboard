@@ -445,32 +445,38 @@ html[data-theme="neobrutal"] {
    stay pure black either way — only the background swaps per bucket. */
 :where(html[data-theme="neobrutal"]) .section-header.category-color-0,
 :where(html[data-theme="neobrutal"]) .category-pill.category-color-0,
-:where(html[data-theme="neobrutal"]) .meal-row.category-color-0 {
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-0,
+:where(html[data-theme="neobrutal"]) .event-chip.category-color-0 {
   background: var(--color-purple-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-1,
 :where(html[data-theme="neobrutal"]) .category-pill.category-color-1,
-:where(html[data-theme="neobrutal"]) .meal-row.category-color-1 {
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-1,
+:where(html[data-theme="neobrutal"]) .event-chip.category-color-1 {
   background: var(--color-blue-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-2,
 :where(html[data-theme="neobrutal"]) .category-pill.category-color-2,
-:where(html[data-theme="neobrutal"]) .meal-row.category-color-2 {
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-2,
+:where(html[data-theme="neobrutal"]) .event-chip.category-color-2 {
   background: var(--color-emerald-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-3,
 :where(html[data-theme="neobrutal"]) .category-pill.category-color-3,
-:where(html[data-theme="neobrutal"]) .meal-row.category-color-3 {
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-3,
+:where(html[data-theme="neobrutal"]) .event-chip.category-color-3 {
   background: var(--color-amber-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-4,
 :where(html[data-theme="neobrutal"]) .category-pill.category-color-4,
-:where(html[data-theme="neobrutal"]) .meal-row.category-color-4 {
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-4,
+:where(html[data-theme="neobrutal"]) .event-chip.category-color-4 {
   background: var(--color-rose-200);
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-5,
 :where(html[data-theme="neobrutal"]) .category-pill.category-color-5,
-:where(html[data-theme="neobrutal"]) .meal-row.category-color-5 {
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-5,
+:where(html[data-theme="neobrutal"]) .event-chip.category-color-5 {
   /* Sky blue — not tied to an existing --color-* family, since every
      family already maps to one of the buckets above; a category-only
      hex keeps this bucket visually distinct from all the others. */
@@ -478,15 +484,35 @@ html[data-theme="neobrutal"] {
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-6,
 :where(html[data-theme="neobrutal"]) .category-pill.category-color-6,
-:where(html[data-theme="neobrutal"]) .meal-row.category-color-6 {
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-6,
+:where(html[data-theme="neobrutal"]) .event-chip.category-color-6 {
   /* Tan/khaki — category-only hex, same reasoning as color-5. */
   background: #d8c8a0;
 }
 :where(html[data-theme="neobrutal"]) .section-header.category-color-7,
 :where(html[data-theme="neobrutal"]) .category-pill.category-color-7,
-:where(html[data-theme="neobrutal"]) .meal-row.category-color-7 {
+:where(html[data-theme="neobrutal"]) .meal-row.category-color-7,
+:where(html[data-theme="neobrutal"]) .event-chip.category-color-7 {
   /* Mint — category-only hex, same reasoning as color-5. */
   background: #b8e8d8;
+}
+
+/* Calendar month grid (components/CalendarMonthView.tsx), styled after
+   Untitled UI's calendar component. Day-cell borders and the card/shadow
+   chrome already repaint via the generic .border-slate-200/.shadow-sm
+   rules above — event-chip is the one bit that needs its own rule, same
+   "colored background, black border/text" treatment as category-pill,
+   with the actual fill coming from the category-color-N pairing above.
+   calendar-day-number--today is a plain hook with no effect in other
+   themes, kept square instead of Classic/Haven's rounded-full dot to
+   match the flat/sharp Neobrutal language used everywhere else. */
+:where(html[data-theme="neobrutal"]) .event-chip {
+  border-color: #000;
+  color: #000;
+  font-weight: 700;
+}
+:where(html[data-theme="neobrutal"]) .calendar-day-number--today {
+  border-radius: var(--radius-md);
 }
 
 /* Meal-plan day cards (LUNCH/DINNER/... rows): previously just a plain

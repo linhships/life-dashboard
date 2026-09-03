@@ -1,4 +1,5 @@
-import { CalendarDays, CheckSquare, MapPin, Square } from "lucide-react";
+import { CalendarDays, CheckSquare, Square } from "lucide-react";
+import CalendarMonthView from "@/components/CalendarMonthView";
 import {
   getReminders,
   getUpcomingEvents,
@@ -8,53 +9,6 @@ import {
 } from "@/lib/troettgerCalendar";
 
 export const dynamic = "force-dynamic";
-
-function groupEventsByDay(events: CalendarEvent[]): { dayKey: string; label: string; items: CalendarEvent[] }[] {
-  const groups: { dayKey: string; label: string; items: CalendarEvent[] }[] = [];
-  for (const event of events) {
-    const d = new Date(event.start);
-    const dayKey = d.toISOString().slice(0, 10);
-    const last = groups[groups.length - 1];
-    if (last && last.dayKey === dayKey) {
-      last.items.push(event);
-      continue;
-    }
-    groups.push({
-      dayKey,
-      label: d.toLocaleDateString("en-GB", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      }),
-      items: [event],
-    });
-  }
-  return groups;
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-}
-
-function EventRow({ event }: { event: CalendarEvent }) {
-  return (
-    <div className="flex items-start gap-3 border-t border-slate-100 py-3 first:border-0 first:pt-0">
-      <div className="w-16 shrink-0 pt-0.5 text-xs font-medium text-slate-500">
-        {event.allDay ? "All day" : formatTime(event.start)}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-slate-900">{event.title}</p>
-        {event.location && (
-          <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-400">
-            <MapPin className="h-3 w-3 shrink-0" />
-            <span className="truncate">{event.location}</span>
-          </p>
-        )}
-        {event.notes && <p className="mt-1 text-xs text-slate-500">{event.notes}</p>}
-      </div>
-    </div>
-  );
-}
 
 function ReminderRow({ reminder }: { reminder: ReminderItem }) {
   const Icon = reminder.completed ? CheckSquare : Square;
@@ -113,12 +67,14 @@ ICLOUD_CALDAV_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx`}
   let reminders: ReminderItem[] = [];
   let error: string | null = null;
   try {
-    [events, reminders] = await Promise.all([getUpcomingEvents(), getReminders()]);
+    // Wide window (45 days back, 180 days forward) so the month-grid's
+    // prev/next navigation has data to show without another round trip
+    // to iCloud — everything is fetched once, per page load.
+    [events, reminders] = await Promise.all([getUpcomingEvents(180, 45), getReminders()]);
   } catch (e) {
     error = e instanceof Error ? e.message : "Failed to connect to iCloud.";
   }
 
-  const dayGroups = groupEventsByDay(events);
   const openReminders = reminders.filter((r) => !r.completed);
   const completedReminders = reminders.filter((r) => r.completed);
 
@@ -140,27 +96,7 @@ ICLOUD_CALDAV_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx`}
 
       {!error && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">Upcoming events</h2>
-            {dayGroups.length === 0 ? (
-              <p className="mt-3 text-sm text-slate-400">Nothing on the calendar right now.</p>
-            ) : (
-              <div className="mt-3 space-y-5">
-                {dayGroups.map((group) => (
-                  <div key={group.dayKey}>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      {group.label}
-                    </p>
-                    <div className="mt-1">
-                      {group.items.map((event) => (
-                        <EventRow key={event.id} event={event} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          <CalendarMonthView events={events} />
 
           <aside className="space-y-6">
             <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
