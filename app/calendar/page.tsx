@@ -1,5 +1,5 @@
 import { CalendarDays, CheckSquare, Square } from "lucide-react";
-import CalendarMonthView from "@/components/CalendarMonthView";
+import CalendarView from "@/components/CalendarView";
 import {
   getReminders,
   getUpcomingEvents,
@@ -96,7 +96,7 @@ ICLOUD_CALDAV_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx`}
 
       {!error && (
         <div className="space-y-6">
-          <CalendarMonthView events={events} />
+          <CalendarView events={events} />
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
