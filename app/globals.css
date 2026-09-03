@@ -525,6 +525,41 @@ html[data-theme="neobrutal"] {
   border-radius: var(--radius-md);
 }
 
+/* Linh's feedback on the Neobrutal calendar screenshot: the outer
+   calendar-card box (border + hard shadow + white fill, same treatment
+   every other card gets) was reading as a redundant second box once the
+   month-grid/timeline's own cell borders already draw a bold black grid
+   — "remove the outer box". So, Neobrutal-only, calendar-card loses its
+   border/shadow/background/padding and just sits flush against the page.
+   Each override pairs two-plus classes (matching this file's usual
+   specificity-escalation trick) so it reliably beats the generic
+   single-class .border/.border-slate-200/.shadow-sm/.p-5 rules above,
+   including the !important on .shadow-sm. Classic/Haven are untouched —
+   they still get the normal card look, this is Neobrutal-specific.
+
+   The header's bottom divider (calendar-header) is the one line that's
+   still meant to read as a box edge here — "the box around August 2026
+   should be black, not grey" — but border-slate-100 elsewhere in this
+   file is deliberately softened to a tan hairline (quiet divider), which
+   isn't what's wanted for this specific line. Escalate it back to a
+   solid black rule, same pattern. */
+:where(html[data-theme="neobrutal"]) .calendar-card.border.border-slate-200 {
+  border: none;
+}
+:where(html[data-theme="neobrutal"]) .calendar-card.shadow-sm {
+  box-shadow: none !important;
+}
+:where(html[data-theme="neobrutal"]) .calendar-card.bg-white {
+  background: transparent;
+}
+:where(html[data-theme="neobrutal"]) .calendar-card.p-5 {
+  padding: 0;
+}
+:where(html[data-theme="neobrutal"]) .calendar-header.border-b.border-slate-100 {
+  border-bottom-width: 2px;
+  border-color: #000;
+}
+
 /* Meal-plan day cards (LUNCH/DINNER/... rows): previously just a plain
    border-t border-slate-100 divider between meals stacked in the same
    day card. Under Neobrutal, the general single-side border rules

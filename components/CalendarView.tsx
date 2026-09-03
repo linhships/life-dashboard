@@ -109,16 +109,22 @@ function buildMonthGrid(monthCursor: Date): Date[] {
   return cells;
 }
 
-// Greedy lane assignment for overlapping timed events within one day, so
-// two events at the same time sit side by side instead of on top of each
-// other. Not a perfect calendar-grade packer, but good enough for a family
-// calendar that rarely has more than 2-3 things clash.
+// Only events that start at the exact same time actually compete for
+// horizontal space (lane-split, each getting a fraction of the column's
+// width). Events that overlap but start at different times — e.g. an
+// all-afternoon "No Chiarline" block with a 2-hour outing somewhere in
+// the middle of it — are allowed to just overlap instead: both render at
+// full width, with the shorter one stacked on top (higher z-index) so
+// it stays readable. Per Linh's feedback: "as long as the events don't
+// start at the same time, they can overlap instead of the event being
+// smaller in width."
 interface LaidOutEvent {
   event: CalendarEvent;
   top: number;
   height: number;
   lane: number;
   laneCount: number;
+  zIndex: number;
 }
 
 function layoutDayTimedEvents(dayEvents: CalendarEvent[]): LaidOutEvent[] {
@@ -131,29 +137,33 @@ function layoutDayTimedEvents(dayEvents: CalendarEvent[]): LaidOutEvent[] {
       let endMinutes = end.getHours() * 60 + end.getMinutes();
       if (endMinutes <= startMinutes) endMinutes = Math.min(startMinutes + 30, 24 * 60);
       return { event: e, startMinutes, endMinutes };
-    })
-    .sort((a, b) => a.startMinutes - b.startMinutes);
+    });
 
-  const lanes: { endMinutes: number }[] = [];
-  const placed: { event: CalendarEvent; startMinutes: number; endMinutes: number; lane: number }[] = [];
+  const groups = new Map<number, typeof timed>();
   for (const item of timed) {
-    let laneIndex = lanes.findIndex((l) => l.endMinutes <= item.startMinutes);
-    if (laneIndex === -1) {
-      laneIndex = lanes.length;
-      lanes.push({ endMinutes: item.endMinutes });
-    } else {
-      lanes[laneIndex].endMinutes = item.endMinutes;
-    }
-    placed.push({ ...item, lane: laneIndex });
+    const list = groups.get(item.startMinutes) ?? [];
+    list.push(item);
+    groups.set(item.startMinutes, list);
   }
-  const laneCount = Math.max(1, lanes.length);
-  return placed.map((p) => ({
-    event: p.event,
-    top: (p.startMinutes / 60) * HOUR_HEIGHT,
-    height: Math.max(((p.endMinutes - p.startMinutes) / 60) * HOUR_HEIGHT, 34),
-    lane: p.lane,
-    laneCount,
-  }));
+
+  const result: LaidOutEvent[] = [];
+  for (const group of groups.values()) {
+    const laneCount = group.length;
+    group.forEach((item, lane) => {
+      result.push({
+        event: item.event,
+        top: (item.startMinutes / 60) * HOUR_HEIGHT,
+        height: Math.max(((item.endMinutes - item.startMinutes) / 60) * HOUR_HEIGHT, 34),
+        lane,
+        laneCount,
+        // Shorter events sit above longer ones they overlap, so a brief
+        // appointment stays on top of (and readable over) a long
+        // background-ish block rather than getting buried under it.
+        zIndex: 10000 - (item.endMinutes - item.startMinutes),
+      });
+    });
+  }
+  return result;
 }
 
 // Compact single-line chip — used in the month grid, where each day cell
@@ -427,7 +437,7 @@ function TimelineView({
                 {HOURS.map((h) => (
                   <div key={h} style={{ height: HOUR_HEIGHT }} className="border-t border-slate-100" />
                 ))}
-                {laidOut.map(({ event, top, height, lane, laneCount }) => (
+                {laidOut.map(({ event, top, height, lane, laneCount, zIndex }) => (
                   <TimelineEventBlock
                     key={event.id}
                     event={event}
@@ -436,6 +446,7 @@ function TimelineView({
                       height,
                       left: `${(lane / laneCount) * 100}%`,
                       width: `calc(${100 / laneCount}% - 2px)`,
+                      zIndex,
                     }}
                   />
                 ))}
@@ -505,7 +516,7 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
 
   return (
     <section className="calendar-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="calendar-header flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="calendar-header flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div className="flex items-center gap-3">
           <div className="calendar-date-badge flex w-14 flex-col items-center rounded-lg border border-slate-200 py-1">
             <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
@@ -566,7 +577,7 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-6">
         {view === "month" && (
           <MonthGrid
             monthCursor={startOfMonth(cursor)}
