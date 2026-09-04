@@ -1,14 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Mail, MessageCircle, Paperclip, X } from "lucide-react";
+import { Calendar, FileText, Mail, MessageCircle, Paperclip, X } from "lucide-react";
 import type { GatehouseMessage, GatehouseSource } from "@/lib/gatehouse";
 
 export interface WeekReportData {
   weekStart: string; // ISO date, Monday
   weekEnd: string; // ISO date, Sunday
   body: string; // markdown-ish prose with [[msg:id]] tokens
-  messages: GatehouseMessage[]; // every message this week's body references
+  messages: GatehouseMessage[]; // every message this week's body references, sorted by date
+}
+
+export interface UpcomingEventData {
+  date: string; // ISO YYYY-MM-DD
+  event: string;
+  message: GatehouseMessage | null;
 }
 
 const MSG_REF_RE = /\[\[msg:([a-zA-Z0-9_-]+)\]\]/g;
@@ -31,6 +37,17 @@ function formatMessageDate(date: string): string {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+  });
+}
+
+function formatShortDate(date: string): string {
+  const d = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return date;
+  return d.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
@@ -57,37 +74,39 @@ function attachmentFileName(rel: string): string {
   return rel.split("/").pop() ?? rel;
 }
 
-function MessageChip({ message, onOpen }: { message: GatehouseMessage; onOpen: () => void }) {
-  const primaryType = message.sources[0]?.type ?? "email";
+// Small superscript-style footnote marker, e.g. the "[3]" after a clause —
+// clicking it opens that message's popup. Numbers come from each report's
+// own messages list (already sorted by date — see lib/gatehouseReports.ts),
+// so they run in date order down the footnote list even though they may
+// appear out of numeric order in the prose above (normal for footnotes).
+function FootnoteMark({ n, onOpen }: { n: number; onOpen: () => void }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[13px] font-medium text-blue-700 align-baseline hover:bg-blue-100"
+      className="mx-0.5 align-super text-[11px] font-semibold text-blue-600 hover:underline"
     >
-      {sourceIcon(primaryType)}
-      {message.title}
+      [{n}]
     </button>
   );
 }
 
 // Renders a report body's paragraphs, turning [[msg:id]] tokens into
-// clickable MessageChips inline with the surrounding prose. Deliberately
-// not routed through react-markdown — report bodies are plain paragraphs,
-// no headings/lists, so a simple paragraph + token split is enough and
-// keeps the click targets easy to reason about.
+// clickable footnote markers. Deliberately not routed through
+// react-markdown — report bodies are plain paragraphs, no headings/lists —
+// so a simple paragraph + token split keeps this predictable.
 function ReportBody({
   body,
-  messagesById,
+  footnoteNumberById,
   onOpen,
 }: {
   body: string;
-  messagesById: Map<string, GatehouseMessage>;
+  footnoteNumberById: Map<string, number>;
   onOpen: (id: string) => void;
 }) {
   const paragraphs = body.split(/\n\s*\n/).filter((p) => p.trim());
   return (
-    <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+    <div className="space-y-2.5 text-sm leading-relaxed text-slate-700">
       {paragraphs.map((para, pIdx) => {
         const parts: (string | { ref: string })[] = [];
         let lastIndex = 0;
@@ -103,16 +122,45 @@ function ReportBody({
           <p key={pIdx}>
             {parts.map((part, i) => {
               if (typeof part === "string") return <span key={i}>{part}</span>;
-              const message = messagesById.get(part.ref);
-              if (!message) return null;
-              return (
-                <MessageChip key={i} message={message} onOpen={() => onOpen(message.id)} />
-              );
+              const n = footnoteNumberById.get(part.ref);
+              if (n === undefined) return null;
+              return <FootnoteMark key={i} n={n} onOpen={() => onOpen(part.ref)} />;
             })}
           </p>
         );
       })}
     </div>
+  );
+}
+
+// The footnote list under each week's prose — sorted by date (the order
+// report.messages already comes in), each entry numbered to match its
+// FootnoteMark in the body above.
+function FootnoteList({
+  messages,
+  onOpen,
+}: {
+  messages: GatehouseMessage[];
+  onOpen: (id: string) => void;
+}) {
+  if (messages.length === 0) return null;
+  return (
+    <ol className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-500">
+      {messages.map((m, i) => (
+        <li key={m.id} className="flex items-start gap-1.5">
+          <span className="font-semibold text-slate-400">[{i + 1}]</span>
+          <button
+            type="button"
+            onClick={() => onOpen(m.id)}
+            className="flex min-w-0 items-center gap-1.5 text-left hover:text-blue-700 hover:underline"
+          >
+            {sourceIcon(m.sources[0]?.type ?? "email")}
+            <span className="shrink-0 text-slate-400">{formatMessageDate(m.date)}</span>
+            <span className="truncate">{m.title}</span>
+          </button>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -199,10 +247,55 @@ function MessageModal({ message, onClose }: { message: GatehouseMessage; onClose
   );
 }
 
-export function GatehouseWeeklyReports({ reports }: { reports: WeekReportData[] }) {
+function UpcomingEventsBox({
+  events,
+  onOpen,
+}: {
+  events: UpcomingEventData[];
+  onOpen: (id: string) => void;
+}) {
+  if (events.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-5">
+      <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900">
+        <Calendar className="h-4 w-4 text-blue-600" />
+        Upcoming events &amp; meetings
+      </h2>
+      <ul className="mt-3 space-y-1.5">
+        {events.map((e, i) => (
+          <li key={i} className="flex items-baseline gap-2 text-sm">
+            <span className="w-36 shrink-0 font-semibold text-slate-500">
+              {formatShortDate(e.date)}
+            </span>
+            <span className="text-slate-700">
+              {e.event}
+              {e.message && (
+                <button
+                  type="button"
+                  onClick={() => onOpen(e.message!.id)}
+                  className="ml-1 align-super text-[11px] font-semibold text-blue-600 hover:underline"
+                >
+                  [source]
+                </button>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function GatehouseWeeklyReports({
+  reports,
+  upcomingEvents = [],
+}: {
+  reports: WeekReportData[];
+  upcomingEvents?: UpcomingEventData[];
+}) {
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
 
-  if (reports.length === 0) {
+  if (reports.length === 0 && upcomingEvents.length === 0) {
     return (
       <p className="text-sm text-slate-500">
         No weekly reports found yet. Check that GATEHOUSE_DIR points at the folder with
@@ -213,19 +306,29 @@ export function GatehouseWeeklyReports({ reports }: { reports: WeekReportData[] 
 
   let openMessage: GatehouseMessage | null = null;
   if (openMessageId) {
-    for (const r of reports) {
-      const found = r.messages.find((m) => m.id === openMessageId);
-      if (found) {
-        openMessage = found;
+    for (const e of upcomingEvents) {
+      if (e.message?.id === openMessageId) {
+        openMessage = e.message;
         break;
+      }
+    }
+    if (!openMessage) {
+      for (const r of reports) {
+        const found = r.messages.find((m) => m.id === openMessageId);
+        if (found) {
+          openMessage = found;
+          break;
+        }
       }
     }
   }
 
   return (
     <div className="space-y-5">
+      <UpcomingEventsBox events={upcomingEvents} onOpen={setOpenMessageId} />
+
       {reports.map((report) => {
-        const messagesById = new Map(report.messages.map((m) => [m.id, m]));
+        const footnoteNumberById = new Map(report.messages.map((m, i) => [m.id, i + 1]));
         return (
           <div
             key={report.weekStart}
@@ -237,9 +340,10 @@ export function GatehouseWeeklyReports({ reports }: { reports: WeekReportData[] 
             <div className="mt-3">
               <ReportBody
                 body={report.body}
-                messagesById={messagesById}
+                footnoteNumberById={footnoteNumberById}
                 onOpen={setOpenMessageId}
               />
+              <FootnoteList messages={report.messages} onOpen={setOpenMessageId} />
             </div>
           </div>
         );

@@ -1,5 +1,6 @@
 import { School } from "lucide-react";
 import { getGatehouseReports } from "@/lib/gatehouseReports";
+import { getUpcomingGatehouseKeyDates } from "@/lib/gatehouseKeyDates";
 import { GatehouseWeeklyReports } from "@/components/GatehouseWeeklyReports";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 // other two Milo & Arlo pages which hold photos of the kids.
 export default function GatehousePage() {
   const reports = getGatehouseReports();
+  const upcomingEvents = getUpcomingGatehouseKeyDates();
   const totalMessages = new Set(reports.flatMap((r) => r.messages.map((m) => m.id))).size;
 
   return (
@@ -29,7 +31,7 @@ export default function GatehousePage() {
         </p>
       </header>
 
-      <GatehouseWeeklyReports reports={reports} />
+      <GatehouseWeeklyReports reports={reports} upcomingEvents={upcomingEvents} />
     </main>
   );
 }
