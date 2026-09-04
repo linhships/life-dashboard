@@ -20,6 +20,7 @@ import { FinancePlanProvider } from "@/components/FinancePlanContext";
 import { TopKpis } from "@/components/TopKpis";
 import { DrawdownSummaryCards } from "@/components/DrawdownSummaryCards";
 import { ConnectedContributionPlan } from "@/components/ConnectedContributionPlan";
+import { ConnectedPlanAdjustControls } from "@/components/ConnectedPlanAdjustControls";
 import { PasscodeAuthGuard } from "@/components/PasscodeAuthGuard";
 import { PasscodePageGate } from "@/components/PasscodePageGate";
 import { FINANCE_AUTH_COOKIE, isAuthed } from "@/lib/financeAuth";
@@ -156,6 +157,19 @@ export default async function Home() {
             statePensionAge={statePensionAge}
             statePension={statePension}
           />
+
+          <SectionCard
+            id="adjust-plan"
+            title="Adjust the plan"
+            description="Change your contribution plan, target spend, or emergency buffer — every KPI, chart, and the narrative below update live."
+            icon={TrendingUp}
+            iconColor="blue"
+          >
+            <ConnectedPlanAdjustControls
+              currentAge={currentAge}
+              targetRetirementAge={targetRetirementAge}
+            />
+          </SectionCard>
 
           <SectionCard
             id="net-worth"
