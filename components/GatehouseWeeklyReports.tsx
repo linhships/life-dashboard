@@ -5,6 +5,7 @@ import {
   Backpack,
   Calendar,
   ChevronDown,
+  ExternalLink,
   Eye,
   EyeOff,
   FileText,
@@ -482,6 +483,7 @@ function CredentialsBox({
               <th className="pb-1.5 pr-4">Service</th>
               <th className="pb-1.5 pr-4">Login</th>
               <th className="pb-1.5 pr-4">Password</th>
+              <th className="pb-1.5 pr-4">Login link</th>
               <th className="pb-1.5" />
             </tr>
           </thead>
@@ -506,6 +508,19 @@ function CredentialsBox({
                       )}
                     </button>
                   </span>
+                </td>
+                <td className="py-1.5 pr-4">
+                  {c.loginUrl && (
+                    <a
+                      href={c.loginUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+                    >
+                      Log in
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
                 </td>
                 <td className="py-1.5 text-right">
                   {c.message && (

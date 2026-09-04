@@ -12,6 +12,7 @@ export interface CredentialField {
   service: string;
   login: string;
   password: string;
+  loginUrl: string;
   message: GatehouseMessage | null;
 }
 
@@ -53,13 +54,13 @@ export function getGatehouseCredentials(): CredentialField[] {
 
     const cells = splitTableCells(trimmed);
     if (cells.length < 3) continue;
-    const [service, login, password, sourceCell] = cells;
+    const [service, login, password, loginUrl, sourceCell] = cells;
     if (!service || !password) continue;
 
     const m = sourceCell ? sourceCell.match(MSG_REF_RE) : null;
     const message = m ? (byId.get(m[1]) ?? null) : null;
 
-    fields.push({ service, login, password, message });
+    fields.push({ service, login, password, loginUrl: loginUrl || "", message });
   }
 
   return fields;
