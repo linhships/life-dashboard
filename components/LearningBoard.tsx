@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Check, Copy, ExternalLink, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { BookOpen, Check, Copy, ExternalLink, Link2, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import type { LearningResource } from "@/lib/learning";
 
 function hostname(url: string): string {
@@ -116,6 +116,7 @@ function ResourceCard({
   onRefresh,
   onRetopic,
   onNotesChange,
+  onUnlink,
   onOpen,
 }: {
   resource: LearningResource;
@@ -124,11 +125,13 @@ function ResourceCard({
   onRefresh: (id: string) => void;
   onRetopic: (id: string, topic: string) => void;
   onNotesChange: (id: string, notes: string) => void;
+  onUnlink: (linkId: string) => void;
   onOpen: (id: string) => void;
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [notes, setNotes] = useState(resource.notes ?? "");
+  const fromLink = Boolean(resource.fromLinkId);
 
   useEffect(() => {
     setNotes(resource.notes ?? "");
@@ -174,42 +177,57 @@ function ResourceCard({
           {resource.addedAt && <span> · Added {formatAddedAt(resource.addedAt)}</span>}
         </p>
 
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={() => {
-            if (notes !== (resource.notes ?? "")) onNotesChange(resource.id, notes);
-          }}
-          placeholder="Add a note…"
-          rows={2}
-          className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
-        />
+        {fromLink ? (
+          <p className="mt-2 flex items-center gap-1 text-xs text-slate-400">
+            <Link2 className="h-3 w-3" />
+            From Links — edit notes/category there
+          </p>
+        ) : (
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={() => {
+              if (notes !== (resource.notes ?? "")) onNotesChange(resource.id, notes);
+            }}
+            placeholder="Add a note…"
+            rows={2}
+            className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+          />
+        )}
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-          <select
-            value={resource.topic}
-            onChange={(e) => onRetopic(resource.id, e.target.value)}
-            className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs text-slate-600"
-          >
-            {topics.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              title="Refresh preview"
-              onClick={async () => {
-                setRefreshing(true);
-                await onRefresh(resource.id);
-                setRefreshing(false);
-              }}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+          {fromLink ? (
+            <span className="min-w-0 flex-1 truncate rounded-md bg-slate-50 px-1.5 py-1 text-xs text-slate-500">
+              {resource.topic}
+            </span>
+          ) : (
+            <select
+              value={resource.topic}
+              onChange={(e) => onRetopic(resource.id, e.target.value)}
+              className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs text-slate-600"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-            </button>
+              {topics.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {!fromLink && (
+              <button
+                type="button"
+                title="Refresh preview"
+                onClick={async () => {
+                  setRefreshing(true);
+                  await onRefresh(resource.id);
+                  setRefreshing(false);
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              </button>
+            )}
             <CopyLinkButton
               url={resource.url}
               className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600"
@@ -225,8 +243,12 @@ function ResourceCard({
             </a>
             <button
               type="button"
-              title="Delete"
-              onClick={() => onDelete(resource.id)}
+              title={fromLink ? "Remove from Learning page" : "Delete"}
+              onClick={() =>
+                fromLink && resource.fromLinkId
+                  ? onUnlink(resource.fromLinkId)
+                  : onDelete(resource.id)
+              }
               className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -318,17 +340,27 @@ function ResourceModal({
             <p className="mt-3 text-sm text-slate-600">{resource.description}</p>
           )}
 
-          <label className="mt-5 block text-xs font-medium text-slate-500">Notes</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={() => {
-              if (notes !== (resource.notes ?? "")) onNotesChange(resource.id, notes);
-            }}
-            placeholder="Add a note…"
-            rows={5}
-            className="mt-1.5 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
-          />
+          {resource.fromLinkId ? (
+            <p className="mt-5 flex items-center gap-1.5 text-xs text-slate-400">
+              <Link2 className="h-3.5 w-3.5" />
+              This is from your Links page — edit its notes, category, or the
+              &quot;Show on Learning page&quot; checkbox there.
+            </p>
+          ) : (
+            <>
+              <label className="mt-5 block text-xs font-medium text-slate-500">Notes</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                onBlur={() => {
+                  if (notes !== (resource.notes ?? "")) onNotesChange(resource.id, notes);
+                }}
+                placeholder="Add a note…"
+                rows={5}
+                className="mt-1.5 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+              />
+            </>
+          )}
 
           <div className="mt-5 flex justify-end gap-2">
             <CopyLinkButton
@@ -427,6 +459,18 @@ export function LearningBoard({ initialResources }: { initialResources: Learning
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, notes }),
+    }).catch(() => {});
+  };
+
+  // Untags a Links entry's "Show on Learning page" checkbox — this removes
+  // it from this list (via /api/links, not /api/learning) rather than
+  // deleting the underlying link itself.
+  const handleUnlink = async (linkId: string) => {
+    setResources((prev) => prev.filter((r) => r.fromLinkId !== linkId));
+    fetch("/api/links", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: linkId, forLearn: false }),
     }).catch(() => {});
   };
 
@@ -544,6 +588,7 @@ export function LearningBoard({ initialResources }: { initialResources: Learning
                 onRefresh={handleRefresh}
                 onRetopic={handleRetopic}
                 onNotesChange={handleNotesChange}
+                onUnlink={handleUnlink}
                 onOpen={setOpenResourceId}
               />
             ))}

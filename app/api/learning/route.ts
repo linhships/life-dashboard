@@ -3,7 +3,7 @@ import {
   addLearningResource,
   deleteLearningResource,
   fetchLinkMetadata,
-  getLearningResources,
+  getAllLearningResources,
   updateLearningResource,
 } from "@/lib/learning";
 import { isAuthedRequest } from "@/lib/learningAuth";
@@ -18,7 +18,7 @@ function unauthorized() {
 
 export async function GET(request: NextRequest) {
   if (!isAuthedRequest(request)) return unauthorized();
-  return NextResponse.json(getLearningResources());
+  return NextResponse.json(getAllLearningResources());
 }
 
 export async function POST(request: NextRequest) {
@@ -64,6 +64,15 @@ export async function PATCH(request: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+  // Entries derived from a flagged Link (see lib/learning.ts's
+  // getLinkedLearningResources) aren't stored here — edit them via
+  // /api/links instead (id shape is "link-<linkId>").
+  if (id.startsWith("link-")) {
+    return NextResponse.json(
+      { error: "This resource comes from Links — edit it there instead." },
+      { status: 400 }
+    );
+  }
   const updated = updateLearningResource(id, updates);
   if (!updated) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -76,6 +85,12 @@ export async function DELETE(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+  if (id.startsWith("link-")) {
+    return NextResponse.json(
+      { error: "This resource comes from Links — untag it there instead." },
+      { status: 400 }
+    );
   }
   deleteLearningResource(id);
   return NextResponse.json({ ok: true });

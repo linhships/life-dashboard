@@ -17,6 +17,11 @@ export interface LinkEntry {
   category: string;
   addedAt: string;
   notes?: string;
+  // When true, this link also appears on the Learning page (see
+  // lib/learning.ts's getLearningResources, which merges these in live —
+  // there's no separate copy, so editing/deleting the link here is the
+  // single source of truth for what shows up there too).
+  forLearn?: boolean;
 }
 
 export interface LinkMetadata {
@@ -58,7 +63,9 @@ export function addLink(entry: Omit<LinkEntry, "id" | "addedAt">): LinkEntry {
 
 export function updateLink(
   id: string,
-  updates: Partial<Pick<LinkEntry, "title" | "description" | "image" | "category" | "notes">>
+  updates: Partial<
+    Pick<LinkEntry, "title" | "description" | "image" | "category" | "notes" | "forLearn">
+  >
 ): LinkEntry | null {
   const links = getLinks();
   const idx = links.findIndex((l) => l.id === id);

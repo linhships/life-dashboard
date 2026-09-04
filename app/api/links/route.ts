@@ -18,7 +18,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   if (!isAuthedRequest(request)) return unauthorized();
   const body = await request.json();
-  const { url, category } = body as { url?: string; category?: string };
+  const { url, category, forLearn } = body as {
+    url?: string;
+    category?: string;
+    forLearn?: boolean;
+  };
 
   if (!url || !category) {
     return NextResponse.json({ error: "Missing url or category" }, { status: 400 });
@@ -39,6 +43,7 @@ export async function POST(request: NextRequest) {
     description: meta.description || "",
     image: meta.image,
     category,
+    forLearn: Boolean(forLearn),
   });
 
   return NextResponse.json(entry);
@@ -54,6 +59,7 @@ export async function PATCH(request: NextRequest) {
     image?: string | null;
     category?: string;
     notes?: string;
+    forLearn?: boolean;
   };
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });

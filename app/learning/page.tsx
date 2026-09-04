@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getLearningResources } from "@/lib/learning";
+import { getAllLearningResources } from "@/lib/learning";
 import { LearningBoard } from "@/components/LearningBoard";
 import { PasscodeAuthGuard } from "@/components/PasscodeAuthGuard";
 import { PasscodePageGate } from "@/components/PasscodePageGate";
@@ -23,7 +23,7 @@ export default async function LearningPage() {
     );
   }
 
-  const resources = getLearningResources();
+  const resources = getAllLearningResources();
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">

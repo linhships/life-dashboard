@@ -116,6 +116,7 @@ function LinkCard({
   onRefresh,
   onRecategorize,
   onNotesChange,
+  onForLearnChange,
   onOpen,
 }: {
   link: LinkEntry;
@@ -124,6 +125,7 @@ function LinkCard({
   onRefresh: (id: string) => void;
   onRecategorize: (id: string, category: string) => void;
   onNotesChange: (id: string, notes: string) => void;
+  onForLearnChange: (id: string, forLearn: boolean) => void;
   onOpen: (id: string) => void;
 }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -184,6 +186,16 @@ function LinkCard({
           rows={2}
           className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
         />
+
+        <label className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+          <input
+            type="checkbox"
+            checked={Boolean(link.forLearn)}
+            onChange={(e) => onForLearnChange(link.id, e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-300"
+          />
+          Show on Learning page
+        </label>
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
           <select
@@ -357,6 +369,7 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState("");
   const [newCategory, setNewCategory] = useState("");
+  const [forLearn, setForLearn] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openLinkId, setOpenLinkId] = useState<string | null>(null);
@@ -388,7 +401,7 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
       const res = await fetch("/api/links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim(), category: effectiveCategory }),
+        body: JSON.stringify({ url: url.trim(), category: effectiveCategory, forLearn }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -398,6 +411,7 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
       setLinks((prev) => [...prev, entry]);
       setUrl("");
       setNewCategory("");
+      setForLearn(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add link");
     } finally {
@@ -416,6 +430,15 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, category: newCat }),
+    }).catch(() => {});
+  };
+
+  const handleForLearnChange = async (id: string, value: boolean) => {
+    setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, forLearn: value } : l)));
+    fetch("/api/links", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, forLearn: value }),
     }).catch(() => {});
   };
 
@@ -489,6 +512,15 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
               className="rounded-md border border-slate-200 px-3 py-2 text-sm"
             />
           )}
+          <label className="flex shrink-0 items-center gap-1.5 px-1 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={forLearn}
+              onChange={(e) => setForLearn(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-300"
+            />
+            Show on Learning page
+          </label>
           <button
             type="button"
             onClick={handleAdd}
@@ -542,6 +574,7 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
                 onRefresh={handleRefresh}
                 onRecategorize={handleRecategorize}
                 onNotesChange={handleNotesChange}
+                onForLearnChange={handleForLearnChange}
                 onOpen={setOpenLinkId}
               />
             ))}
