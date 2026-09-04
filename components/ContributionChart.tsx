@@ -31,7 +31,7 @@ export function ContributionChart({ data }: { data: ContributionYear[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+      <BarChart data={chartData} margin={{ top: 8, right: 32, left: 16, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="year" tick={{ fontSize: 12 }} />
         <YAxis

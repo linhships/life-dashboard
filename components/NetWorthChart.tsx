@@ -27,7 +27,7 @@ export function NetWorthChart({ data }: { data: NetWorthPoint[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={320}>
-      <AreaChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+      <AreaChart data={data} margin={{ top: 8, right: 32, left: 16, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
         <YAxis

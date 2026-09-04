@@ -31,7 +31,7 @@ export function CoastFireChart({
 }) {
   return (
     <ResponsiveContainer width="100%" height={360}>
-      <AreaChart data={data} margin={{ top: 28, right: 40, left: 8, bottom: 16 }}>
+      <AreaChart data={data} margin={{ top: 28, right: 40, left: 16, bottom: 16 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis
           dataKey="year"

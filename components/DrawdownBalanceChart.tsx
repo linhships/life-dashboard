@@ -23,7 +23,7 @@ export function DrawdownBalanceChart({ data }: { data: DrawdownRow[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+      <AreaChart data={chartData} margin={{ top: 8, right: 32, left: 16, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="age" tick={{ fontSize: 12 }} label={{ value: "Age", position: "insideBottom", offset: -4, fontSize: 12 }} />
         <YAxis

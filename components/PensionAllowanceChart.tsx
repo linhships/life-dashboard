@@ -17,7 +17,7 @@ import type { PensionAllowanceRow } from "@/lib/types";
 export function PensionAllowanceChart({ data }: { data: PensionAllowanceRow[] }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <ComposedChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+      <ComposedChart data={data} margin={{ top: 8, right: 32, left: 16, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="taxYear" tick={{ fontSize: 11 }} />
         <YAxis
