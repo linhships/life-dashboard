@@ -141,7 +141,7 @@ export function InteractiveContributionPlan({
         <ContributionChart data={contributionYears} />
       </div>
 
-      <div className="border-t border-slate-200 pt-6">
+      <div className="rounded-xl border border-slate-200 p-4 transition-shadow hover:shadow-md">
         <p className="mb-2 text-sm font-medium text-slate-700">Account balances by age</p>
         <DrawdownBalanceChart data={drawdown} />
         <div className="mt-6">
@@ -157,7 +157,7 @@ export function InteractiveContributionPlan({
       </div>
 
       {narrative.length > 0 && (
-        <div className="border-t border-slate-200 pt-6">
+        <div className="rounded-xl border border-slate-200 p-4 transition-shadow hover:shadow-md">
           <p className="mb-1 text-sm font-medium text-slate-700">
             How this plays out, phase by phase
           </p>
