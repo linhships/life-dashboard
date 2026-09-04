@@ -1,0 +1,49 @@
+[
+  {
+    "id": "sample-learning-1",
+    "url": "https://example.com/guides/intro-to-compound-interest",
+    "title": "A Plain-English Guide to Compound Interest",
+    "description": "Why starting early matters more than starting big, with a few worked examples.",
+    "image": "https://example.com/images/compound-interest-cover.png",
+    "topic": "Personal Finance",
+    "addedAt": "2026-01-04T09:00:00.000Z",
+    "notes": "Good one to re-read before the next ISA top-up."
+  },
+  {
+    "id": "sample-learning-2",
+    "url": "https://example.com/courses/sipp-vs-isa",
+    "title": "SIPP vs ISA: Which Should You Prioritise?",
+    "description": "A short course walking through tax treatment, access rules, and a simple decision flowchart.",
+    "image": null,
+    "topic": "Personal Finance",
+    "addedAt": "2026-01-11T14:30:00.000Z"
+  },
+  {
+    "id": "sample-learning-3",
+    "url": "https://example.com/articles/toddler-sleep-regressions",
+    "title": "What's Actually Happening During a Sleep Regression",
+    "description": "The developmental milestones behind the usual regression ages, and what tends to help.",
+    "image": "https://example.com/images/sleep-regression-cover.png",
+    "topic": "Parenting",
+    "addedAt": "2026-01-20T20:15:00.000Z",
+    "notes": "Relevant again once Arlo hits 18 months."
+  },
+  {
+    "id": "sample-learning-4",
+    "url": "https://example.com/videos/gentle-transitions-toddlers",
+    "title": "Gentle Transitions for Toddlers (video)",
+    "description": "15-minute talk on reducing meltdowns around nursery drop-off and bedtime.",
+    "image": null,
+    "topic": "Parenting",
+    "addedAt": "2026-02-02T08:45:00.000Z"
+  },
+  {
+    "id": "sample-learning-5",
+    "url": "https://example.com/guides/typescript-generics-explained",
+    "title": "TypeScript Generics, Explained With Pictures",
+    "description": "Builds up generics from first principles instead of jumping straight to utility types.",
+    "image": "https://example.com/images/typescript-generics-cover.png",
+    "topic": "Web Development",
+    "addedAt": "2026-02-10T11:20:00.000Z"
+  }
+]

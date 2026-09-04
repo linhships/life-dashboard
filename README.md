@@ -131,6 +131,20 @@ the app rather than an external task, but still personal data). See
 a link's category any time from the dropdown on its card as your
 collection grows and a category gets too broad.
 
+## Learning
+
+The `/learning` page is the same bookmark-manager mechanic as `/links`
+(`lib/learning.ts` reuses `fetchLinkMetadata` from `lib/links.ts` rather
+than duplicating the Open Graph scraping), organized by "topic" instead
+of "category" and kept as its own page/passcode/data file so course and
+article bookmarks don't get mixed in with general links. Same
+paste-a-URL-and-tag-it flow, same grouped-by-topic-with-a-count-badge
+layout, same free-text reassignment from a dropdown on each card.
+
+Stored in `data/learning.json` (gitignored, personal data); see
+`data/sample/learning.json` for the fictional seed used by
+`npm run seed:sample`.
+
 ## Calendar & Reminders
 
 The `/calendar` page is a read-only view of one iCloud calendar and one

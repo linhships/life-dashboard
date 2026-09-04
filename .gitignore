@@ -35,6 +35,10 @@
 # personal, so real data stays local. See data/sample/links.json.
 /data/links.json
 
+# Saved learning resources — same as links.json above, just organized by
+# topic instead of category. See data/sample/learning.json.
+/data/learning.json
+
 # Food list + recipes — same bring-your-own-data model as meals. Real data
 # lives in FOOD_PLANNING_DIR (see .env.local); data/food/ is only a local
 # fallback if that's unset.
