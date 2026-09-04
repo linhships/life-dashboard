@@ -1,8 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, ChevronDown, FileText, Mail, MessageCircle, Paperclip, X } from "lucide-react";
+import {
+  Backpack,
+  Calendar,
+  ChevronDown,
+  FileText,
+  Mail,
+  MessageCircle,
+  Paperclip,
+  X,
+} from "lucide-react";
 import type { GatehouseMessage, GatehouseSource } from "@/lib/gatehouse";
+import type { ClassInfo } from "@/lib/gatehouseClassInfo";
 
 export interface WeekReportData {
   weekStart: string; // ISO date, Monday
@@ -355,12 +365,59 @@ function MonthEventsList({
   );
 }
 
+// Static "quick reference" card for Milo's actual class — not
+// time-ordered like everything else on the page, so it sits on its own at
+// the top rather than inside a month section. Sourced from
+// GATEHOUSE_DIR/reports/class-info.md (lib/gatehouseClassInfo.ts).
+function ClassInfoBox({
+  classInfo,
+  onOpen,
+}: {
+  classInfo: ClassInfo;
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5">
+      <div className="flex items-center gap-2">
+        <Backpack className="h-4 w-4 text-amber-700" />
+        <p className="text-sm font-bold text-slate-900">
+          Milo is in {classInfo.className}
+          {classInfo.classCode ? ` (${classInfo.classCode})` : ""}
+        </p>
+      </div>
+      {classInfo.fields.length > 0 && (
+        <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+          {classInfo.fields.map((f, i) => (
+            <div key={i} className="text-sm">
+              <dt className="font-semibold text-slate-500">{f.label}</dt>
+              <dd className="text-slate-700">
+                {f.detail}
+                {f.message && (
+                  <button
+                    type="button"
+                    onClick={() => onOpen(f.message!.id)}
+                    className="ml-1 align-super text-[11px] font-semibold text-blue-600 hover:underline"
+                  >
+                    [source]
+                  </button>
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+  );
+}
+
 export function GatehouseWeeklyReports({
   reports,
   upcomingEvents = [],
+  classInfo = null,
 }: {
   reports: WeekReportData[];
   upcomingEvents?: UpcomingEventData[];
+  classInfo?: ClassInfo | null;
 }) {
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
   const monthGroups = buildMonthGroups(reports, upcomingEvents);
@@ -393,10 +450,18 @@ export function GatehouseWeeklyReports({
 
   let openMessage: GatehouseMessage | null = null;
   if (openMessageId) {
-    for (const e of upcomingEvents) {
-      if (e.message?.id === openMessageId) {
-        openMessage = e.message;
+    for (const f of classInfo?.fields ?? []) {
+      if (f.message?.id === openMessageId) {
+        openMessage = f.message;
         break;
+      }
+    }
+    if (!openMessage) {
+      for (const e of upcomingEvents) {
+        if (e.message?.id === openMessageId) {
+          openMessage = e.message;
+          break;
+        }
       }
     }
     if (!openMessage) {
@@ -412,6 +477,8 @@ export function GatehouseWeeklyReports({
 
   return (
     <div className="space-y-5">
+      {classInfo && <ClassInfoBox classInfo={classInfo} onOpen={setOpenMessageId} />}
+
       {monthGroups.map((group) => {
         const isOpen = openMonths[group.key] ?? false;
         const weekCount = group.reports.length;
