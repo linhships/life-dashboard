@@ -62,14 +62,12 @@ interface MonthGroup {
 }
 
 // Merges weekly reports and upcoming events into one set of month
-// sections. A month with any upcoming event in it is treated as a
-// "future" month (events are already filtered to today-or-later by
-// lib/gatehouseKeyDates.ts, so this is never wrong) and those sort
-// ascending — soonest first, like a calendar's "what's next" list. Months
-// with only past reports sort descending, same as before — most recent
-// history first. The result is: soonest-upcoming month at the very top,
-// then further-out months, then a break into history running newest to
-// oldest.
+// sections, in a single consistent order — descending by month key, so
+// the furthest-out future month is at the very top and it runs straight
+// through to the oldest history at the bottom, with no direction change
+// partway down. (An earlier version sorted future months ascending and
+// past months descending, so the list read forwards then backwards —
+// confusing to scan. One direction throughout fixes that.)
 function buildMonthGroups(
   reports: WeekReportData[],
   events: UpcomingEventData[]
@@ -87,13 +85,7 @@ function buildMonthGroups(
   for (const report of reports) getGroup(monthKey(report.weekStart)).reports.push(report);
   for (const event of events) getGroup(event.date.slice(0, 7)).events.push(event);
 
-  const futureKeys: string[] = [];
-  const pastKeys: string[] = [];
-  for (const g of byKey.values()) (g.events.length > 0 ? futureKeys : pastKeys).push(g.key);
-  futureKeys.sort();
-  pastKeys.sort().reverse();
-
-  return [...futureKeys, ...pastKeys].map((key) => byKey.get(key)!);
+  return Array.from(byKey.values()).sort((a, b) => b.key.localeCompare(a.key));
 }
 
 function formatShortDate(date: string): string {
@@ -375,12 +367,16 @@ export function GatehouseWeeklyReports({
   // Two sections start expanded: the soonest upcoming month (what's next)
   // and the most recent month with an actual digest (what just happened).
   // Everything else starts collapsed so the page opens focused rather
-  // than as a full scroll of every month at once.
-  const firstFutureKey = monthGroups.find((g) => g.events.length > 0)?.key;
-  const firstPastKey = monthGroups.find((g) => g.events.length === 0)?.key;
+  // than as a full scroll of every month at once. monthGroups is sorted
+  // furthest-future-first, so these are the *last* future-having group and
+  // the *first* events-free group, not the first of each — i.e. the two
+  // groups sitting right on either side of "today".
+  const futureGroups = monthGroups.filter((g) => g.events.length > 0);
+  const soonestFutureKey = futureGroups[futureGroups.length - 1]?.key;
+  const mostRecentPastKey = monthGroups.find((g) => g.events.length === 0)?.key;
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
-      monthGroups.map((g) => [g.key, g.key === firstFutureKey || g.key === firstPastKey])
+      monthGroups.map((g) => [g.key, g.key === soonestFutureKey || g.key === mostRecentPastKey])
     )
   );
   const toggleMonth = (key: string) =>
