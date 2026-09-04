@@ -86,6 +86,7 @@ const ROUTE_GROUPS: RouteGroup[] = [
     items: [
       { href: "/tori-photos", label: "Tori & the boys" },
       { href: "/milo-nursery", label: "Milo's Nursery" },
+      { href: "/gatehouse", label: "Gatehouse" },
     ],
   },
 ];
