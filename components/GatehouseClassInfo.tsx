@@ -1,10 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Backpack, ExternalLink, Eye, EyeOff, KeyRound } from "lucide-react";
+import {
+  Backpack,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  FileText,
+  KeyRound,
+  Link2,
+} from "lucide-react";
 import type { GatehouseMessage } from "@/lib/gatehouse";
 import type { ClassInfo } from "@/lib/gatehouseClassInfo";
 import type { CredentialField } from "@/lib/gatehouseCredentials";
+import type { LinkField } from "@/lib/gatehouseLinks";
 import { MessageModal, linkifyText } from "./gatehouseShared";
 
 // Static "quick reference" card for Milo's actual class — not time-ordered,
@@ -141,20 +150,73 @@ function CredentialsBox({
   );
 }
 
+// Static "quick reference" card for key documents/links — nursery
+// booklet, department letters/overviews, etc. Sourced from
+// GATEHOUSE_DIR/reports/links.md (lib/gatehouseLinks.ts). Each entry is
+// either an external URL or a files/... attachment served the same way as
+// a message attachment (isAttachment tells us which icon/href to use).
+function ImportantLinksBox({
+  links,
+  onOpen,
+}: {
+  links: LinkField[];
+  onOpen: (id: string) => void;
+}) {
+  if (links.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
+      <div className="flex items-center gap-2">
+        <Link2 className="h-4 w-4 text-emerald-700" />
+        <p className="text-sm font-bold text-slate-900">Important Links</p>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {links.map((l, i) => (
+          <li key={i} className="flex items-center gap-2 text-sm">
+            <a
+              href={l.isAttachment ? `/api/gatehouse/file?path=${encodeURIComponent(l.href)}` : l.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 font-medium text-blue-600 hover:underline"
+            >
+              {l.isAttachment ? (
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+              ) : (
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              )}
+              {l.label}
+            </a>
+            {l.message && (
+              <button
+                type="button"
+                onClick={() => onOpen(l.message!.id)}
+                className="text-[11px] font-semibold text-blue-600 hover:underline"
+              >
+                [source]
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function GatehouseClassInfo({
   classInfo,
   credentials = [],
+  links = [],
 }: {
   classInfo: ClassInfo | null;
   credentials?: CredentialField[];
+  links?: LinkField[];
 }) {
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
 
-  if (!classInfo && credentials.length === 0) {
+  if (!classInfo && credentials.length === 0 && links.length === 0) {
     return (
       <p className="text-sm text-slate-500">
         No class info found yet. Check that GATEHOUSE_DIR points at the folder with
-        reports/class-info.md and reports/credentials.md.
+        reports/class-info.md, reports/credentials.md and reports/links.md.
       </p>
     );
   }
@@ -175,11 +237,20 @@ export function GatehouseClassInfo({
         }
       }
     }
+    if (!openMessage) {
+      for (const l of links) {
+        if (l.message?.id === openMessageId) {
+          openMessage = l.message;
+          break;
+        }
+      }
+    }
   }
 
   return (
     <div className="space-y-5">
       {classInfo && <ClassInfoBox classInfo={classInfo} onOpen={setOpenMessageId} />}
+      <ImportantLinksBox links={links} onOpen={setOpenMessageId} />
       <CredentialsBox credentials={credentials} onOpen={setOpenMessageId} />
 
       {openMessage && <MessageModal message={openMessage} onClose={() => setOpenMessageId(null)} />}
