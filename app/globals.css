@@ -215,11 +215,12 @@ html[data-theme="neobrutal"] {
    once their borders went bold — p-5 is used by KpiCard, SectionCard
    (Finance dashboard's chart/narrative boxes), and the news ArticleCard,
    so this is safe to bump without touching padding anywhere else in the
-   app. Bumped again (1.75rem -> 2.25rem) after Linh flagged the Coast
-   FIRE section's charts/headings/narrative text sitting too close to the
-   card's bold black border. */
+   app. Bumped repeatedly (1.75rem -> 2.25rem -> 3.5rem) after Linh kept
+   flagging the Coast FIRE section's charts/headings/narrative text
+   sitting too close to the card's bold black border — the smaller steps
+   weren't a visibly different enough jump to read as fixed. */
 :where(html[data-theme="neobrutal"]) .p-5 {
-  padding: 2.25rem;
+  padding: 3.5rem;
 }
 
 /* Sidebar sub-nav (Food/Milo & Arlo/Finance children): the indent guide
