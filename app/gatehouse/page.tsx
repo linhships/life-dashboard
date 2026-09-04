@@ -2,6 +2,7 @@ import { School } from "lucide-react";
 import { getGatehouseReports } from "@/lib/gatehouseReports";
 import { getUpcomingGatehouseKeyDates } from "@/lib/gatehouseKeyDates";
 import { getGatehouseClassInfo } from "@/lib/gatehouseClassInfo";
+import { getGatehouseCredentials } from "@/lib/gatehouseCredentials";
 import { GatehouseWeeklyReports } from "@/components/GatehouseWeeklyReports";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export default function GatehousePage() {
   const reports = getGatehouseReports();
   const upcomingEvents = getUpcomingGatehouseKeyDates();
   const classInfo = getGatehouseClassInfo();
+  const credentials = getGatehouseCredentials();
   const totalMessages = new Set(reports.flatMap((r) => r.messages.map((m) => m.id))).size;
 
   return (
@@ -37,6 +39,7 @@ export default function GatehousePage() {
         reports={reports}
         upcomingEvents={upcomingEvents}
         classInfo={classInfo}
+        credentials={credentials}
       />
     </main>
   );
