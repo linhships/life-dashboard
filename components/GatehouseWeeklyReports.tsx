@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, FileText, Mail, MessageCircle, Paperclip, X } from "lucide-react";
+import { Calendar, ChevronDown, FileText, Mail, MessageCircle, Paperclip, X } from "lucide-react";
 import type { GatehouseMessage, GatehouseSource } from "@/lib/gatehouse";
 
 export interface WeekReportData {
@@ -38,6 +38,42 @@ function formatMessageDate(date: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// Groups weeks by the calendar month their Monday falls in — a week that
+// straddles a month boundary (e.g. 31 Aug - 6 Sep) is filed under its
+// start month. Reports are already sorted newest-week-first, so this
+// preserves that order at the month level too.
+function monthKey(weekStart: string): string {
+  return weekStart.slice(0, 7); // "YYYY-MM"
+}
+
+function monthLabel(key: string): string {
+  const d = new Date(`${key}-01T00:00:00`);
+  if (Number.isNaN(d.getTime())) return key;
+  return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+}
+
+interface MonthGroup {
+  key: string;
+  label: string;
+  reports: WeekReportData[];
+}
+
+function groupReportsByMonth(reports: WeekReportData[]): MonthGroup[] {
+  const groups: MonthGroup[] = [];
+  const byKey = new Map<string, MonthGroup>();
+  for (const report of reports) {
+    const key = monthKey(report.weekStart);
+    let group = byKey.get(key);
+    if (!group) {
+      group = { key, label: monthLabel(key), reports: [] };
+      byKey.set(key, group);
+      groups.push(group);
+    }
+    group.reports.push(report);
+  }
+  return groups;
 }
 
 function formatShortDate(date: string): string {
@@ -294,6 +330,15 @@ export function GatehouseWeeklyReports({
   upcomingEvents?: UpcomingEventData[];
 }) {
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
+  const monthGroups = groupReportsByMonth(reports);
+  // Most recent month starts expanded, older months start collapsed — so
+  // the page opens on what's current without burying it under months of
+  // history the way a fully-expanded list would.
+  const [openMonths, setOpenMonths] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(monthGroups.map((g, i) => [g.key, i === 0]))
+  );
+  const toggleMonth = (key: string) =>
+    setOpenMonths((prev) => ({ ...prev, [key]: !prev[key] }));
 
   if (reports.length === 0 && upcomingEvents.length === 0) {
     return (
@@ -327,24 +372,54 @@ export function GatehouseWeeklyReports({
     <div className="space-y-5">
       <UpcomingEventsBox events={upcomingEvents} onOpen={setOpenMessageId} />
 
-      {reports.map((report) => {
-        const footnoteNumberById = new Map(report.messages.map((m, i) => [m.id, i + 1]));
+      {monthGroups.map((group) => {
+        const isOpen = openMonths[group.key] ?? false;
+        const weekCount = group.reports.length;
+        const messageCount = group.reports.reduce((sum, r) => sum + r.messages.length, 0);
         return (
-          <div
-            key={report.weekStart}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-          >
-            <h3 className="text-sm font-bold text-slate-900">
-              Week of {formatWeekRange(report.weekStart, report.weekEnd)}
-            </h3>
-            <div className="mt-3">
-              <ReportBody
-                body={report.body}
-                footnoteNumberById={footnoteNumberById}
-                onOpen={setOpenMessageId}
-              />
-              <FootnoteList messages={report.messages} onOpen={setOpenMessageId} />
-            </div>
+          <div key={group.key} className="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <button
+              type="button"
+              onClick={() => toggleMonth(group.key)}
+              className="flex w-full items-center justify-between gap-3 p-5 text-left"
+            >
+              <span className="text-base font-bold text-slate-900">{group.label}</span>
+              <span className="flex items-center gap-3 text-xs text-slate-400">
+                {weekCount} {weekCount === 1 ? "week" : "weeks"} · {messageCount}{" "}
+                {messageCount === 1 ? "message" : "messages"}
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                />
+              </span>
+            </button>
+
+            {isOpen && (
+              <div className="space-y-4 border-t border-slate-100 p-5 pt-4">
+                {group.reports.map((report) => {
+                  const footnoteNumberById = new Map(
+                    report.messages.map((m, i) => [m.id, i + 1])
+                  );
+                  return (
+                    <div
+                      key={report.weekStart}
+                      className="rounded-xl border border-slate-200 bg-white p-5"
+                    >
+                      <h3 className="text-sm font-bold text-slate-900">
+                        Week of {formatWeekRange(report.weekStart, report.weekEnd)}
+                      </h3>
+                      <div className="mt-3">
+                        <ReportBody
+                          body={report.body}
+                          footnoteNumberById={footnoteNumberById}
+                          onOpen={setOpenMessageId}
+                        />
+                        <FootnoteList messages={report.messages} onOpen={setOpenMessageId} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}
