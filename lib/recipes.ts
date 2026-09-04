@@ -7,9 +7,10 @@ import { dataPath } from "./dataDir";
 // the food-planning task. Point FOOD_PLANNING_DIR (in .env.local,
 // gitignored) at the folder containing both — same bring-your-own-data
 // pattern as MEAL_PLAN_DIR, and in fact the parent of that folder in the
-// real setup (MEAL_PLAN_DIR is FOOD_PLANNING_DIR/weekly-plans). Falls back
-// to sample-data/food/ (fictional demo data — see lib/dataDir.ts) so the
-// app still runs on a fresh clone with no env configured.
+// real setup (MEAL_PLAN_DIR is FOOD_PLANNING_DIR/weekly-plans). If unset,
+// reads from data/food/ (or sample-data/food/ if USE_SAMPLE_DATA=true —
+// see lib/dataDir.ts) so the app still runs on a fresh clone with no env
+// configured.
 function foodPlanningDir(): string {
   return process.env.FOOD_PLANNING_DIR?.trim() || dataPath("food");
 }

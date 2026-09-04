@@ -20,27 +20,33 @@ on a fresh clone, and so this repo is safe to make public without exposing
 anything real.
 
 `data/` (your real files) and `sample-data/` (the fictional demo files) are
-two completely separate folders — nothing ever copies between them. Each
-reader (`lib/dataDir.ts`'s `dataPath()`) prefers the real file in `data/`
-and only falls back to the matching file in `sample-data/` if the real one
-doesn't exist yet, so there's no seed step and no script that could ever
-overwrite one with the other:
+two completely separate folders — nothing ever copies between them, and
+which one is read is a hardcoded, explicit choice (`lib/dataDir.ts`'s
+`dataPath()`), never a silent "use real if it exists, else fall back to
+sample" check. That's deliberate: with a silent fallback you can't tell,
+just by looking at a page, whether you're seeing your real data or
+fictional sample data — it'd depend on which files happen to exist on disk.
+Instead:
+
+- By default, every page reads from `data/`, full stop. Nothing there yet?
+  You'll see an empty/error state, not fictional numbers standing in for
+  it.
+- Set `USE_SAMPLE_DATA=true` in `.env.local` to switch every page to
+  `sample-data/` instead — e.g. to try the app on a fresh clone, or for
+  screenshots/demos without any real numbers ever touching the screen.
 
 ```bash
 npm install
+echo "USE_SAMPLE_DATA=true" >> .env.local   # optional: browse with fictional data first
 npm run dev
 ```
 
 When you're ready to use it for real, add your own files to `data/` (see
-[Data](#data) below for the expected format) — they'll automatically take
-over from the sample-data fallback the moment they exist. `data/` (aside
+[Data](#data) below for the expected format) and remove `USE_SAMPLE_DATA`
+(or set it to `false`) so pages read from `data/` again. `data/` (aside
 from a couple of files created directly by the app, see "Links"/"Learning"
 below) is gitignored — `git status` will never show your real numbers as
 changed, and there's no risk of committing them by accident.
-
-Set `USE_SAMPLE_DATA=true` in `.env.local` to force every page to use
-`sample-data/` regardless of what's in `data/` — handy for screenshots or
-demoing the app without any real numbers ever touching the screen.
 
 ## Running it locally
 
@@ -81,16 +87,15 @@ All data lives in `/data` as plain files you (or a scheduled task) update:
 - `data/drawdown_baseline.csv` — a static baseline drawdown export, exposed
   via `/api/drawdown` for reference; the dashboard itself now computes the
   drawdown live and doesn't depend on this file.
-- `data/news/` — fallback location for dated news-briefing markdown files
-  and `feedback.jsonl`, used only if `NEWS_BRIEFING_DIR` isn't set. See
+- `data/news/` — location for dated news-briefing markdown files and
+  `feedback.jsonl`, used only if `NEWS_BRIEFING_DIR` isn't set. See
   "Daily briefing" below.
-- `data/meals/` — fallback location for dated weekly meal-plan markdown
-  files, used only if `MEAL_PLAN_DIR` isn't set. See "Weekly meal plan"
-  below.
+- `data/meals/` — location for dated weekly meal-plan markdown files,
+  used only if `MEAL_PLAN_DIR` isn't set. See "Weekly meal plan" below.
 
 `sample-data/` holds fictional versions of all of the above, committed to
-git, and is what every reader falls back to automatically when the matching
-real file in `data/` doesn't exist — see "Privacy model" above.
+git. Which folder gets read is an explicit switch, not automatic — see
+"Privacy model" above and `USE_SAMPLE_DATA` in `.env.example`.
 
 The page is rendered dynamically (`export const dynamic = "force-dynamic"`
 in `app/page.tsx`), so it re-reads these files on every request — replacing
@@ -104,8 +109,9 @@ written by a separate "daily-news" scheduled task, and shows the latest one
 with 👎 / 👍 / 🔥 buttons on each story.
 
 Copy `.env.example` to `.env.local` (gitignored) and set `NEWS_BRIEFING_DIR`
-to the folder your task writes into. If unset, it falls back to
-`sample-data/news/` (one fictional example day).
+to the folder your task writes into. If unset, it reads from `data/news/`
+instead (or `sample-data/news/`, one fictional example day, if
+`USE_SAMPLE_DATA=true`).
 
 Clicking a rating appends one line to `feedback.jsonl` in that same folder —
 an append-only log of `{ id, date, section, headline, rating, ratedAt }`,
@@ -123,8 +129,9 @@ day-by-day grid, and renders the rest of the file (cuisine spread, open
 items, groceries) as-is below it.
 
 Copy `.env.example` to `.env.local` (gitignored) and set `MEAL_PLAN_DIR`
-to the folder your task writes into. If unset, it falls back to
-`sample-data/meals/` (one fictional example week).
+to the folder your task writes into. If unset, it reads from `data/meals/`
+instead (or `sample-data/meals/`, one fictional example week, if
+`USE_SAMPLE_DATA=true`).
 
 ## Links
 
@@ -138,8 +145,8 @@ a machine with a plainer network path to that site.
 
 Links are stored in `data/links.json` (gitignored — created directly by
 the app rather than an external task, but still personal data). See
-`sample-data/links.json` for the fictional fallback shown until you save
-your first real link. Categories are just free text per link — reassign
+`sample-data/links.json` for the fictional version shown instead when
+`USE_SAMPLE_DATA=true`. Categories are just free text per link — reassign
 a link's category any time from the dropdown on its card as your
 collection grows and a category gets too broad.
 
@@ -154,8 +161,8 @@ paste-a-URL-and-tag-it flow, same grouped-by-topic-with-a-count-badge
 layout, same free-text reassignment from a dropdown on each card.
 
 Stored in `data/learning.json` (gitignored, personal data); see
-`sample-data/learning.json` for the fictional fallback shown until you
-save your first real resource.
+`sample-data/learning.json` for the fictional version shown instead when
+`USE_SAMPLE_DATA=true`.
 
 ## Calendar & Reminders
 

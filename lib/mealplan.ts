@@ -7,9 +7,9 @@ import { dataPath } from "./dataDir";
 // task writes dated markdown files (Weekly_Plan_YYYY-MM-DD.md, named for
 // the Monday of the week) into its own folder — outside this repo, same
 // pattern as the news briefing. Point MEAL_PLAN_DIR (in .env.local,
-// gitignored) at that folder; falls back to sample-data/meals/ (fictional
-// demo data — see lib/dataDir.ts) so the app still runs on a fresh clone
-// with no env configured.
+// gitignored) at that folder; if unset, reads from data/meals/ (or
+// sample-data/meals/ if USE_SAMPLE_DATA=true — see lib/dataDir.ts) so the
+// app still runs on a fresh clone with no env configured.
 function mealsDir(): string {
   return process.env.MEAL_PLAN_DIR?.trim() || dataPath("meals");
 }

@@ -8,7 +8,8 @@ import { dataPath } from "./dataDir";
 // scheduled task. That task writes dated markdown files
 // (YYYY-MM-DD-news-summary.md) into its own folder — outside this repo
 // entirely on a real machine. Point NEWS_BRIEFING_DIR (in .env.local,
-// gitignored) at that folder; falls back to data/news/ (sample data) so the
+// gitignored) at that folder; if unset, reads from data/news/ (or
+// sample-data/news/ if USE_SAMPLE_DATA=true — see lib/dataDir.ts) so the
 // app still runs on a fresh clone with no env configured.
 //
 // Expected markdown shape (mirrored in that task's own CLAUDE.md under
