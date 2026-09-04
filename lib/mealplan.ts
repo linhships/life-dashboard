@@ -1,17 +1,17 @@
 import fs from "fs";
 import path from "path";
 import { hashId } from "./hash";
+import { dataPath } from "./dataDir";
 
 // Reads the weekly meal plan produced by a separate planning task. That
 // task writes dated markdown files (Weekly_Plan_YYYY-MM-DD.md, named for
 // the Monday of the week) into its own folder — outside this repo, same
 // pattern as the news briefing. Point MEAL_PLAN_DIR (in .env.local,
-// gitignored) at that folder; falls back to data/meals/ (sample data) so
-// the app still runs on a fresh clone with no env configured.
-const DEFAULT_MEALS_DIR = path.join(process.cwd(), "data", "meals");
-
+// gitignored) at that folder; falls back to sample-data/meals/ (fictional
+// demo data — see lib/dataDir.ts) so the app still runs on a fresh clone
+// with no env configured.
 function mealsDir(): string {
-  return process.env.MEAL_PLAN_DIR?.trim() || DEFAULT_MEALS_DIR;
+  return process.env.MEAL_PLAN_DIR?.trim() || dataPath("meals");
 }
 
 const PLAN_RE = /^Weekly_Plan_(\d{4}-\d{2}-\d{2})\.md$/;

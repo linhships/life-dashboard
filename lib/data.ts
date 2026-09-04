@@ -1,7 +1,7 @@
 import fs from "fs";
-import path from "path";
 import Papa from "papaparse";
 import ExcelJS from "exceljs";
+import { dataPath } from "./dataDir";
 import type {
   AccountRow,
   PensionAllowanceRow,
@@ -14,10 +14,8 @@ import type {
   DrawdownRow,
 } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-
 function readCsv<T extends Record<string, string>>(filename: string): T[] {
-  const raw = fs.readFileSync(path.join(DATA_DIR, filename), "utf-8");
+  const raw = fs.readFileSync(dataPath(filename), "utf-8");
   const { data } = Papa.parse<T>(raw, { header: true, skipEmptyLines: true });
   return data;
 }
@@ -125,7 +123,7 @@ function cellNumber(cell: ExcelJS.Cell): number | null {
 
 export async function getRetirementModel(): Promise<RetirementModel> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(path.join(DATA_DIR, "retirement_model.xlsx"));
+  await workbook.xlsx.readFile(dataPath("retirement_model.xlsx"));
 
   // --- Assumptions sheet: label/value/note rows, with section headers ---
   const assumptions: AssumptionItem[] = [];

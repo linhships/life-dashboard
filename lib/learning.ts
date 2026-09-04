@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { hashId } from "./hash";
 import { fetchLinkMetadata } from "./links";
+import { dataPath, writeDataPath } from "./dataDir";
 
 // Same "saved directly in the app, personal data" pattern as lib/links.ts
 // (see the comment there) — a learning resource is really the same shape
@@ -11,8 +12,6 @@ import { fetchLinkMetadata } from "./links";
 // from lib/links.ts rather than duplicating the OG-scraping logic — it's
 // generic (title/description/image from any URL), nothing links-specific
 // about it.
-const DATA_DIR = path.join(process.cwd(), "data");
-const LEARNING_FILE = path.join(DATA_DIR, "learning.json");
 
 export interface LearningResource {
   id: string;
@@ -28,9 +27,10 @@ export interface LearningResource {
 export { fetchLinkMetadata };
 
 export function getLearningResources(): LearningResource[] {
-  if (!fs.existsSync(LEARNING_FILE)) return [];
+  const file = dataPath("learning.json");
+  if (!fs.existsSync(file)) return [];
   try {
-    const raw = fs.readFileSync(LEARNING_FILE, "utf-8");
+    const raw = fs.readFileSync(file, "utf-8");
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -39,8 +39,10 @@ export function getLearningResources(): LearningResource[] {
 }
 
 function saveLearningResources(resources: LearningResource[]): void {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(LEARNING_FILE, JSON.stringify(resources, null, 2) + "\n", "utf-8");
+  const file = writeDataPath("learning.json");
+  const dir = path.dirname(file);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(resources, null, 2) + "\n", "utf-8");
 }
 
 export function addLearningResource(

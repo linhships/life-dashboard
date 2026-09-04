@@ -1,18 +1,17 @@
 import fs from "fs";
 import path from "path";
 import { hashId } from "./hash";
+import { dataPath } from "./dataDir";
 
 // Reads Food_list.md (and the recipes/ subfolder next to it) produced by
 // the food-planning task. Point FOOD_PLANNING_DIR (in .env.local,
 // gitignored) at the folder containing both — same bring-your-own-data
 // pattern as MEAL_PLAN_DIR, and in fact the parent of that folder in the
 // real setup (MEAL_PLAN_DIR is FOOD_PLANNING_DIR/weekly-plans). Falls back
-// to data/food/ (fictional sample data) so the app still runs on a fresh
-// clone with no env configured.
-const DEFAULT_FOOD_DIR = path.join(process.cwd(), "data", "food");
-
+// to sample-data/food/ (fictional demo data — see lib/dataDir.ts) so the
+// app still runs on a fresh clone with no env configured.
 function foodPlanningDir(): string {
-  return process.env.FOOD_PLANNING_DIR?.trim() || DEFAULT_FOOD_DIR;
+  return process.env.FOOD_PLANNING_DIR?.trim() || dataPath("food");
 }
 
 function foodListPath(): string {

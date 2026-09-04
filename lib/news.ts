@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { hashId } from "./hash";
 import { splitHeadline } from "./newsItem";
+import { dataPath } from "./dataDir";
 
 // Reads the daily news briefing produced by the separate "daily-news"
 // scheduled task. That task writes dated markdown files
@@ -61,10 +62,8 @@ import { splitHeadline } from "./newsItem";
 // per your standing preference for this category." showing up as its own
 // line under a section heading (seen 2026-09-02) — and gets silently
 // skipped rather than rendered as a broken, sourceless "article" card.
-const DEFAULT_NEWS_DIR = path.join(process.cwd(), "data", "news");
-
 function newsDir(): string {
-  return process.env.NEWS_BRIEFING_DIR?.trim() || DEFAULT_NEWS_DIR;
+  return process.env.NEWS_BRIEFING_DIR?.trim() || dataPath("news");
 }
 
 const SUMMARY_RE = /^(\d{4}-\d{2}-\d{2})-news-summary\.md$/;

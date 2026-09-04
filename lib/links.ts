@@ -1,13 +1,12 @@
 import fs from "fs";
 import path from "path";
 import { hashId } from "./hash";
+import { dataPath, writeDataPath } from "./dataDir";
 
 // Unlike news/meals, saved links are created directly in this app (no
 // external scheduled task writing files) — so they live in this repo's own
-// data/ folder, same gitignore-real-data / commit-sample-data pattern as
-// everything else.
-const DATA_DIR = path.join(process.cwd(), "data");
-const LINKS_FILE = path.join(DATA_DIR, "links.json");
+// data/ folder (see lib/dataDir.ts for how that's kept structurally
+// separate from sample-data/, the fictional demo tree).
 
 export interface LinkEntry {
   id: string;
@@ -27,9 +26,10 @@ export interface LinkMetadata {
 }
 
 export function getLinks(): LinkEntry[] {
-  if (!fs.existsSync(LINKS_FILE)) return [];
+  const file = dataPath("links.json");
+  if (!fs.existsSync(file)) return [];
   try {
-    const raw = fs.readFileSync(LINKS_FILE, "utf-8");
+    const raw = fs.readFileSync(file, "utf-8");
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -38,8 +38,10 @@ export function getLinks(): LinkEntry[] {
 }
 
 function saveLinks(links: LinkEntry[]): void {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(LINKS_FILE, JSON.stringify(links, null, 2) + "\n", "utf-8");
+  const file = writeDataPath("links.json");
+  const dir = path.dirname(file);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(links, null, 2) + "\n", "utf-8");
 }
 
 export function addLink(entry: Omit<LinkEntry, "id" | "addedAt">): LinkEntry {

@@ -9,38 +9,37 @@
 .env*.local
 .env
 
-# Personal financial data — never committed. See data/sample/ for fictional
-# example data with the same structure, and README.md for how to plug in
+# Personal financial data — never committed. See sample-data/ for fictional
+# example data with the same structure (a completely separate top-level
+# folder from data/ — see lib/dataDir.ts), and README.md for how to plug in
 # your own real data locally.
 /data/*.csv
 /data/*.xlsx
 /data/*.xls
-!/data/sample/
-!/data/sample/**
 
 # Daily news briefing — same bring-your-own-data model. Real briefings live
-# in NEWS_BRIEFING_DIR (see .env.local); data/news/ is only a local fallback
+# in NEWS_BRIEFING_DIR (see .env.local); sample-data/news/ is only a fallback
 # if that's unset, and feedback.jsonl logs your personal likes/dislikes.
 /data/news/*.md
 /data/news/*.jsonl
 
 # Weekly meal plan — same bring-your-own-data model. Real plans live in
-# MEAL_PLAN_DIR (see .env.local); data/meals/ is only a local fallback.
+# MEAL_PLAN_DIR (see .env.local); sample-data/meals/ is only a fallback.
 # meal-feedback.jsonl logs the kids' per-dish thumbs up/down, and
 # grocery-checked.jsonl logs which grocery items you've ticked off.
 /data/meals/*.md
 /data/meals/*.jsonl
 
 # Saved links — created directly in the app (no external task), but still
-# personal, so real data stays local. See data/sample/links.json.
+# personal, so real data stays local. See sample-data/links.json.
 /data/links.json
 
 # Saved learning resources — same as links.json above, just organized by
-# topic instead of category. See data/sample/learning.json.
+# topic instead of category. See sample-data/learning.json.
 /data/learning.json
 
 # Food list + recipes — same bring-your-own-data model as meals. Real data
-# lives in FOOD_PLANNING_DIR (see .env.local); data/food/ is only a local
+# lives in FOOD_PLANNING_DIR (see .env.local); sample-data/food/ is only a
 # fallback if that's unset.
 /data/food/*.md
 /data/food/recipes/*.md

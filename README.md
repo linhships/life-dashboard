@@ -14,26 +14,38 @@ credentials required to run it.
 
 This is a **bring-your-own-data** app. Your real financial data never lives
 in this repository — it's gitignored. What's committed instead is a small
-set of fictional example data (`data/sample/`) with the same file structure,
-so the app is runnable immediately on a fresh clone, and so this repo is safe
-to make public without exposing anything real.
+set of fictional example data in its own top-level folder, `sample-data/`,
+with the same file structure as `data/`, so the app is runnable immediately
+on a fresh clone, and so this repo is safe to make public without exposing
+anything real.
+
+`data/` (your real files) and `sample-data/` (the fictional demo files) are
+two completely separate folders — nothing ever copies between them. Each
+reader (`lib/dataDir.ts`'s `dataPath()`) prefers the real file in `data/`
+and only falls back to the matching file in `sample-data/` if the real one
+doesn't exist yet, so there's no seed step and no script that could ever
+overwrite one with the other:
 
 ```bash
 npm install
-npm run seed:sample   # copies data/sample/* into data/ (fictional numbers)
 npm run dev
 ```
 
-When you're ready to use it for real, replace the files in `data/` with your
-own (see [Data](#data) below for the expected format). Anything in `data/`
-except `data/sample/` is gitignored — `git status` will never show your real
-numbers as changed, and there's no risk of committing them by accident.
+When you're ready to use it for real, add your own files to `data/` (see
+[Data](#data) below for the expected format) — they'll automatically take
+over from the sample-data fallback the moment they exist. `data/` (aside
+from a couple of files created directly by the app, see "Links"/"Learning"
+below) is gitignored — `git status` will never show your real numbers as
+changed, and there's no risk of committing them by accident.
+
+Set `USE_SAMPLE_DATA=true` in `.env.local` to force every page to use
+`sample-data/` regardless of what's in `data/` — handy for screenshots or
+demoing the app without any real numbers ever touching the screen.
 
 ## Running it locally
 
 ```bash
 npm install
-npm run seed:sample   # optional: populate data/ with fictional example data
 npm run dev
 ```
 
@@ -76,8 +88,9 @@ All data lives in `/data` as plain files you (or a scheduled task) update:
   files, used only if `MEAL_PLAN_DIR` isn't set. See "Weekly meal plan"
   below.
 
-`data/sample/` holds fictional versions of all of the above, committed to
-git, used by `npm run seed:sample`.
+`sample-data/` holds fictional versions of all of the above, committed to
+git, and is what every reader falls back to automatically when the matching
+real file in `data/` doesn't exist — see "Privacy model" above.
 
 The page is rendered dynamically (`export const dynamic = "force-dynamic"`
 in `app/page.tsx`), so it re-reads these files on every request — replacing
@@ -91,8 +104,8 @@ written by a separate "daily-news" scheduled task, and shows the latest one
 with 👎 / 👍 / 🔥 buttons on each story.
 
 Copy `.env.example` to `.env.local` (gitignored) and set `NEWS_BRIEFING_DIR`
-to the folder your task writes into. If unset, it falls back to `data/news/`
-(seeded with one fictional example day by `npm run seed:sample`).
+to the folder your task writes into. If unset, it falls back to
+`sample-data/news/` (one fictional example day).
 
 Clicking a rating appends one line to `feedback.jsonl` in that same folder —
 an append-only log of `{ id, date, section, headline, rating, ratedAt }`,
@@ -111,8 +124,7 @@ items, groceries) as-is below it.
 
 Copy `.env.example` to `.env.local` (gitignored) and set `MEAL_PLAN_DIR`
 to the folder your task writes into. If unset, it falls back to
-`data/meals/` (seeded with one fictional example week by
-`npm run seed:sample`).
+`sample-data/meals/` (one fictional example week).
 
 ## Links
 
@@ -126,8 +138,8 @@ a machine with a plainer network path to that site.
 
 Links are stored in `data/links.json` (gitignored — created directly by
 the app rather than an external task, but still personal data). See
-`data/sample/links.json` for the fictional seed used by
-`npm run seed:sample`. Categories are just free text per link — reassign
+`sample-data/links.json` for the fictional fallback shown until you save
+your first real link. Categories are just free text per link — reassign
 a link's category any time from the dropdown on its card as your
 collection grows and a category gets too broad.
 
@@ -142,8 +154,8 @@ paste-a-URL-and-tag-it flow, same grouped-by-topic-with-a-count-badge
 layout, same free-text reassignment from a dropdown on each card.
 
 Stored in `data/learning.json` (gitignored, personal data); see
-`data/sample/learning.json` for the fictional seed used by
-`npm run seed:sample`.
+`sample-data/learning.json` for the fictional fallback shown until you
+save your first real resource.
 
 ## Calendar & Reminders
 

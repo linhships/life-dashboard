@@ -6,8 +6,7 @@
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "lint": "eslint",
-    "seed:sample": "node scripts/seed-sample-data.mjs"
+    "lint": "eslint"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
