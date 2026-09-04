@@ -1,33 +1,50 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { NotebookText } from "lucide-react";
 import type { GatehouseMessage } from "@/lib/gatehouse";
 import type { GatehouseNotesData } from "@/lib/gatehouseNotes";
-import { MessageModal, formatMessageDate, sourceIcon } from "./gatehouseShared";
+import { MessageModal, formatDateOnly } from "./gatehouseShared";
 
 const MSG_REF_RE = /\[\[msg:([a-zA-Z0-9_-]+)\]\]/g;
+// A heading line's own source token, e.g. "## Title [[msg:some-id]]" —
+// anchored to the end of the line so it's only picked up from the heading
+// itself, not from prose elsewhere that happens to mention a message.
+const HEADING_REF_RE = /\s*\[\[msg:([a-zA-Z0-9_-]+)\]\]\s*$/;
 
-type Block =
-  | { type: "heading"; text: string }
-  | { type: "list"; items: string[] }
-  | { type: "paragraph"; text: string };
+type Block = { type: "list"; items: string[] } | { type: "paragraph"; text: string };
 
-// Tiny markdown-lite parser for notes.md's body: "## " headings, "- "
-// bullets, and blank-line-separated paragraphs — deliberately not a full
-// markdown renderer, matching this app's usual "just enough parsing for
-// this one hand-authored file" approach (see lib/gatehouse*.ts).
-function parseBlocks(body: string): Block[] {
+interface Section {
+  heading: string;
+  messageId: string | null;
+  blocks: Block[];
+}
+
+// Tiny markdown-lite parser for notes.md's body: each "## Heading
+// [[msg:id]]" line starts a new section/box (the trailing token is that
+// document's source message, stripped from the displayed heading text),
+// followed by "- " bullets and blank-line-separated paragraphs until the
+// next heading. Anything before the first heading is treated as an
+// editorial comment for whoever edits the file (same convention as the
+// unrendered preamble in class-info.md/credentials.md/links.md) and isn't
+// displayed.
+function parseSections(body: string): Section[] {
   const lines = body.split(/\r?\n/);
-  const blocks: Block[] = [];
+  const sections: Section[] = [];
+  let current: Section | null = null;
   let currentList: string[] | null = null;
   let currentPara: string[] | null = null;
 
   const flushList = () => {
-    if (currentList && currentList.length) blocks.push({ type: "list", items: currentList });
+    if (current && currentList && currentList.length) {
+      current.blocks.push({ type: "list", items: currentList });
+    }
     currentList = null;
   };
   const flushPara = () => {
-    if (currentPara && currentPara.length) blocks.push({ type: "paragraph", text: currentPara.join(" ") });
+    if (current && currentPara && currentPara.length) {
+      current.blocks.push({ type: "paragraph", text: currentPara.join(" ") });
+    }
     currentPara = null;
   };
 
@@ -41,9 +58,14 @@ function parseBlocks(body: string): Block[] {
     if (line.startsWith("## ")) {
       flushList();
       flushPara();
-      blocks.push({ type: "heading", text: line.slice(3).trim() });
+      const rest = line.slice(3).trim();
+      const m = rest.match(HEADING_REF_RE);
+      const heading = m ? rest.slice(0, m.index).trim() : rest;
+      current = { heading, messageId: m ? m[1] : null, blocks: [] };
+      sections.push(current);
       continue;
     }
+    if (!current) continue; // ignore anything before the first heading
     if (line.startsWith("- ")) {
       flushPara();
       if (!currentList) currentList = [];
@@ -56,7 +78,7 @@ function parseBlocks(body: string): Block[] {
   }
   flushList();
   flushPara();
-  return blocks;
+  return sections;
 }
 
 function FootnoteMark({ n, onOpen }: { n: number; onOpen: () => void }) {
@@ -71,8 +93,10 @@ function FootnoteMark({ n, onOpen }: { n: number; onOpen: () => void }) {
   );
 }
 
-// Turns [[msg:id]] tokens inline into footnote markers, same convention as
-// ReportBody in GatehouseWeeklyReports.tsx.
+// Turns any inline [[msg:id]] tokens into footnote markers — not used by
+// the current notes.md content (source is now shown once per box, in the
+// header), but kept so a future note can still cite a message inline if
+// it ever needs to reference something other than its box's own document.
 function renderInline(
   text: string,
   footnoteNumberById: Map<string, number>,
@@ -94,37 +118,55 @@ function renderInline(
   return parts;
 }
 
-// Page-level footnote list — same look/behaviour as FootnoteList in
-// GatehouseWeeklyReports.tsx, just not scoped to a single week's report.
-function FootnoteList({
-  messages,
+// One box per source document — header shows the document title, the date
+// it was received (its source message's date), and a [source] link into
+// the shared message modal; body is that document's summarised content.
+function NoteBox({
+  section,
+  message,
   onOpen,
 }: {
-  messages: GatehouseMessage[];
+  section: Section;
+  message: GatehouseMessage | null;
   onOpen: (id: string) => void;
 }) {
-  if (messages.length === 0) return null;
+  const footnoteNumberById = message ? new Map([[message.id, 1]]) : new Map<string, number>();
   return (
-    <ol className="mt-5 space-y-1 text-xs text-slate-500">
-      {messages.map((m, i) => (
-        <li key={m.id} className="flex items-start gap-1.5">
-          <span className="font-semibold text-slate-400">[{i + 1}]</span>
-          <button
-            type="button"
-            onClick={() => onOpen(m.id)}
-            className="group flex min-w-0 items-center gap-1.5 text-left text-slate-400"
-          >
-            <span className="group-hover:text-blue-700">
-              {sourceIcon(m.sources[0]?.type ?? "email")}
-            </span>
-            <span className="shrink-0 group-hover:text-blue-700">{formatMessageDate(m.date)}</span>
-            <span className="truncate text-slate-600 group-hover:text-blue-700 group-hover:underline">
-              {m.title}
-            </span>
-          </button>
-        </li>
-      ))}
-    </ol>
+    <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <NotebookText className="h-4 w-4 text-slate-400" />
+          <h2 className="text-base font-bold text-slate-900">{section.heading}</h2>
+        </div>
+        {message && (
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span>Received {formatDateOnly(message.date)}</span>
+            <button
+              type="button"
+              onClick={() => onOpen(message.id)}
+              className="font-semibold text-blue-600 hover:underline"
+            >
+              [source]
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 space-y-3 text-sm leading-relaxed text-slate-700">
+        {section.blocks.map((b, i) => {
+          if (b.type === "list") {
+            return (
+              <ul key={i} className="list-disc space-y-1 pl-5">
+                {b.items.map((item, j) => (
+                  <li key={j}>{renderInline(item, footnoteNumberById, onOpen)}</li>
+                ))}
+              </ul>
+            );
+          }
+          return <p key={i}>{renderInline(b.text, footnoteNumberById, onOpen)}</p>;
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -139,39 +181,24 @@ export function GatehouseNotes({ notes }: { notes: GatehouseNotesData | null }) 
     );
   }
 
-  const footnoteNumberById = new Map(notes.messages.map((m, i) => [m.id, i + 1]));
-  const blocks = parseBlocks(notes.body);
-  const openMessage = openMessageId
-    ? (notes.messages.find((m) => m.id === openMessageId) ?? null)
-    : null;
+  const sections = parseSections(notes.body);
+  const byId = new Map(notes.messages.map((m) => [m.id, m]));
+  const openMessage = openMessageId ? (byId.get(openMessageId) ?? null) : null;
+
+  if (sections.length === 0) {
+    return <p className="text-sm text-slate-500">Notes found, but no sections to show yet.</p>;
+  }
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
-        <div className="space-y-3 text-sm leading-relaxed text-slate-700">
-          {blocks.map((b, i) => {
-            if (b.type === "heading") {
-              return (
-                <h2 key={i} className="pt-2 text-base font-bold text-slate-900 first:pt-0">
-                  {b.text}
-                </h2>
-              );
-            }
-            if (b.type === "list") {
-              return (
-                <ul key={i} className="list-disc space-y-1 pl-5">
-                  {b.items.map((item, j) => (
-                    <li key={j}>{renderInline(item, footnoteNumberById, setOpenMessageId)}</li>
-                  ))}
-                </ul>
-              );
-            }
-            return <p key={i}>{renderInline(b.text, footnoteNumberById, setOpenMessageId)}</p>;
-          })}
-        </div>
-
-        <FootnoteList messages={notes.messages} onOpen={setOpenMessageId} />
-      </div>
+      {sections.map((section, i) => (
+        <NoteBox
+          key={i}
+          section={section}
+          message={section.messageId ? (byId.get(section.messageId) ?? null) : null}
+          onOpen={setOpenMessageId}
+        />
+      ))}
 
       {openMessage && <MessageModal message={openMessage} onClose={() => setOpenMessageId(null)} />}
     </div>

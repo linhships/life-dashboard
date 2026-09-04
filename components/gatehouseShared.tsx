@@ -22,6 +22,15 @@ export function formatMessageDate(date: string): string {
   });
 }
 
+// Same as formatMessageDate but date-only, no weekday/time — used where a
+// document's "received on" date is being shown rather than a precise
+// message timestamp (e.g. the Notes page).
+export function formatDateOnly(date: string): string {
+  const d = new Date(date.replace(" ", "T"));
+  if (Number.isNaN(d.getTime())) return date;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
 export function sourceIcon(type: string) {
   return type === "whatsapp" ? (
     <MessageCircle className="h-3.5 w-3.5 shrink-0" />
