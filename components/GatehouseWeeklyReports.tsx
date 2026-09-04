@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Backpack,
   Calendar,
@@ -130,6 +130,41 @@ function isImageAttachment(rel: string): boolean {
 
 function attachmentFileName(rel: string): string {
   return rel.split("/").pop() ?? rel;
+}
+
+// Turns bare-text URLs/domains inside free text (e.g. class-info.md's
+// "gatehouseschool.co.uk/parents-area — password GHS2627*") into real,
+// clickable new-tab links. Negative lookbehind (?<![\w@.]) keeps it from
+// matching the domain half of an email address like
+// admin@gatehouseschool.co.uk. Bare domains (no scheme) get "https://"
+// prepended for the href but keep their original text as the link label.
+const URL_RE =
+  /(?<![\w@.])((?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/[^\s,;()]*)?)/g;
+
+function linkifyText(text: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let i = 0;
+  for (const m of text.matchAll(URL_RE)) {
+    if (m.index === undefined) continue;
+    if (m.index > lastIndex) parts.push(text.slice(lastIndex, m.index));
+    const raw = m[1];
+    const href = raw.startsWith("http") ? raw : `https://${raw}`;
+    parts.push(
+      <a
+        key={i++}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:underline"
+      >
+        {raw}
+      </a>
+    );
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
 }
 
 // Small superscript-style footnote marker, e.g. the "[3]" after a clause —
@@ -307,6 +342,8 @@ function MessageModal({ message, onClose }: { message: GatehouseMessage; onClose
                     <a
                       key={rel}
                       href={`/api/gatehouse/file?path=${encodeURIComponent(rel)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
                     >
                       <FileText className="h-4 w-4 shrink-0" />
@@ -391,7 +428,7 @@ function ClassInfoBox({
             <div key={i} className="text-sm">
               <dt className="font-semibold text-slate-500">{f.label}</dt>
               <dd className="text-slate-700">
-                {f.detail}
+                {linkifyText(f.detail)}
                 {f.message && (
                   <button
                     type="button"
