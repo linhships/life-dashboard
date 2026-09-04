@@ -96,6 +96,7 @@ const ROUTE_GROUPS: RouteGroup[] = [
     items: [
       { href: "/gatehouse-info", label: "Class Info" },
       { href: "/gatehouse-comms", label: "Communication" },
+      { href: "/gatehouse-notes", label: "Notes" },
     ],
   },
 ];
