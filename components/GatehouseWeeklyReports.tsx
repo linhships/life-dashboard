@@ -58,22 +58,42 @@ interface MonthGroup {
   key: string;
   label: string;
   reports: WeekReportData[];
+  events: UpcomingEventData[];
 }
 
-function groupReportsByMonth(reports: WeekReportData[]): MonthGroup[] {
-  const groups: MonthGroup[] = [];
+// Merges weekly reports and upcoming events into one set of month
+// sections. A month with any upcoming event in it is treated as a
+// "future" month (events are already filtered to today-or-later by
+// lib/gatehouseKeyDates.ts, so this is never wrong) and those sort
+// ascending — soonest first, like a calendar's "what's next" list. Months
+// with only past reports sort descending, same as before — most recent
+// history first. The result is: soonest-upcoming month at the very top,
+// then further-out months, then a break into history running newest to
+// oldest.
+function buildMonthGroups(
+  reports: WeekReportData[],
+  events: UpcomingEventData[]
+): MonthGroup[] {
   const byKey = new Map<string, MonthGroup>();
-  for (const report of reports) {
-    const key = monthKey(report.weekStart);
-    let group = byKey.get(key);
-    if (!group) {
-      group = { key, label: monthLabel(key), reports: [] };
-      byKey.set(key, group);
-      groups.push(group);
+  const getGroup = (key: string): MonthGroup => {
+    let g = byKey.get(key);
+    if (!g) {
+      g = { key, label: monthLabel(key), reports: [], events: [] };
+      byKey.set(key, g);
     }
-    group.reports.push(report);
-  }
-  return groups;
+    return g;
+  };
+
+  for (const report of reports) getGroup(monthKey(report.weekStart)).reports.push(report);
+  for (const event of events) getGroup(event.date.slice(0, 7)).events.push(event);
+
+  const futureKeys: string[] = [];
+  const pastKeys: string[] = [];
+  for (const g of byKey.values()) (g.events.length > 0 ? futureKeys : pastKeys).push(g.key);
+  futureKeys.sort();
+  pastKeys.sort().reverse();
+
+  return [...futureKeys, ...pastKeys].map((key) => byKey.get(key)!);
 }
 
 function formatShortDate(date: string): string {
@@ -181,18 +201,36 @@ function FootnoteList({
 }) {
   if (messages.length === 0) return null;
   return (
-    <ol className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-500">
+    // No border here on purpose — a plain border-t reads as a full boxed
+    // rectangle under the Neobrutal theme (its border-t override sets the
+    // border-width shorthand, which affects all four sides once combined
+    // with border-slate-100's border-color, not just the top edge), which
+    // looked heavier than intended for a footnote list. Spacing alone
+    // (mt-3) separates it from the prose above instead.
+    <ol className="mt-3 space-y-1 text-xs text-slate-500">
       {messages.map((m, i) => (
         <li key={m.id} className="flex items-start gap-1.5">
           <span className="font-semibold text-slate-400">[{i + 1}]</span>
+          {/* "group" + matching group-hover classes on every child keep the
+              hover treatment consistent across the icon, date, and title —
+              previously only the title (the one span with no explicit
+              color class) picked up the button's hover:text-blue-700,
+              while the date's own text-slate-400 silently overrode it,
+              leaving one part orange and the rest grey on hover. */}
           <button
             type="button"
             onClick={() => onOpen(m.id)}
-            className="flex min-w-0 items-center gap-1.5 text-left hover:text-blue-700 hover:underline"
+            className="group flex min-w-0 items-center gap-1.5 text-left text-slate-400"
           >
-            {sourceIcon(m.sources[0]?.type ?? "email")}
-            <span className="shrink-0 text-slate-400">{formatMessageDate(m.date)}</span>
-            <span className="truncate">{m.title}</span>
+            <span className="group-hover:text-blue-700">
+              {sourceIcon(m.sources[0]?.type ?? "email")}
+            </span>
+            <span className="shrink-0 group-hover:text-blue-700">
+              {formatMessageDate(m.date)}
+            </span>
+            <span className="truncate text-slate-600 group-hover:text-blue-700 group-hover:underline">
+              {m.title}
+            </span>
           </button>
         </li>
       ))}
@@ -283,7 +321,10 @@ function MessageModal({ message, onClose }: { message: GatehouseMessage; onClose
   );
 }
 
-function UpcomingEventsBox({
+// The events subsection inside a month's card — same callout look the
+// standalone box used to have, just scoped to one month now instead of
+// living in its own block at the top of the page.
+function MonthEventsList({
   events,
   onOpen,
 }: {
@@ -292,12 +333,12 @@ function UpcomingEventsBox({
 }) {
   if (events.length === 0) return null;
   return (
-    <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-5">
-      <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900">
-        <Calendar className="h-4 w-4 text-blue-600" />
-        Upcoming events &amp; meetings
-      </h2>
-      <ul className="mt-3 space-y-1.5">
+    <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-blue-700">
+        <Calendar className="h-3.5 w-3.5" />
+        Upcoming
+      </p>
+      <ul className="mt-2 space-y-1.5">
         {events.map((e, i) => (
           <li key={i} className="flex items-baseline gap-2 text-sm">
             <span className="w-36 shrink-0 font-semibold text-slate-500">
@@ -330,12 +371,17 @@ export function GatehouseWeeklyReports({
   upcomingEvents?: UpcomingEventData[];
 }) {
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
-  const monthGroups = groupReportsByMonth(reports);
-  // Most recent month starts expanded, older months start collapsed — so
-  // the page opens on what's current without burying it under months of
-  // history the way a fully-expanded list would.
+  const monthGroups = buildMonthGroups(reports, upcomingEvents);
+  // Two sections start expanded: the soonest upcoming month (what's next)
+  // and the most recent month with an actual digest (what just happened).
+  // Everything else starts collapsed so the page opens focused rather
+  // than as a full scroll of every month at once.
+  const firstFutureKey = monthGroups.find((g) => g.events.length > 0)?.key;
+  const firstPastKey = monthGroups.find((g) => g.events.length === 0)?.key;
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(monthGroups.map((g, i) => [g.key, i === 0]))
+    Object.fromEntries(
+      monthGroups.map((g) => [g.key, g.key === firstFutureKey || g.key === firstPastKey])
+    )
   );
   const toggleMonth = (key: string) =>
     setOpenMonths((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -370,12 +416,18 @@ export function GatehouseWeeklyReports({
 
   return (
     <div className="space-y-5">
-      <UpcomingEventsBox events={upcomingEvents} onOpen={setOpenMessageId} />
-
       {monthGroups.map((group) => {
         const isOpen = openMonths[group.key] ?? false;
         const weekCount = group.reports.length;
         const messageCount = group.reports.reduce((sum, r) => sum + r.messages.length, 0);
+        const countParts: string[] = [];
+        if (group.events.length > 0) {
+          countParts.push(`${group.events.length} ${group.events.length === 1 ? "event" : "events"}`);
+        }
+        if (weekCount > 0) {
+          countParts.push(`${weekCount} ${weekCount === 1 ? "week" : "weeks"}`);
+          countParts.push(`${messageCount} ${messageCount === 1 ? "message" : "messages"}`);
+        }
         return (
           <div key={group.key} className="rounded-xl border border-slate-200 bg-white shadow-sm">
             <button
@@ -385,8 +437,7 @@ export function GatehouseWeeklyReports({
             >
               <span className="text-base font-bold text-slate-900">{group.label}</span>
               <span className="flex items-center gap-3 text-xs text-slate-400">
-                {weekCount} {weekCount === 1 ? "week" : "weeks"} · {messageCount}{" "}
-                {messageCount === 1 ? "message" : "messages"}
+                {countParts.join(" · ")}
                 <ChevronDown
                   className={`h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
                 />
@@ -395,6 +446,8 @@ export function GatehouseWeeklyReports({
 
             {isOpen && (
               <div className="space-y-4 border-t border-slate-100 p-5 pt-4">
+                <MonthEventsList events={group.events} onOpen={setOpenMessageId} />
+
                 {group.reports.map((report) => {
                   const footnoteNumberById = new Map(
                     report.messages.map((m, i) => [m.id, i + 1])
