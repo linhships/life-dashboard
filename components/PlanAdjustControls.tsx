@@ -79,21 +79,20 @@ export function PlanAdjustControls({
 
   return (
     <div>
-      {!isDefault && (
-        <div className="mb-2 flex justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              setPlan(initialPlan);
-              setSpend(targetSpend);
-              setLiquidReserve(100000);
-            }}
-            className="text-xs font-medium text-blue-600 hover:text-blue-800"
-          >
-            Reset to current plan
-          </button>
-        </div>
-      )}
+      <div className="mb-2 flex justify-end">
+        <button
+          type="button"
+          disabled={isDefault}
+          onClick={() => {
+            setPlan(initialPlan);
+            setSpend(targetSpend);
+            setLiquidReserve(100000);
+          }}
+          className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:text-slate-300"
+        >
+          Reset to default
+        </button>
+      </div>
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:max-w-md">
         <NumberField
           label="Target annual retirement spending"
