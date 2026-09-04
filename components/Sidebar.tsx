@@ -14,6 +14,7 @@ import {
   Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
+  School,
   Settings,
   UtensilsCrossed,
   X,
@@ -86,7 +87,15 @@ const ROUTE_GROUPS: RouteGroup[] = [
     items: [
       { href: "/tori-photos", label: "Tori & the boys" },
       { href: "/milo-nursery", label: "Milo's Nursery" },
-      { href: "/gatehouse", label: "Gatehouse" },
+    ],
+  },
+  {
+    key: "gatehouse",
+    label: "Gatehouse",
+    icon: School,
+    items: [
+      { href: "/gatehouse-info", label: "Class Info" },
+      { href: "/gatehouse-comms", label: "Communication" },
     ],
   },
 ];

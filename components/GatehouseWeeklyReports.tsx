@@ -1,23 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import {
-  Backpack,
-  Calendar,
-  ChevronDown,
-  ExternalLink,
-  Eye,
-  EyeOff,
-  FileText,
-  KeyRound,
-  Mail,
-  MessageCircle,
-  Paperclip,
-  X,
-} from "lucide-react";
-import type { GatehouseMessage, GatehouseSource } from "@/lib/gatehouse";
-import type { ClassInfo } from "@/lib/gatehouseClassInfo";
-import type { CredentialField } from "@/lib/gatehouseCredentials";
+import { useState } from "react";
+import { Calendar, ChevronDown } from "lucide-react";
+import type { GatehouseMessage } from "@/lib/gatehouse";
+import { MessageModal, formatMessageDate, sourceIcon } from "./gatehouseShared";
 
 export interface WeekReportData {
   weekStart: string; // ISO date, Monday
@@ -40,19 +26,6 @@ function formatWeekRange(weekStart: string, weekEnd: string): string {
   const startStr = start.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
   const endStr = end.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   return `${startStr} – ${endStr}`;
-}
-
-function formatMessageDate(date: string): string {
-  // date is "YYYY-MM-DD HH:MM"
-  const d = new Date(date.replace(" ", "T"));
-  if (Number.isNaN(d.getTime())) return date;
-  return d.toLocaleString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 // Groups weeks by the calendar month their Monday falls in — a week that
@@ -112,64 +85,6 @@ function formatShortDate(date: string): string {
     month: "short",
     year: "numeric",
   });
-}
-
-function sourceIcon(type: string) {
-  return type === "whatsapp" ? (
-    <MessageCircle className="h-3.5 w-3.5 shrink-0" />
-  ) : (
-    <Mail className="h-3.5 w-3.5 shrink-0" />
-  );
-}
-
-function sourceLabel(source: GatehouseSource): string {
-  if (source.type === "whatsapp") {
-    return `WhatsApp · ${source.chat ?? "?"} · ${source.sender ?? "?"}`;
-  }
-  return `Email · ${source.sender ?? "?"}`;
-}
-
-function isImageAttachment(rel: string): boolean {
-  return /\.(jpe?g|png|gif|webp)$/i.test(rel);
-}
-
-function attachmentFileName(rel: string): string {
-  return rel.split("/").pop() ?? rel;
-}
-
-// Turns bare-text URLs/domains inside free text (e.g. class-info.md's
-// "gatehouseschool.co.uk/parents-area — password GHS2627*") into real,
-// clickable new-tab links. Negative lookbehind (?<![\w@.]) keeps it from
-// matching the domain half of an email address like
-// admin@gatehouseschool.co.uk. Bare domains (no scheme) get "https://"
-// prepended for the href but keep their original text as the link label.
-const URL_RE =
-  /(?<![\w@.])((?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/[^\s,;()]*)?)/g;
-
-function linkifyText(text: string): ReactNode[] {
-  const parts: ReactNode[] = [];
-  let lastIndex = 0;
-  let i = 0;
-  for (const m of text.matchAll(URL_RE)) {
-    if (m.index === undefined) continue;
-    if (m.index > lastIndex) parts.push(text.slice(lastIndex, m.index));
-    const raw = m[1];
-    const href = raw.startsWith("http") ? raw : `https://${raw}`;
-    parts.push(
-      <a
-        key={i++}
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-600 hover:underline"
-      >
-        {raw}
-      </a>
-    );
-    lastIndex = m.index + m[0].length;
-  }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return parts;
 }
 
 // Small superscript-style footnote marker, e.g. the "[3]" after a clause —
@@ -280,91 +195,6 @@ function FootnoteList({
   );
 }
 
-function MessageModal({ message, onClose }: { message: GatehouseMessage; onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-6 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">{message.title}</h2>
-            <p className="mt-1 text-xs text-slate-400">{formatMessageDate(message.date)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            title="Close"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="p-6">
-          <div className="space-y-1.5">
-            {message.sources.map((source, i) => (
-              <div key={i} className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-                {sourceIcon(source.type)}
-                <span className="font-medium text-slate-600">{sourceLabel(source)}</span>
-                {source.subject && <span>— &ldquo;{source.subject}&rdquo;</span>}
-                {source.note && <span className="italic text-slate-400">({source.note})</span>}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 whitespace-pre-wrap border-t border-slate-100 pt-4 text-sm text-slate-700">
-            {message.body}
-          </div>
-
-          {message.attachments.length > 0 && (
-            <div className="mt-5 border-t border-slate-100 pt-4">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                <Paperclip className="h-3.5 w-3.5" />
-                Attachments
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {message.attachments.map((rel) =>
-                  isImageAttachment(rel) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <a
-                      key={rel}
-                      href={`/api/gatehouse/file?path=${encodeURIComponent(rel)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <img
-                        src={`/api/gatehouse/file?path=${encodeURIComponent(rel)}`}
-                        alt=""
-                        className="h-28 w-28 rounded-lg border border-slate-200 object-cover hover:opacity-90"
-                      />
-                    </a>
-                  ) : (
-                    <a
-                      key={rel}
-                      href={`/api/gatehouse/file?path=${encodeURIComponent(rel)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                    >
-                      <FileText className="h-4 w-4 shrink-0" />
-                      {attachmentFileName(rel)}
-                    </a>
-                  )
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // The events subsection inside a month's card — same callout look the
 // standalone box used to have, just scoped to one month now instead of
 // living in its own block at the top of the page.
@@ -407,151 +237,12 @@ function MonthEventsList({
   );
 }
 
-// Static "quick reference" card for Milo's actual class — not
-// time-ordered like everything else on the page, so it sits on its own at
-// the top rather than inside a month section. Sourced from
-// GATEHOUSE_DIR/reports/class-info.md (lib/gatehouseClassInfo.ts).
-function ClassInfoBox({
-  classInfo,
-  onOpen,
-}: {
-  classInfo: ClassInfo;
-  onOpen: (id: string) => void;
-}) {
-  return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5">
-      <div className="flex items-center gap-2">
-        <Backpack className="h-4 w-4 text-amber-700" />
-        <p className="text-sm font-bold text-slate-900">
-          Milo is in {classInfo.className}
-          {classInfo.classCode ? ` (${classInfo.classCode})` : ""}
-        </p>
-      </div>
-      {classInfo.fields.length > 0 && (
-        <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-          {classInfo.fields.map((f, i) => (
-            <div key={i} className="text-sm">
-              <dt className="font-semibold text-slate-500">{f.label}</dt>
-              <dd className="text-slate-700">
-                {linkifyText(f.detail)}
-                {f.message && (
-                  <button
-                    type="button"
-                    onClick={() => onOpen(f.message!.id)}
-                    className="ml-1 align-super text-[11px] font-semibold text-blue-600 hover:underline"
-                  >
-                    [source]
-                  </button>
-                )}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </div>
-  );
-}
-
-// Static "quick reference" card for logins/passwords circulated by email
-// or WhatsApp (bus tracker app, parents area website, etc.) — same
-// not-time-ordered treatment as ClassInfoBox, sourced from
-// GATEHOUSE_DIR/reports/credentials.md (lib/gatehouseCredentials.ts).
-// Passwords are masked by default with a per-row reveal toggle, since this
-// is sensitive info sitting on an otherwise ungated page.
-function CredentialsBox({
-  credentials,
-  onOpen,
-}: {
-  credentials: CredentialField[];
-  onOpen: (id: string) => void;
-}) {
-  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
-  if (credentials.length === 0) return null;
-  return (
-    <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-5">
-      <div className="flex items-center gap-2">
-        <KeyRound className="h-4 w-4 text-rose-700" />
-        <p className="text-sm font-bold text-slate-900">Passwords &amp; Logins</p>
-      </div>
-      <p className="mt-1 text-xs text-slate-500">
-        Circulated by Gatehouse via email or WhatsApp — click the eye to reveal.
-      </p>
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <th className="pb-1.5 pr-4">Service</th>
-              <th className="pb-1.5 pr-4">Login</th>
-              <th className="pb-1.5 pr-4">Password</th>
-              <th className="pb-1.5 pr-4">Login link</th>
-              <th className="pb-1.5" />
-            </tr>
-          </thead>
-          <tbody>
-            {credentials.map((c, i) => (
-              <tr key={i} className="border-t border-rose-100/80">
-                <td className="py-1.5 pr-4 font-medium text-slate-700">{c.service}</td>
-                <td className="py-1.5 pr-4 text-slate-600">{c.login || "—"}</td>
-                <td className="py-1.5 pr-4 font-mono text-slate-700">
-                  <span className="inline-flex items-center gap-1.5">
-                    {revealed[i] ? c.password : "•".repeat(Math.max(6, c.password.length))}
-                    <button
-                      type="button"
-                      onClick={() => setRevealed((prev) => ({ ...prev, [i]: !prev[i] }))}
-                      title={revealed[i] ? "Hide" : "Reveal"}
-                      className="text-slate-400 hover:text-rose-700"
-                    >
-                      {revealed[i] ? (
-                        <EyeOff className="h-3.5 w-3.5" />
-                      ) : (
-                        <Eye className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                  </span>
-                </td>
-                <td className="py-1.5 pr-4">
-                  {c.loginUrl && (
-                    <a
-                      href={c.loginUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-blue-600 hover:underline"
-                    >
-                      Log in
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </td>
-                <td className="py-1.5 text-right">
-                  {c.message && (
-                    <button
-                      type="button"
-                      onClick={() => onOpen(c.message!.id)}
-                      className="text-[11px] font-semibold text-blue-600 hover:underline"
-                    >
-                      [source]
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 export function GatehouseWeeklyReports({
   reports,
   upcomingEvents = [],
-  classInfo = null,
-  credentials = [],
 }: {
   reports: WeekReportData[];
   upcomingEvents?: UpcomingEventData[];
-  classInfo?: ClassInfo | null;
-  credentials?: CredentialField[];
 }) {
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
   const monthGroups = buildMonthGroups(reports, upcomingEvents);
@@ -584,26 +275,10 @@ export function GatehouseWeeklyReports({
 
   let openMessage: GatehouseMessage | null = null;
   if (openMessageId) {
-    for (const f of classInfo?.fields ?? []) {
-      if (f.message?.id === openMessageId) {
-        openMessage = f.message;
+    for (const e of upcomingEvents) {
+      if (e.message?.id === openMessageId) {
+        openMessage = e.message;
         break;
-      }
-    }
-    if (!openMessage) {
-      for (const c of credentials) {
-        if (c.message?.id === openMessageId) {
-          openMessage = c.message;
-          break;
-        }
-      }
-    }
-    if (!openMessage) {
-      for (const e of upcomingEvents) {
-        if (e.message?.id === openMessageId) {
-          openMessage = e.message;
-          break;
-        }
       }
     }
     if (!openMessage) {
@@ -619,9 +294,6 @@ export function GatehouseWeeklyReports({
 
   return (
     <div className="space-y-5">
-      {classInfo && <ClassInfoBox classInfo={classInfo} onOpen={setOpenMessageId} />}
-      <CredentialsBox credentials={credentials} onOpen={setOpenMessageId} />
-
       {monthGroups.map((group) => {
         const isOpen = openMonths[group.key] ?? false;
         const weekCount = group.reports.length;
