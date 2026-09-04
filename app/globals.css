@@ -211,12 +211,15 @@ html[data-theme="neobrutal"] {
   box-shadow: 7px 7px 0 0 #000 !important;
 }
 
-/* Extra breathing room inside the two card types that were reading as
-   cramped once their borders went bold — p-5 is only used by KpiCard and
-   the news ArticleCard, so this is safe to bump without touching padding
-   anywhere else in the app. */
+/* Extra breathing room inside the card types that were reading as cramped
+   once their borders went bold — p-5 is used by KpiCard, SectionCard
+   (Finance dashboard's chart/narrative boxes), and the news ArticleCard,
+   so this is safe to bump without touching padding anywhere else in the
+   app. Bumped again (1.75rem -> 2.25rem) after Linh flagged the Coast
+   FIRE section's charts/headings/narrative text sitting too close to the
+   card's bold black border. */
 :where(html[data-theme="neobrutal"]) .p-5 {
-  padding: 1.75rem;
+  padding: 2.25rem;
 }
 
 /* Sidebar sub-nav (Food/Milo & Arlo/Finance children): the indent guide
