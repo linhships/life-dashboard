@@ -2,6 +2,7 @@ import { Backpack } from "lucide-react";
 import { getGatehouseClassInfo } from "@/lib/gatehouseClassInfo";
 import { getGatehouseCredentials } from "@/lib/gatehouseCredentials";
 import { getGatehouseLinks } from "@/lib/gatehouseLinks";
+import { getGatehouseSchoolMeals } from "@/lib/gatehouseSchoolMeals";
 import { GatehouseClassInfo } from "@/components/GatehouseClassInfo";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export default function GatehouseInfoPage() {
   const classInfo = getGatehouseClassInfo();
   const credentials = getGatehouseCredentials();
   const links = getGatehouseLinks();
+  const schoolMeals = getGatehouseSchoolMeals();
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
@@ -30,7 +32,12 @@ export default function GatehouseInfoPage() {
         </p>
       </header>
 
-      <GatehouseClassInfo classInfo={classInfo} credentials={credentials} links={links} />
+      <GatehouseClassInfo
+        classInfo={classInfo}
+        credentials={credentials}
+        links={links}
+        schoolMeals={schoolMeals}
+      />
     </main>
   );
 }
