@@ -9,13 +9,11 @@ import {
   FileText,
   KeyRound,
   Link2,
-  UtensilsCrossed,
 } from "lucide-react";
 import type { GatehouseMessage } from "@/lib/gatehouse";
 import type { ClassInfo } from "@/lib/gatehouseClassInfo";
 import type { CredentialField } from "@/lib/gatehouseCredentials";
 import type { LinkField } from "@/lib/gatehouseLinks";
-import type { SchoolMealsData } from "@/lib/gatehouseSchoolMeals";
 import { MessageModal, linkifyText } from "./gatehouseShared";
 
 // Static "quick reference" card for Milo's actual class — not time-ordered,
@@ -203,55 +201,18 @@ function ImportantLinksBox({
   );
 }
 
-// Static reference card read directly off the school's public School
-// Meals page (not sourced from a captured email/WhatsApp message, so no
-// [[msg:id]]/[source] button — just a "View source" link to the live
-// page). Sourced from GATEHOUSE_DIR/reports/school-meals.md
-// (lib/gatehouseSchoolMeals.ts).
-function SchoolMealsBox({ meals }: { meals: SchoolMealsData }) {
-  if (meals.items.length === 0) return null;
-  return (
-    <div className="rounded-xl border border-orange-200 bg-orange-50/60 p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <UtensilsCrossed className="h-4 w-4 text-orange-700" />
-          <p className="text-sm font-bold text-slate-900">{meals.title}</p>
-        </div>
-        {meals.sourceUrl && (
-          <a
-            href={meals.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
-          >
-            View source
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
-      </div>
-      <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-slate-700">
-        {meals.items.map((item, i) => (
-          <li key={i}>{linkifyText(item)}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export function GatehouseClassInfo({
   classInfo,
   credentials = [],
   links = [],
-  schoolMeals = null,
 }: {
   classInfo: ClassInfo | null;
   credentials?: CredentialField[];
   links?: LinkField[];
-  schoolMeals?: SchoolMealsData | null;
 }) {
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
 
-  if (!classInfo && credentials.length === 0 && links.length === 0 && !schoolMeals) {
+  if (!classInfo && credentials.length === 0 && links.length === 0) {
     return (
       <p className="text-sm text-slate-500">
         No class info found yet. Check that GATEHOUSE_DIR points at the folder with
@@ -291,7 +252,6 @@ export function GatehouseClassInfo({
       {classInfo && <ClassInfoBox classInfo={classInfo} onOpen={setOpenMessageId} />}
       <ImportantLinksBox links={links} onOpen={setOpenMessageId} />
       <CredentialsBox credentials={credentials} onOpen={setOpenMessageId} />
-      {schoolMeals && <SchoolMealsBox meals={schoolMeals} />}
 
       {openMessage && <MessageModal message={openMessage} onClose={() => setOpenMessageId(null)} />}
     </div>

@@ -1,6 +1,7 @@
 import { School } from "lucide-react";
 import { getGatehouseReports } from "@/lib/gatehouseReports";
 import { getUpcomingGatehouseKeyDates } from "@/lib/gatehouseKeyDates";
+import { getGatehouseMeals } from "@/lib/gatehouseMeals";
 import { GatehouseWeeklyReports } from "@/components/GatehouseWeeklyReports";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default function GatehouseCommsPage() {
   const reports = getGatehouseReports();
   const upcomingEvents = getUpcomingGatehouseKeyDates();
+  const meals = getGatehouseMeals();
   const totalMessages = new Set(reports.flatMap((r) => r.messages.map((m) => m.id))).size;
 
   return (
@@ -31,7 +33,7 @@ export default function GatehouseCommsPage() {
         </p>
       </header>
 
-      <GatehouseWeeklyReports reports={reports} upcomingEvents={upcomingEvents} />
+      <GatehouseWeeklyReports reports={reports} upcomingEvents={upcomingEvents} meals={meals} />
     </main>
   );
 }

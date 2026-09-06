@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, ChevronDown } from "lucide-react";
+import { Calendar, ChevronDown, UtensilsCrossed } from "lucide-react";
 import type { GatehouseMessage } from "@/lib/gatehouse";
+import type { GatehouseMealsData, WeeklyMenu } from "@/lib/gatehouseMeals";
 import { MessageModal, formatMessageDate, sourceIcon } from "./gatehouseShared";
 
 export interface WeekReportData {
@@ -47,6 +48,13 @@ interface MonthGroup {
   label: string;
   reports: WeekReportData[];
   events: UpcomingEventData[];
+  meals: WeeklyMenu[];
+}
+
+function computeWeekEnd(weekStart: string): string {
+  const d = new Date(`${weekStart}T00:00:00`);
+  d.setDate(d.getDate() + 6);
+  return d.toISOString().slice(0, 10);
 }
 
 // Merges weekly reports and upcoming events into one set of month
@@ -58,13 +66,14 @@ interface MonthGroup {
 // confusing to scan. One direction throughout fixes that.)
 function buildMonthGroups(
   reports: WeekReportData[],
-  events: UpcomingEventData[]
+  events: UpcomingEventData[],
+  meals: WeeklyMenu[]
 ): MonthGroup[] {
   const byKey = new Map<string, MonthGroup>();
   const getGroup = (key: string): MonthGroup => {
     let g = byKey.get(key);
     if (!g) {
-      g = { key, label: monthLabel(key), reports: [], events: [] };
+      g = { key, label: monthLabel(key), reports: [], events: [], meals: [] };
       byKey.set(key, g);
     }
     return g;
@@ -72,6 +81,7 @@ function buildMonthGroups(
 
   for (const report of reports) getGroup(monthKey(report.weekStart)).reports.push(report);
   for (const event of events) getGroup(event.date.slice(0, 7)).events.push(event);
+  for (const menu of meals) getGroup(monthKey(menu.weekStart)).meals.push(menu);
 
   return Array.from(byKey.values()).sort((a, b) => b.key.localeCompare(a.key));
 }
@@ -237,15 +247,57 @@ function MonthEventsList({
   );
 }
 
+// Full lunch menu for one week — Mon-Fri (or whichever days are known) x
+// Main/Vegetarian/Side/Dessert, transcribed from the school's public
+// School Meals page (lib/gatehouseMeals.ts). Rendered inside that week's
+// card alongside (or, for weeks with no captured messages, instead of)
+// the usual report prose.
+function WeekMenuTable({ menu }: { menu: WeeklyMenu }) {
+  if (menu.days.length === 0) return null;
+  return (
+    <div className="mt-4 overflow-x-auto rounded-lg border border-orange-200 bg-orange-50/50 p-4">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-orange-700">
+        <UtensilsCrossed className="h-3.5 w-3.5" />
+        Lunch menu
+      </p>
+      {menu.note && <p className="mt-1 text-xs text-slate-500">{menu.note}</p>}
+      <table className="mt-2 w-full min-w-[520px] text-xs">
+        <thead>
+          <tr className="text-left font-semibold text-slate-500">
+            <th className="py-1 pr-3">Day</th>
+            <th className="py-1 pr-3">Main</th>
+            <th className="py-1 pr-3">Vegetarian</th>
+            <th className="py-1 pr-3">Side</th>
+            <th className="py-1">Dessert</th>
+          </tr>
+        </thead>
+        <tbody>
+          {menu.days.map((d, i) => (
+            <tr key={i} className="border-t border-orange-100 align-top">
+              <td className="py-1.5 pr-3 font-semibold text-slate-600">{d.day}</td>
+              <td className="py-1.5 pr-3 text-slate-700">{d.main}</td>
+              <td className="py-1.5 pr-3 text-slate-700">{d.veg}</td>
+              <td className="py-1.5 pr-3 text-slate-700">{d.side}</td>
+              <td className="py-1.5 text-slate-700">{d.dessert}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function GatehouseWeeklyReports({
   reports,
   upcomingEvents = [],
+  meals = null,
 }: {
   reports: WeekReportData[];
   upcomingEvents?: UpcomingEventData[];
+  meals?: GatehouseMealsData | null;
 }) {
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
-  const monthGroups = buildMonthGroups(reports, upcomingEvents);
+  const monthGroups = buildMonthGroups(reports, upcomingEvents, meals?.weeks ?? []);
   // Two sections start expanded: the soonest upcoming month (what's next)
   // and the most recent month with an actual digest (what just happened).
   // Everything else starts collapsed so the page opens focused rather
@@ -264,7 +316,7 @@ export function GatehouseWeeklyReports({
   const toggleMonth = (key: string) =>
     setOpenMonths((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  if (reports.length === 0 && upcomingEvents.length === 0) {
+  if (reports.length === 0 && upcomingEvents.length === 0 && (meals?.weeks.length ?? 0) === 0) {
     return (
       <p className="text-sm text-slate-500">
         No weekly reports found yet. Check that GATEHOUSE_DIR points at the folder with
@@ -296,7 +348,10 @@ export function GatehouseWeeklyReports({
     <div className="space-y-5">
       {monthGroups.map((group) => {
         const isOpen = openMonths[group.key] ?? false;
-        const weekCount = group.reports.length;
+        const weekCount = new Set([
+          ...group.reports.map((r) => r.weekStart),
+          ...group.meals.map((m) => m.weekStart),
+        ]).size;
         const messageCount = group.reports.reduce((sum, r) => sum + r.messages.length, 0);
         const countParts: string[] = [];
         if (group.events.length > 0) {
@@ -304,6 +359,8 @@ export function GatehouseWeeklyReports({
         }
         if (weekCount > 0) {
           countParts.push(`${weekCount} ${weekCount === 1 ? "week" : "weeks"}`);
+        }
+        if (messageCount > 0) {
           countParts.push(`${messageCount} ${messageCount === 1 ? "message" : "messages"}`);
         }
         return (
@@ -326,29 +383,65 @@ export function GatehouseWeeklyReports({
               <div className="space-y-4 border-t border-slate-100 p-5 pt-4">
                 <MonthEventsList events={group.events} onOpen={setOpenMessageId} />
 
-                {group.reports.map((report) => {
-                  const footnoteNumberById = new Map(
-                    report.messages.map((m, i) => [m.id, i + 1])
+                {/* Merge each month's weekly reports with that month's menu
+                    weeks into one ordered list, keyed by weekStart — a week
+                    can have a report, a menu, or both (a menu-only week has
+                    no captured messages yet, so it still gets its own card
+                    rather than being dropped). */}
+                {(() => {
+                  const byWeekStart = new Map<
+                    string,
+                    { weekStart: string; weekEnd: string; report: WeekReportData | null; menu: WeeklyMenu | null }
+                  >();
+                  for (const report of group.reports) {
+                    byWeekStart.set(report.weekStart, {
+                      weekStart: report.weekStart,
+                      weekEnd: report.weekEnd,
+                      report,
+                      menu: null,
+                    });
+                  }
+                  for (const menu of group.meals) {
+                    const existing = byWeekStart.get(menu.weekStart);
+                    if (existing) {
+                      existing.menu = menu;
+                    } else {
+                      byWeekStart.set(menu.weekStart, {
+                        weekStart: menu.weekStart,
+                        weekEnd: computeWeekEnd(menu.weekStart),
+                        report: null,
+                        menu,
+                      });
+                    }
+                  }
+                  const weeks = Array.from(byWeekStart.values()).sort((a, b) =>
+                    b.weekStart.localeCompare(a.weekStart)
                   );
-                  return (
-                    <div
-                      key={report.weekStart}
-                      className="rounded-xl border border-slate-200 bg-white p-5"
-                    >
-                      <h3 className="text-sm font-bold text-slate-900">
-                        Week of {formatWeekRange(report.weekStart, report.weekEnd)}
-                      </h3>
-                      <div className="mt-3">
-                        <ReportBody
-                          body={report.body}
-                          footnoteNumberById={footnoteNumberById}
-                          onOpen={setOpenMessageId}
-                        />
-                        <FootnoteList messages={report.messages} onOpen={setOpenMessageId} />
+
+                  return weeks.map(({ weekStart, weekEnd, report, menu }) => {
+                    const footnoteNumberById = new Map(
+                      (report?.messages ?? []).map((m, i) => [m.id, i + 1])
+                    );
+                    return (
+                      <div key={weekStart} className="rounded-xl border border-slate-200 bg-white p-5">
+                        <h3 className="text-sm font-bold text-slate-900">
+                          Week of {formatWeekRange(weekStart, weekEnd)}
+                        </h3>
+                        {report && (
+                          <div className="mt-3">
+                            <ReportBody
+                              body={report.body}
+                              footnoteNumberById={footnoteNumberById}
+                              onOpen={setOpenMessageId}
+                            />
+                            <FootnoteList messages={report.messages} onOpen={setOpenMessageId} />
+                          </div>
+                        )}
+                        {menu && <WeekMenuTable menu={menu} />}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             )}
           </div>
