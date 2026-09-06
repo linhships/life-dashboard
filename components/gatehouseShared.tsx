@@ -54,30 +54,36 @@ export function attachmentFileName(rel: string): string {
   return rel.split("/").pop() ?? rel;
 }
 
-// Turns bare-text URLs/domains inside free text (e.g. class-info.md's
-// "gatehouseschool.co.uk/parents-area — password GHS2627*") into real,
-// clickable new-tab links. Negative lookbehind (?<![\w@.]) keeps it from
-// matching the domain half of an email address like
-// admin@gatehouseschool.co.uk. Bare domains (no scheme) get "https://"
-// prepended for the href but keep their original text as the link label.
-const URL_RE =
-  /(?<![\w@.])((?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/[^\s,;()]*)?)/g;
+// Turns bare-text emails/URLs/domains inside free text (e.g. class-info.md's
+// "gatehouseschool.co.uk/parents-area — password GHS2627*", or
+// "aileen.reidy@gatehouseschool.co.uk") into real, clickable links. Emails
+// are matched as one token (group 1) and rendered as mailto: links —
+// this has to happen *before* trying to match bare domains, because an
+// email's local part can itself contain a dot (e.g. "aileen.reidy") and
+// would otherwise be mistaken for its own fake domain, splitting the
+// address and mangling it. Bare domains (group 2, no scheme) get "https://"
+// prepended for the href but keep their original text as the link label;
+// the negative lookbehind (?<![\w@.]) keeps a domain match from starting
+// mid-word or right after an "@"/".".
+const TOKEN_RE =
+  /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+)|(?<![\w@.])((?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/[^\s,;()]*)?)/g;
 
 export function linkifyText(text: string): ReactNode[] {
   const parts: ReactNode[] = [];
   let lastIndex = 0;
   let i = 0;
-  for (const m of text.matchAll(URL_RE)) {
+  for (const m of text.matchAll(TOKEN_RE)) {
     if (m.index === undefined) continue;
     if (m.index > lastIndex) parts.push(text.slice(lastIndex, m.index));
-    const raw = m[1];
-    const href = raw.startsWith("http") ? raw : `https://${raw}`;
+    const [, email, domain] = m;
+    const raw = email ?? domain;
+    const href = email ? `mailto:${email}` : domain.startsWith("http") ? domain : `https://${domain}`;
     parts.push(
       <a
         key={i++}
         href={href}
-        target="_blank"
-        rel="noopener noreferrer"
+        target={email ? undefined : "_blank"}
+        rel={email ? undefined : "noopener noreferrer"}
         className="text-blue-600 hover:underline"
       >
         {raw}
