@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import {
   Check,
   Copy,
@@ -443,6 +443,15 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
   const [error, setError] = useState<string | null>(null);
   const [openResourceId, setOpenResourceId] = useState<string | null>(null);
   const [categorySort, setCategorySort] = useState<CategorySort>("count-desc");
+  // Counts nested dragenter/dragleave pairs rather than a plain boolean —
+  // the add-box has child elements (the mode toggle, inputs), and the
+  // browser fires dragleave when the pointer crosses from the box into one
+  // of those children before the corresponding dragenter on the child
+  // arrives. A plain boolean would flicker off every time the drag passes
+  // over a child; the counter only reaches zero once the pointer has
+  // actually left the outer box.
+  const [dragDepth, setDragDepth] = useState(0);
+  const dragActive = dragDepth > 0;
 
   const categories = useMemo(() => {
     const set = new Set(resources.map((r) => r.category));
@@ -465,6 +474,34 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
     if (fileInputRef.current) fileInputRef.current.value = "";
     setNewCategory("");
     setForLearn(false);
+  };
+
+  // Dropping a file anywhere on the add-box switches to File mode and
+  // fills the file input, whichever mode was active beforehand — dragging
+  // in a PDF while the Link tab happens to be selected shouldn't require
+  // clicking over to File first.
+  const handleDragEnter = (e: DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    setDragDepth((d) => d + 1);
+  };
+  const handleDragOver = (e: DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+  };
+  const handleDragLeave = (e: DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    setDragDepth((d) => Math.max(0, d - 1));
+  };
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setDragDepth(0);
+    const dropped = e.dataTransfer.files?.[0];
+    if (!dropped) return;
+    setMode("file");
+    setFile(dropped);
+    setError(null);
   };
 
   const handleAdd = async () => {
@@ -571,7 +608,15 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
 
   return (
     <div className="space-y-8">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`rounded-xl border p-4 shadow-sm transition-colors ${
+          dragActive ? "border-blue-400 bg-blue-50/60" : "border-slate-200 bg-white"
+        }`}
+      >
         <div className="mb-3 flex gap-1 rounded-md bg-slate-100 p-1 text-sm font-medium">
           <button
             type="button"
@@ -593,6 +638,16 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
           </button>
         </div>
 
+        {dragActive ? (
+          <p className="mb-2 text-sm font-medium text-blue-600">Drop to add as a file…</p>
+        ) : (
+          mode === "file" && (
+            <p className="mb-2 text-xs text-slate-400">
+              Choose a file below, or drag one in and drop it anywhere on this box.
+            </p>
+          )
+        )}
+
         <div className="flex flex-col gap-2 sm:flex-row">
           {mode === "url" ? (
             <input
@@ -607,7 +662,7 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
               ref={fileInputRef}
               type="file"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="min-w-0 flex-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-medium"
+              className="min-w-0 flex-1 rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-medium"
             />
           )}
           <select
