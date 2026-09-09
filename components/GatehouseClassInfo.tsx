@@ -3,18 +3,162 @@
 import { useState } from "react";
 import {
   Backpack,
+  Dumbbell,
   ExternalLink,
   Eye,
   EyeOff,
   FileText,
   KeyRound,
   Link2,
+  Music,
+  Shirt,
+  TreePine,
+  type LucideIcon,
 } from "lucide-react";
 import type { GatehouseMessage } from "@/lib/gatehouse";
-import type { ClassInfo } from "@/lib/gatehouseClassInfo";
+import type { ClassInfo, ClassInfoField } from "@/lib/gatehouseClassInfo";
 import type { CredentialField } from "@/lib/gatehouseCredentials";
 import type { LinkField } from "@/lib/gatehouseLinks";
 import { MessageModal, linkifyText } from "./gatehouseShared";
+
+const KIT_SCHEDULE_LABEL = "Weekly kit schedule";
+const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// "Mon: PE kit (forest school) · Tue: uniform · ..." -> { Mon: "PE kit
+// (forest school)", Tue: "uniform", ... }. Days the source text doesn't
+// mention (normally Sat/Sun, since Milo isn't in on weekends) are just
+// absent from the map — rendered as "No school" boxes below.
+function parseKitSchedule(detail: string): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const part of detail.split("·")) {
+    const seg = part.trim();
+    const idx = seg.indexOf(":");
+    if (idx === -1) continue;
+    const day = seg.slice(0, idx).trim();
+    const value = seg.slice(idx + 1).trim();
+    if (day && value) map[day] = value;
+  }
+  return map;
+}
+
+interface KitVisual {
+  Icon: LucideIcon;
+  title: string;
+  sub: string | null;
+  boxClass: string;
+  iconClass: string;
+}
+
+// Turns one day's raw text ("PE kit (forest school)", "uniform", ...) into
+// an icon + label — full literal Tailwind class strings per case (not
+// composed from a variable) so the build's class scanner picks them all up.
+function kitVisual(value: string): KitVisual {
+  const lower = value.toLowerCase();
+  const subMatch = value.match(/\(([^)]+)\)/);
+  const sub = subMatch ? subMatch[1] : null;
+
+  if (lower.includes("uniform")) {
+    return {
+      Icon: Shirt,
+      title: "Uniform",
+      sub: null,
+      boxClass: "border-slate-200 bg-slate-50",
+      iconClass: "text-slate-500",
+    };
+  }
+  if (sub && /forest/i.test(sub)) {
+    return {
+      Icon: TreePine,
+      title: "PE kit",
+      sub: "Forest school",
+      boxClass: "border-emerald-200 bg-emerald-50",
+      iconClass: "text-emerald-600",
+    };
+  }
+  if (sub && /dance/i.test(sub)) {
+    return {
+      Icon: Music,
+      title: "PE kit",
+      sub: "Dance",
+      boxClass: "border-purple-200 bg-purple-50",
+      iconClass: "text-purple-600",
+    };
+  }
+  if (lower.includes("pe kit")) {
+    return {
+      Icon: Dumbbell,
+      title: "PE kit",
+      sub,
+      boxClass: "border-orange-200 bg-orange-50",
+      iconClass: "text-orange-600",
+    };
+  }
+  return {
+    Icon: Backpack,
+    title: value,
+    sub: null,
+    boxClass: "border-slate-200 bg-slate-50",
+    iconClass: "text-slate-500",
+  };
+}
+
+// The "Weekly kit schedule" field rendered as 7 day boxes (one line on
+// desktop, wrapping on mobile) instead of the plain "Mon: X · Tue: Y ..."
+// text row every other field gets — Linh asked for something quicker to
+// scan at a glance than reading the sentence each morning.
+function WeeklyKitScheduleBox({
+  field,
+  onOpen,
+}: {
+  field: ClassInfoField;
+  onOpen: (id: string) => void;
+}) {
+  const schedule = parseKitSchedule(field.detail);
+  return (
+    <div className="mt-3">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {KIT_SCHEDULE_LABEL}
+        {field.message && (
+          <button
+            type="button"
+            onClick={() => onOpen(field.message!.id)}
+            className="text-[11px] font-semibold normal-case tracking-normal text-blue-600 hover:underline"
+          >
+            [source]
+          </button>
+        )}
+      </p>
+      <div className="mt-2 grid grid-cols-4 gap-2 md:grid-cols-7">
+        {WEEK_DAYS.map((day) => {
+          const value = schedule[day];
+          if (!value) {
+            return (
+              <div
+                key={day}
+                className="flex flex-col items-center justify-center gap-1 rounded-lg border border-slate-100 bg-slate-50/60 px-2 py-3 text-center"
+              >
+                <span className="text-[11px] font-semibold text-slate-400">{day}</span>
+                <span className="text-[10px] text-slate-300">No school</span>
+              </div>
+            );
+          }
+          const { Icon, title, sub, boxClass, iconClass } = kitVisual(value);
+          return (
+            <div
+              key={day}
+              className={`flex flex-col items-center justify-center gap-1 rounded-lg border px-2 py-3 text-center ${boxClass}`}
+            >
+              <span className="text-[11px] font-semibold text-slate-500">{day}</span>
+              <Icon className={`h-5 w-5 ${iconClass}`} />
+              <span className="text-[11px] font-medium leading-tight text-slate-700">{title}</span>
+              {sub && <span className="text-[10px] leading-tight text-slate-400">{sub}</span>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // Static "quick reference" card for Milo's actual class — not time-ordered,
 // so it's just a fixed box rather than living inside a month section.
@@ -26,6 +170,9 @@ function ClassInfoBox({
   classInfo: ClassInfo;
   onOpen: (id: string) => void;
 }) {
+  const kitScheduleField = classInfo.fields.find((f) => f.label === KIT_SCHEDULE_LABEL);
+  const otherFields = classInfo.fields.filter((f) => f.label !== KIT_SCHEDULE_LABEL);
+
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5">
       <div className="flex items-center gap-2">
@@ -35,9 +182,9 @@ function ClassInfoBox({
           {classInfo.classCode ? ` (${classInfo.classCode})` : ""}
         </p>
       </div>
-      {classInfo.fields.length > 0 && (
+      {otherFields.length > 0 && (
         <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-          {classInfo.fields.map((f, i) => (
+          {otherFields.map((f, i) => (
             <div key={i} className="text-sm">
               <dt className="font-semibold text-slate-500">{f.label}</dt>
               <dd className="text-slate-700">
@@ -56,6 +203,7 @@ function ClassInfoBox({
           ))}
         </dl>
       )}
+      {kitScheduleField && <WeeklyKitScheduleBox field={kitScheduleField} onOpen={onOpen} />}
     </div>
   );
 }
