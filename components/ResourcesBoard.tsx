@@ -436,6 +436,7 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [forLearn, setForLearn] = useState(false);
@@ -472,6 +473,7 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
     setUrl("");
     setFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    setTitle("");
     setNewCategory("");
     setForLearn(false);
   };
@@ -526,12 +528,18 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
         form.append("file", file);
         form.append("category", effectiveCategory);
         form.append("forLearn", String(forLearn));
+        if (title.trim()) form.append("title", title.trim());
         res = await fetch("/api/resources", { method: "POST", body: form });
       } else {
         res = await fetch("/api/resources", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: url.trim(), category: effectiveCategory, forLearn }),
+          body: JSON.stringify({
+            url: url.trim(),
+            category: effectiveCategory,
+            forLearn,
+            title: title.trim() || undefined,
+          }),
         });
       }
       if (!res.ok) {
@@ -665,6 +673,13 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
               className="min-w-0 flex-1 rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-medium"
             />
           )}
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title (optional)"
+            className="min-w-0 flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm"
+          />
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}

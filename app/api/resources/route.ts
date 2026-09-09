@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
 //    title?) — saved to disk via saveResourceAttachment and added as a
 //    kind: "file" entry.
 //  - application/json: the original bookmark-a-URL flow (fields: url,
-//    category, forLearn) — added as a kind: "url" entry, same as before.
+//    category, forLearn, title?) — added as a kind: "url" entry, same as
+//    before. `title` is optional in both shapes: if left blank, it falls
+//    back to the fetched OG title (url) or the uploaded filename (file).
 export async function POST(request: NextRequest) {
   if (!isAuthedRequest(request)) return unauthorized();
 
@@ -65,10 +67,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { url, category, forLearn } = body as {
+  const { url, category, forLearn, title: titleOverride } = body as {
     url?: string;
     category?: string;
     forLearn?: boolean;
+    title?: string;
   };
 
   if (!url || !category) {
@@ -87,7 +90,7 @@ export async function POST(request: NextRequest) {
   const entry = addResource({
     kind: "url",
     url: normalized,
-    title: meta.title || normalized,
+    title: titleOverride?.trim() || meta.title || normalized,
     description: meta.description || "",
     image: meta.image,
     category,
