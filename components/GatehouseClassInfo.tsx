@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  Activity,
   Backpack,
   Dumbbell,
   ExternalLink,
@@ -12,7 +13,10 @@ import {
   Link2,
   Music,
   Shirt,
+  Sparkles,
+  Target,
   TreePine,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import type { GatehouseMessage } from "@/lib/gatehouse";
@@ -23,6 +27,8 @@ import { MessageModal, linkifyText } from "./gatehouseShared";
 
 const KIT_SCHEDULE_LABEL = "Weekly kit schedule";
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const PE_GAMES_LABEL = "PE & Games (Nursery, by term)";
+const PE_GAMES_NOTE_LABEL = "PE & Games (Nursery) notes";
 
 // "Mon: PE kit (forest school) · Tue: uniform · ..." -> { Mon: "PE kit
 // (forest school)", Tue: "uniform", ... }. Days the source text doesn't
@@ -160,6 +166,122 @@ function WeeklyKitScheduleBox({
   );
 }
 
+interface TermTopic {
+  term: string;
+  topic: string;
+  description: string;
+}
+
+// "Autumn (both halves): Fundamental movement skills — use space safely,
+// ... · Spring 1: Gymnastics — finding space, ..." -> one entry per "·"
+// segment, each split into its term, topic (before the em dash) and
+// description (after it).
+function parseTermSchedule(detail: string): TermTopic[] {
+  const entries: TermTopic[] = [];
+  for (const part of detail.split("·")) {
+    const seg = part.trim();
+    const colonIdx = seg.indexOf(":");
+    if (colonIdx === -1) continue;
+    const term = seg.slice(0, colonIdx).trim();
+    const rest = seg.slice(colonIdx + 1).trim();
+    const dashIdx = rest.indexOf("—");
+    const topic = dashIdx === -1 ? rest : rest.slice(0, dashIdx).trim();
+    const description = dashIdx === -1 ? "" : rest.slice(dashIdx + 1).trim();
+    if (term && topic) entries.push({ term, topic, description });
+  }
+  return entries;
+}
+
+interface TermVisual {
+  Icon: LucideIcon;
+  boxClass: string;
+  iconClass: string;
+}
+
+// Full literal Tailwind class strings per case (not composed from a
+// variable), same reasoning as kitVisual above.
+function termVisual(topic: string): TermVisual {
+  const lower = topic.toLowerCase();
+  if (lower.includes("fundamental movement")) {
+    return { Icon: Activity, boxClass: "border-emerald-200 bg-emerald-50", iconClass: "text-emerald-600" };
+  }
+  if (lower.includes("gymnastics")) {
+    return { Icon: Sparkles, boxClass: "border-purple-200 bg-purple-50", iconClass: "text-purple-600" };
+  }
+  if (lower.includes("throwing") || lower.includes("catching")) {
+    return { Icon: Target, boxClass: "border-orange-200 bg-orange-50", iconClass: "text-orange-600" };
+  }
+  if (lower.includes("athletics") || lower.includes("sports day")) {
+    return { Icon: Trophy, boxClass: "border-amber-200 bg-amber-50", iconClass: "text-amber-600" };
+  }
+  return { Icon: Dumbbell, boxClass: "border-slate-200 bg-slate-50", iconClass: "text-slate-500" };
+}
+
+// "PE & Games (Nursery, by term)" rendered as one box per term — same
+// "small boxes instead of a text row" treatment as WeeklyKitScheduleBox
+// above, pulled from the school's PE & Games Overview PDF (see
+// Important Links) rather than typed out as a paragraph on Class Info.
+function WeeklyPeGamesBox({
+  field,
+  noteField,
+  onOpen,
+}: {
+  field: ClassInfoField;
+  noteField: ClassInfoField | undefined;
+  onOpen: (id: string) => void;
+}) {
+  const terms = parseTermSchedule(field.detail);
+  if (terms.length === 0) return null;
+
+  return (
+    <div className="mt-3">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        PE &amp; Games (Nursery)
+        {field.message && (
+          <button
+            type="button"
+            onClick={() => onOpen(field.message!.id)}
+            className="text-[11px] font-semibold normal-case tracking-normal text-blue-600 hover:underline"
+          >
+            [source]
+          </button>
+        )}
+      </p>
+      <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+        {terms.map(({ term, topic, description }, i) => {
+          const { Icon, boxClass, iconClass } = termVisual(topic);
+          return (
+            <div key={i} className={`rounded-lg border px-3 py-3 ${boxClass}`}>
+              <div className="flex items-center gap-1.5">
+                <Icon className={`h-4 w-4 shrink-0 ${iconClass}`} />
+                <span className="text-[11px] font-semibold text-slate-500">{term}</span>
+              </div>
+              <p className="mt-1.5 text-xs font-semibold text-slate-800">{topic}</p>
+              {description && (
+                <p className="mt-1 text-[11px] leading-snug text-slate-500">{description}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {noteField && (
+        <p className="mt-2 text-xs text-slate-500">
+          {linkifyText(noteField.detail)}
+          {noteField.message && (
+            <button
+              type="button"
+              onClick={() => onOpen(noteField.message!.id)}
+              className="ml-1 align-super text-[11px] font-semibold text-blue-600 hover:underline"
+            >
+              [source]
+            </button>
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // Static "quick reference" card for Milo's actual class — not time-ordered,
 // so it's just a fixed box rather than living inside a month section.
 // Sourced from GATEHOUSE_DIR/reports/class-info.md (lib/gatehouseClassInfo.ts).
@@ -171,7 +293,11 @@ function ClassInfoBox({
   onOpen: (id: string) => void;
 }) {
   const kitScheduleField = classInfo.fields.find((f) => f.label === KIT_SCHEDULE_LABEL);
-  const otherFields = classInfo.fields.filter((f) => f.label !== KIT_SCHEDULE_LABEL);
+  const peGamesField = classInfo.fields.find((f) => f.label === PE_GAMES_LABEL);
+  const peGamesNoteField = classInfo.fields.find((f) => f.label === PE_GAMES_NOTE_LABEL);
+  const otherFields = classInfo.fields.filter(
+    (f) => f.label !== KIT_SCHEDULE_LABEL && f.label !== PE_GAMES_LABEL && f.label !== PE_GAMES_NOTE_LABEL,
+  );
 
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5">
@@ -183,6 +309,9 @@ function ClassInfoBox({
         </p>
       </div>
       {kitScheduleField && <WeeklyKitScheduleBox field={kitScheduleField} onOpen={onOpen} />}
+      {peGamesField && (
+        <WeeklyPeGamesBox field={peGamesField} noteField={peGamesNoteField} onOpen={onOpen} />
+      )}
       {otherFields.length > 0 && (
         <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
           {otherFields.map((f, i) => (
