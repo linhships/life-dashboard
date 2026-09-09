@@ -341,18 +341,27 @@ function ResourceModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl"
+        className={`max-h-[90vh] w-full overflow-y-auto rounded-xl bg-white shadow-xl ${
+          showImage ? "max-w-4xl" : "max-w-2xl"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative">
           {showImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={previewSrc!}
-              alt=""
-              className="max-h-80 w-full object-cover"
-              onError={() => setImageFailed(true)}
-            />
+            // Uncropped and sized to the image's own dimensions (up to
+            // 80vh/the modal's own max-width) rather than the old fixed
+            // h-80 object-cover box — a big photo used to get squashed
+            // into that small crop; now the modal grows to fit it (capped
+            // so it still fits on screen) instead of chopping it down.
+            <div className="flex max-h-[80vh] w-full items-center justify-center bg-slate-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewSrc!}
+                alt=""
+                className="max-h-[80vh] w-auto max-w-full object-contain"
+                onError={() => setImageFailed(true)}
+              />
+            </div>
           ) : (
             <div className="flex h-40 w-full items-center justify-center bg-slate-100 text-slate-300">
               {isFile ? <FileText className="h-10 w-10" /> : <Link2 className="h-10 w-10" />}
