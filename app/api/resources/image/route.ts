@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAuthedRequest } from "@/lib/linksAuth";
+import { isAuthedRequest } from "@/lib/resourcesAuth";
 
 // Proxies preview images through our own server instead of hotlinking them
 // directly from the browser. Some sites (heysigmund.com among them) block

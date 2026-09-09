@@ -1,17 +1,17 @@
 import fs from "fs";
 import path from "path";
 import { hashId } from "./hash";
-import { fetchLinkMetadata, getLinks } from "./links";
+import { fetchResourceMetadata, getResources } from "./resources";
 import { dataPath, writeDataPath } from "./dataDir";
 
-// Same "saved directly in the app, personal data" pattern as lib/links.ts
-// (see the comment there) — a learning resource is really the same shape
-// as a saved link (URL + fetched preview metadata), just organized by
-// "topic" instead of "category" and kept in its own file/page so it
-// doesn't get mixed in with general bookmarks. Reuses fetchLinkMetadata
-// from lib/links.ts rather than duplicating the OG-scraping logic — it's
-// generic (title/description/image from any URL), nothing links-specific
-// about it.
+// Same "saved directly in the app, personal data" pattern as
+// lib/resources.ts (see the comment there) — a learning resource is really
+// the same shape as a saved URL resource (URL + fetched preview metadata),
+// just organized by "topic" instead of "category" and kept in its own
+// file/page so it doesn't get mixed in with general bookmarks. Reuses
+// fetchResourceMetadata from lib/resources.ts rather than duplicating the
+// OG-scraping logic — it's generic (title/description/image from any URL),
+// nothing resources-specific about it.
 
 export interface LearningResource {
   id: string;
@@ -22,17 +22,17 @@ export interface LearningResource {
   topic: string;
   addedAt: string;
   notes?: string;
-  // Present only on entries derived live from a Links entry with its
-  // "Show on Learning page" checkbox on (see lib/links.ts's `forLearn`
+  // Present only on entries derived live from a Resources entry with its
+  // "Show on Learning page" checkbox on (see lib/resources.ts's `forLearn`
   // field) — these are NOT stored in learning.json, so there's no copy
-  // that can drift out of sync. Editing/untagging happens on the Links
-  // page (or via the links API); the Learning UI treats an entry with
-  // this set as read-only / "from Links" rather than an independent
+  // that can drift out of sync. Editing/untagging happens on the Resources
+  // page (or via the resources API); the Learning UI treats an entry with
+  // this set as read-only / "from Resources" rather than an independent
   // resource.
-  fromLinkId?: string;
+  fromResourceId?: string;
 }
 
-export { fetchLinkMetadata };
+export { fetchResourceMetadata };
 
 export function getLearningResources(): LearningResource[] {
   const file = dataPath("learning.json");
@@ -84,30 +84,34 @@ export function deleteLearningResource(id: string): void {
   saveLearningResources(resources);
 }
 
-// Live view of every Links entry flagged "Show on Learning page" —
-// computed fresh from links.json on every call, never persisted here.
-// link.category becomes the Learning "topic" bucket it's grouped under.
+// Live view of every Resources entry flagged "Show on Learning page" —
+// computed fresh from resources.json on every call, never persisted here.
+// resource.category becomes the Learning "topic" bucket it's grouped
+// under. A "file" kind resource has no external url of its own, so its
+// url here points at the same /api/resources/file route the Resources
+// page uses to open/download it — the Learning card's "Visit"/hostname
+// display just shows that internal path for those.
 export function getLinkedLearningResources(): LearningResource[] {
-  return getLinks()
-    .filter((l) => l.forLearn)
-    .map((l) => ({
-      id: `link-${l.id}`,
-      url: l.url,
-      title: l.title,
-      description: l.description,
-      image: l.image,
-      topic: l.category,
-      addedAt: l.addedAt,
-      notes: l.notes,
-      fromLinkId: l.id,
+  return getResources()
+    .filter((r) => r.forLearn)
+    .map((r) => ({
+      id: `resource-${r.id}`,
+      url: r.kind === "file" ? `/api/resources/file?id=${r.id}` : r.url,
+      title: r.title,
+      description: r.description,
+      image: r.image,
+      topic: r.category,
+      addedAt: r.addedAt,
+      notes: r.notes,
+      fromResourceId: r.id,
     }));
 }
 
 // What the Learning page actually renders: its own independently-managed
 // resources (learning.json) plus the live-derived entries from flagged
-// Links. Kept separate from getLearningResources() so callers that only
-// care about the JSON-backed CRUD data (e.g. the add/update/delete
-// functions above) aren't surprised by link-derived entries mixed in.
+// Resources. Kept separate from getLearningResources() so callers that
+// only care about the JSON-backed CRUD data (e.g. the add/update/delete
+// functions above) aren't surprised by resource-derived entries mixed in.
 export function getAllLearningResources(): LearningResource[] {
   return [...getLearningResources(), ...getLinkedLearningResources()];
 }

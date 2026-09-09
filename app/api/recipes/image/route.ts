@@ -2,9 +2,9 @@ import fs from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { findRecipeBySlug, primaryExternalUrl } from "@/lib/recipes";
-import { fetchLinkMetadata } from "@/lib/links";
+import { fetchResourceMetadata } from "@/lib/resources";
 
-// Unlike /api/links/image (which proxies a preview image live on every
+// Unlike /api/resources/image (which proxies a preview image live on every
 // request, for arbitrary user-supplied URLs), this route downloads a
 // recipe's photo once and caches it to disk — "download the picture" per
 // the request, not just proxy it. It also only ever fetches from a URL it
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse("No source link for this recipe", { status: 404 });
   }
 
-  const meta = await fetchLinkMetadata(sourceUrl);
+  const meta = await fetchResourceMetadata(sourceUrl);
   if (!meta.image) {
     markNoImage(slug);
     return new NextResponse("No image found on source page", { status: 404 });

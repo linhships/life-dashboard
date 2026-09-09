@@ -46,7 +46,7 @@ interface RouteGroup {
 
 const TOP_LEVEL_LINKS: TopLevelLink[] = [
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/links", label: "Links", icon: Link2 },
+  { href: "/resources", label: "Resources", icon: Link2 },
   { href: "/learning", label: "Learning", icon: GraduationCap },
 ];
 

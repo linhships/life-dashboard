@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 // Generic factory behind every passcode-gated section of this app (Links,
 // Finance, ...). Each section gets its own cookie + env var, but shares
-// this same sliding-session mechanism — see lib/linksAuth.ts and
+// this same sliding-session mechanism — see lib/resourcesAuth.ts and
 // lib/financeAuth.ts for the concrete instances.
 //
 // If the section's env var isn't set at all, the gate is disabled (page

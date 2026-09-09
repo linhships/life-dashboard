@@ -1,7 +1,7 @@
 import { createPasscodeGate } from "./passcodeGate";
 
 // Passcode gate for the /tori-photos page and its image API route. Same
-// mechanism as lib/linksAuth.ts / lib/financeAuth.ts, separate cookie and
+// mechanism as lib/resourcesAuth.ts / lib/financeAuth.ts, separate cookie and
 // env var so this section locks independently.
 const gate = createPasscodeGate({
   cookieName: "tori_photos_auth",

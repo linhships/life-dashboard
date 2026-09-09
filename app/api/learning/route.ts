@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   addLearningResource,
   deleteLearningResource,
-  fetchLinkMetadata,
+  fetchResourceMetadata,
   getAllLearningResources,
   updateLearningResource,
 } from "@/lib/learning";
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
 
-  const meta = await fetchLinkMetadata(normalized);
+  const meta = await fetchResourceMetadata(normalized);
 
   const entry = addLearningResource({
     url: normalized,
@@ -64,12 +64,12 @@ export async function PATCH(request: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
-  // Entries derived from a flagged Link (see lib/learning.ts's
+  // Entries derived from a flagged Resource (see lib/learning.ts's
   // getLinkedLearningResources) aren't stored here — edit them via
-  // /api/links instead (id shape is "link-<linkId>").
-  if (id.startsWith("link-")) {
+  // /api/resources instead (id shape is "resource-<resourceId>").
+  if (id.startsWith("resource-")) {
     return NextResponse.json(
-      { error: "This resource comes from Links — edit it there instead." },
+      { error: "This resource comes from Resources — edit it there instead." },
       { status: 400 }
     );
   }
@@ -86,9 +86,9 @@ export async function DELETE(request: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
-  if (id.startsWith("link-")) {
+  if (id.startsWith("resource-")) {
     return NextResponse.json(
-      { error: "This resource comes from Links — untag it there instead." },
+      { error: "This resource comes from Resources — untag it there instead." },
       { status: 400 }
     );
   }

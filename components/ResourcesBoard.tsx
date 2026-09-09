@@ -1,8 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Check, Copy, ExternalLink, Link2, Plus, RefreshCw, Trash2, X } from "lucide-react";
-import type { LinkEntry } from "@/lib/links";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Check,
+  Copy,
+  Download,
+  ExternalLink,
+  FileText,
+  Link2,
+  Paperclip,
+  Plus,
+  RefreshCw,
+  Trash2,
+  X,
+} from "lucide-react";
+import type { ResourceEntry } from "@/lib/resources";
 
 function hostname(url: string): string {
   try {
@@ -22,12 +34,29 @@ function formatAddedAt(addedAt: string): string {
   });
 }
 
-// Proxy preview images through our own server (see app/api/links/image) —
-// some sites block direct cross-origin <img> requests via hotlink
+function formatBytes(bytes: number | undefined): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Proxy preview images through our own server (see app/api/resources/image)
+// — some sites block direct cross-origin <img> requests via hotlink
 // protection, which a same-origin proxied request with a proper referer
 // gets past.
 function proxiedImage(url: string): string {
-  return `/api/links/image?url=${encodeURIComponent(url)}`;
+  return `/api/resources/image?url=${encodeURIComponent(url)}`;
+}
+
+// Where a "file" kind resource's own content lives — same route serves
+// both the inline preview (for images/PDFs) and the download.
+function fileUrl(id: string): string {
+  return `/api/resources/file?id=${encodeURIComponent(id)}`;
+}
+
+function isImageAttachment(resource: ResourceEntry): boolean {
+  return Boolean(resource.attachmentMime?.startsWith("image/"));
 }
 
 function CopyLinkButton({
@@ -43,7 +72,8 @@ function CopyLinkButton({
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(url);
+      const absolute = url.startsWith("/") ? new URL(url, window.location.origin).toString() : url;
+      await navigator.clipboard.writeText(absolute);
     } catch {
       // Clipboard API can fail (e.g. no permission) — nothing more we can
       // do here, so just skip the "copied" feedback.
@@ -68,24 +98,24 @@ function CopyLinkButton({
 
 interface GroupedCategory {
   category: string;
-  links: LinkEntry[];
+  resources: ResourceEntry[];
 }
 
-function groupByCategory(links: LinkEntry[]): GroupedCategory[] {
-  const map = new Map<string, LinkEntry[]>();
-  for (const link of links) {
-    const list = map.get(link.category) ?? [];
-    list.push(link);
-    map.set(link.category, list);
+function groupByCategory(resources: ResourceEntry[]): GroupedCategory[] {
+  const map = new Map<string, ResourceEntry[]>();
+  for (const resource of resources) {
+    const list = map.get(resource.category) ?? [];
+    list.push(resource);
+    map.set(resource.category, list);
   }
-  return Array.from(map.entries()).map(([category, items]) => ({ category, links: items }));
+  return Array.from(map.entries()).map(([category, items]) => ({ category, resources: items }));
 }
 
 type CategorySort = "count-desc" | "count-asc" | "alpha-asc" | "alpha-desc";
 
 const SORT_OPTIONS: { value: CategorySort; label: string }[] = [
-  { value: "count-desc", label: "Most links first" },
-  { value: "count-asc", label: "Fewest links first" },
+  { value: "count-desc", label: "Most first" },
+  { value: "count-asc", label: "Fewest first" },
   { value: "alpha-asc", label: "A → Z" },
   { value: "alpha-desc", label: "Z → A" },
 ];
@@ -94,10 +124,10 @@ function sortGroups(groups: GroupedCategory[], sort: CategorySort): GroupedCateg
   const sorted = [...groups];
   switch (sort) {
     case "count-desc":
-      sorted.sort((a, b) => b.links.length - a.links.length);
+      sorted.sort((a, b) => b.resources.length - a.resources.length);
       break;
     case "count-asc":
-      sorted.sort((a, b) => a.links.length - b.links.length);
+      sorted.sort((a, b) => a.resources.length - b.resources.length);
       break;
     case "alpha-asc":
       sorted.sort((a, b) => a.category.localeCompare(b.category));
@@ -109,8 +139,8 @@ function sortGroups(groups: GroupedCategory[], sort: CategorySort): GroupedCateg
   return sorted;
 }
 
-function LinkCard({
-  link,
+function ResourceCard({
+  resource,
   categories,
   onDelete,
   onRefresh,
@@ -119,7 +149,7 @@ function LinkCard({
   onForLearnChange,
   onOpen,
 }: {
-  link: LinkEntry;
+  resource: ResourceEntry;
   categories: string[];
   onDelete: (id: string) => void;
   onRefresh: (id: string) => void;
@@ -128,59 +158,76 @@ function LinkCard({
   onForLearnChange: (id: string, forLearn: boolean) => void;
   onOpen: (id: string) => void;
 }) {
+  const isFile = resource.kind === "file";
   const [refreshing, setRefreshing] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const [notes, setNotes] = useState(link.notes ?? "");
+  const [notes, setNotes] = useState(resource.notes ?? "");
 
   useEffect(() => {
-    setNotes(link.notes ?? "");
-  }, [link.notes]);
+    setNotes(resource.notes ?? "");
+  }, [resource.notes]);
 
   // Reset the broken-image fallback if a refresh brings in a new URL.
   useEffect(() => {
     setImageFailed(false);
-  }, [link.image]);
+  }, [resource.image]);
 
-  const showImage = Boolean(link.image) && !imageFailed;
+  const previewSrc = isFile
+    ? isImageAttachment(resource)
+      ? fileUrl(resource.id)
+      : null
+    : resource.image
+      ? proxiedImage(resource.image)
+      : null;
+  const showImage = Boolean(previewSrc) && !imageFailed;
+  const openHref = isFile ? fileUrl(resource.id) : resource.url;
 
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-      <button type="button" onClick={() => onOpen(link.id)} className="block w-full text-left">
+      <button type="button" onClick={() => onOpen(resource.id)} className="block w-full text-left">
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={proxiedImage(link.image!)}
+            src={previewSrc!}
             alt=""
             className="h-36 w-full object-cover"
             onError={() => setImageFailed(true)}
           />
         ) : (
           <div className="flex h-36 w-full items-center justify-center bg-slate-100 text-slate-300">
-            <Link2 className="h-8 w-8" />
+            {isFile ? <FileText className="h-8 w-8" /> : <Link2 className="h-8 w-8" />}
           </div>
         )}
       </button>
       <div className="flex flex-1 flex-col p-4">
         <button
           type="button"
-          onClick={() => onOpen(link.id)}
+          onClick={() => onOpen(resource.id)}
           className="line-clamp-2 text-left text-sm font-semibold text-slate-900 hover:underline"
         >
-          {link.title}
+          {resource.title}
         </button>
-        {link.description && (
-          <p className="mt-1 line-clamp-2 text-xs text-slate-500">{link.description}</p>
+        {resource.description && (
+          <p className="mt-1 line-clamp-2 text-xs text-slate-500">{resource.description}</p>
         )}
-        <p className="mt-2 text-xs text-slate-400">
-          {hostname(link.url)}
-          {link.addedAt && <span> · Added {formatAddedAt(link.addedAt)}</span>}
+        <p className="mt-2 flex items-center gap-1 text-xs text-slate-400">
+          {isFile && <Paperclip className="h-3 w-3 shrink-0" />}
+          {isFile
+            ? [
+                resource.attachmentFilename?.split(".").pop()?.toUpperCase(),
+                formatBytes(resource.attachmentSize),
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            : hostname(resource.url)}
+          {resource.addedAt && <span> · Added {formatAddedAt(resource.addedAt)}</span>}
         </p>
 
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           onBlur={() => {
-            if (notes !== (link.notes ?? "")) onNotesChange(link.id, notes);
+            if (notes !== (resource.notes ?? "")) onNotesChange(resource.id, notes);
           }}
           placeholder="Add a note…"
           rows={2}
@@ -190,8 +237,8 @@ function LinkCard({
         <label className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
           <input
             type="checkbox"
-            checked={Boolean(link.forLearn)}
-            onChange={(e) => onForLearnChange(link.id, e.target.checked)}
+            checked={Boolean(resource.forLearn)}
+            onChange={(e) => onForLearnChange(resource.id, e.target.checked)}
             className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-300"
           />
           Show on Learning page
@@ -199,8 +246,8 @@ function LinkCard({
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
           <select
-            value={link.category}
-            onChange={(e) => onRecategorize(link.id, e.target.value)}
+            value={resource.category}
+            onChange={(e) => onRecategorize(resource.id, e.target.value)}
             className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs text-slate-600"
           >
             {categories.map((c) => (
@@ -210,35 +257,37 @@ function LinkCard({
             ))}
           </select>
           <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              title="Refresh preview"
-              onClick={async () => {
-                setRefreshing(true);
-                await onRefresh(link.id);
-                setRefreshing(false);
-              }}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-            </button>
+            {!isFile && (
+              <button
+                type="button"
+                title="Refresh preview"
+                onClick={async () => {
+                  setRefreshing(true);
+                  await onRefresh(resource.id);
+                  setRefreshing(false);
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              </button>
+            )}
             <CopyLinkButton
-              url={link.url}
+              url={openHref}
               className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600"
             />
             <a
-              href={link.url}
+              href={openHref}
               target="_blank"
               rel="noopener noreferrer"
-              title="Open"
+              title={isFile ? "Open / download" : "Open"}
               className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              {isFile ? <Download className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
             </a>
             <button
               type="button"
               title="Delete"
-              onClick={() => onDelete(link.id)}
+              onClick={() => onDelete(resource.id)}
               className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -250,22 +299,23 @@ function LinkCard({
   );
 }
 
-function LinkModal({
-  link,
+function ResourceModal({
+  resource,
   onClose,
   onNotesChange,
 }: {
-  link: LinkEntry;
+  resource: ResourceEntry;
   onClose: () => void;
   onNotesChange: (id: string, notes: string) => void;
 }) {
-  const [notes, setNotes] = useState(link.notes ?? "");
+  const isFile = resource.kind === "file";
+  const [notes, setNotes] = useState(resource.notes ?? "");
   const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
-    setNotes(link.notes ?? "");
+    setNotes(resource.notes ?? "");
     setImageFailed(false);
-  }, [link.id, link.notes, link.image]);
+  }, [resource.id, resource.notes, resource.image]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -275,7 +325,15 @@ function LinkModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const showImage = Boolean(link.image) && !imageFailed;
+  const previewSrc = isFile
+    ? isImageAttachment(resource)
+      ? fileUrl(resource.id)
+      : null
+    : resource.image
+      ? proxiedImage(resource.image)
+      : null;
+  const showImage = Boolean(previewSrc) && !imageFailed;
+  const openHref = isFile ? fileUrl(resource.id) : resource.url;
 
   return (
     <div
@@ -290,14 +348,14 @@ function LinkModal({
           {showImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={proxiedImage(link.image!)}
+              src={previewSrc!}
               alt=""
               className="max-h-80 w-full object-cover"
               onError={() => setImageFailed(true)}
             />
           ) : (
             <div className="flex h-40 w-full items-center justify-center bg-slate-100 text-slate-300">
-              <Link2 className="h-10 w-10" />
+              {isFile ? <FileText className="h-10 w-10" /> : <Link2 className="h-10 w-10" />}
             </div>
           )}
           <button
@@ -312,22 +370,30 @@ function LinkModal({
 
         <div className="p-6">
           <a
-            href={link.url}
+            href={openHref}
             target="_blank"
             rel="noopener noreferrer"
             className="text-lg font-bold text-slate-900 hover:underline"
           >
-            {link.title}
+            {resource.title}
           </a>
-          <p className="mt-1 text-xs text-slate-400">
-            {hostname(link.url)}
-            {link.addedAt && <span> · Added {formatAddedAt(link.addedAt)}</span>}
+          <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+            {isFile && <Paperclip className="h-3 w-3 shrink-0" />}
+            {isFile
+              ? [
+                  resource.attachmentFilename?.split(".").pop()?.toUpperCase(),
+                  formatBytes(resource.attachmentSize),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : hostname(resource.url)}
+            {resource.addedAt && <span> · Added {formatAddedAt(resource.addedAt)}</span>}
             {" · "}
-            {link.category}
+            {resource.category}
           </p>
 
-          {link.description && (
-            <p className="mt-3 text-sm text-slate-600">{link.description}</p>
+          {resource.description && (
+            <p className="mt-3 text-sm text-slate-600">{resource.description}</p>
           )}
 
           <label className="mt-5 block text-xs font-medium text-slate-500">Notes</label>
@@ -335,7 +401,7 @@ function LinkModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             onBlur={() => {
-              if (notes !== (link.notes ?? "")) onNotesChange(link.id, notes);
+              if (notes !== (resource.notes ?? "")) onNotesChange(resource.id, notes);
             }}
             placeholder="Add a note…"
             rows={5}
@@ -344,18 +410,18 @@ function LinkModal({
 
           <div className="mt-5 flex justify-end gap-2">
             <CopyLinkButton
-              url={link.url}
+              url={openHref}
               showLabel
               className="flex items-center gap-1.5 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
             />
             <a
-              href={link.url}
+              href={openHref}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Visit link
+              {isFile ? <Download className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
+              {isFile ? "Open / download" : "Visit link"}
             </a>
           </div>
         </div>
@@ -364,69 +430,95 @@ function LinkModal({
   );
 }
 
-export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
-  const [links, setLinks] = useState<LinkEntry[]>(initialLinks);
+export function ResourcesBoard({ initialResources }: { initialResources: ResourceEntry[] }) {
+  const [resources, setResources] = useState<ResourceEntry[]>(initialResources);
+  const [mode, setMode] = useState<"url" | "file">("url");
   const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [category, setCategory] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [forLearn, setForLearn] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [openLinkId, setOpenLinkId] = useState<string | null>(null);
+  const [openResourceId, setOpenResourceId] = useState<string | null>(null);
   const [categorySort, setCategorySort] = useState<CategorySort>("count-desc");
 
   const categories = useMemo(() => {
-    const set = new Set(links.map((l) => l.category));
+    const set = new Set(resources.map((r) => r.category));
     if (category) set.add(category);
     return Array.from(set).sort();
-  }, [links, category]);
+  }, [resources, category]);
 
   const grouped = useMemo(
-    () => sortGroups(groupByCategory(links), categorySort),
-    [links, categorySort]
+    () => sortGroups(groupByCategory(resources), categorySort),
+    [resources, categorySort]
   );
 
-  const openLink = openLinkId ? links.find((l) => l.id === openLinkId) ?? null : null;
+  const openResource = openResourceId ? resources.find((r) => r.id === openResourceId) ?? null : null;
 
   const effectiveCategory = category === "__new__" ? newCategory.trim() : category;
 
+  const resetForm = () => {
+    setUrl("");
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setNewCategory("");
+    setForLearn(false);
+  };
+
   const handleAdd = async () => {
-    if (!url.trim() || !effectiveCategory) {
-      setError("Add a URL and pick (or type) a category.");
+    if (mode === "url" && !url.trim()) {
+      setError("Paste a URL.");
+      return;
+    }
+    if (mode === "file" && !file) {
+      setError("Choose a file.");
+      return;
+    }
+    if (!effectiveCategory) {
+      setError("Pick (or type) a category.");
       return;
     }
     setError(null);
     setAdding(true);
     try {
-      const res = await fetch("/api/links", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim(), category: effectiveCategory, forLearn }),
-      });
+      let res: Response;
+      if (mode === "file" && file) {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("category", effectiveCategory);
+        form.append("forLearn", String(forLearn));
+        res = await fetch("/api/resources", { method: "POST", body: form });
+      } else {
+        res = await fetch("/api/resources", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url.trim(), category: effectiveCategory, forLearn }),
+        });
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Failed to add link");
+        throw new Error(body.error || "Failed to add resource");
       }
-      const entry = (await res.json()) as LinkEntry;
-      setLinks((prev) => [...prev, entry]);
-      setUrl("");
-      setNewCategory("");
-      setForLearn(false);
+      const entry = (await res.json()) as ResourceEntry;
+      setResources((prev) => [...prev, entry]);
+      resetForm();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add link");
+      setError(e instanceof Error ? e.message : "Failed to add resource");
     } finally {
       setAdding(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    setLinks((prev) => prev.filter((l) => l.id !== id));
-    fetch(`/api/links?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+    setResources((prev) => prev.filter((r) => r.id !== id));
+    fetch(`/api/resources?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
   };
 
   const handleRecategorize = async (id: string, newCat: string) => {
-    setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, category: newCat } : l)));
-    fetch("/api/links", {
+    setResources((prev) => prev.map((r) => (r.id === id ? { ...r, category: newCat } : r)));
+    fetch("/api/resources", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, category: newCat }),
@@ -434,8 +526,8 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
   };
 
   const handleForLearnChange = async (id: string, value: boolean) => {
-    setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, forLearn: value } : l)));
-    fetch("/api/links", {
+    setResources((prev) => prev.map((r) => (r.id === id ? { ...r, forLearn: value } : r)));
+    fetch("/api/resources", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, forLearn: value }),
@@ -443,8 +535,8 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
   };
 
   const handleNotesChange = async (id: string, notes: string) => {
-    setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, notes } : l)));
-    fetch("/api/links", {
+    setResources((prev) => prev.map((r) => (r.id === id ? { ...r, notes } : r)));
+    fetch("/api/resources", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, notes }),
@@ -452,22 +544,22 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
   };
 
   const handleRefresh = async (id: string) => {
-    const link = links.find((l) => l.id === id);
-    if (!link) return;
+    const resource = resources.find((r) => r.id === id);
+    if (!resource || resource.kind === "file") return;
     try {
-      const res = await fetch("/api/links/metadata", {
+      const res = await fetch("/api/resources/metadata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: link.url }),
+        body: JSON.stringify({ url: resource.url }),
       });
       const meta = await res.json();
       const updates = {
-        title: meta.title || link.title,
-        description: meta.description ?? link.description,
-        image: meta.image ?? link.image,
+        title: meta.title || resource.title,
+        description: meta.description ?? resource.description,
+        image: meta.image ?? resource.image,
       };
-      setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...updates } : l)));
-      fetch("/api/links", {
+      setResources((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)));
+      fetch("/api/resources", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, ...updates }),
@@ -480,21 +572,51 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
   return (
     <div className="space-y-8">
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex gap-1 rounded-md bg-slate-100 p-1 text-sm font-medium">
+          <button
+            type="button"
+            onClick={() => setMode("url")}
+            className={`flex-1 rounded px-3 py-1.5 ${
+              mode === "url" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+            }`}
+          >
+            Link
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("file")}
+            className={`flex-1 rounded px-3 py-1.5 ${
+              mode === "file" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+            }`}
+          >
+            File
+          </button>
+        </div>
+
         <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste a link…"
-            className="min-w-0 flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm"
-          />
+          {mode === "url" ? (
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Paste a link…"
+              className="min-w-0 flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm"
+            />
+          ) : (
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="min-w-0 flex-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-medium"
+            />
+          )}
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="rounded-md border border-slate-200 px-2 py-2 text-sm"
           >
             <option value="">Category…</option>
-            {Array.from(new Set(links.map((l) => l.category)))
+            {Array.from(new Set(resources.map((r) => r.category)))
               .sort()
               .map((c) => (
                 <option key={c} value={c}>
@@ -535,7 +657,7 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
       </div>
 
       {grouped.length === 0 && (
-        <p className="text-sm text-slate-500">No links saved yet — add one above.</p>
+        <p className="text-sm text-slate-500">Nothing saved yet — add a link or file above.</p>
       )}
 
       {grouped.length > 1 && (
@@ -562,28 +684,32 @@ export function LinksBoard({ initialLinks }: { initialLinks: LinkEntry[] }) {
         <div key={group.category}>
           <h2 className="mb-3 text-base font-bold text-slate-900">
             {group.category}{" "}
-            <span className="text-sm font-normal text-slate-400">({group.links.length})</span>
+            <span className="text-sm font-normal text-slate-400">({group.resources.length})</span>
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {group.links.map((link) => (
-              <LinkCard
-                key={link.id}
-                link={link}
+            {group.resources.map((resource) => (
+              <ResourceCard
+                key={resource.id}
+                resource={resource}
                 categories={categories}
                 onDelete={handleDelete}
                 onRefresh={handleRefresh}
                 onRecategorize={handleRecategorize}
                 onNotesChange={handleNotesChange}
                 onForLearnChange={handleForLearnChange}
-                onOpen={setOpenLinkId}
+                onOpen={setOpenResourceId}
               />
             ))}
           </div>
         </div>
       ))}
 
-      {openLink && (
-        <LinkModal link={openLink} onClose={() => setOpenLinkId(null)} onNotesChange={handleNotesChange} />
+      {openResource && (
+        <ResourceModal
+          resource={openResource}
+          onClose={() => setOpenResourceId(null)}
+          onNotesChange={handleNotesChange}
+        />
       )}
     </div>
   );

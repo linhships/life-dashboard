@@ -120,7 +120,7 @@ function parseSendersByFilename(chatDir: string): Map<string, string> {
 
 // Not cached — these files are small (well under 1MB combined) and this
 // mirrors the rest of the app's read-fresh-from-disk-per-request approach
-// (lib/news.ts, lib/links.ts, etc.), which is plenty fast for a personal,
+// (lib/news.ts, lib/resources.ts, etc.), which is plenty fast for a personal,
 // single-user dashboard and keeps this in sync if the export is ever
 // refreshed.
 export function getToriCareDays(): ToriCareDay[] {

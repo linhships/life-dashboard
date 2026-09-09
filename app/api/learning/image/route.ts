@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthedRequest } from "@/lib/learningAuth";
 
 // Proxies preview images through our own server instead of hotlinking them
-// directly from the browser — same reasoning as app/api/links/image (some
+// directly from the browser — same reasoning as app/api/resources/image (some
 // sites block direct cross-origin <img> requests via referer-based hotlink
 // protection; sending the image's own origin as the Referer here, as a real
 // browser loading that page would, gets past that).

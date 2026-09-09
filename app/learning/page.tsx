@@ -14,7 +14,7 @@ export default async function LearningPage() {
 
   // Gate check happens before the data is ever fetched, so an unauthenticated
   // request never gets resource data in the page's HTML — this isn't just a
-  // UI overlay hiding an already-loaded page. Same pattern as app/links/page.tsx.
+  // UI overlay hiding an already-loaded page. Same pattern as app/resources/page.tsx.
   if (!authed) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">

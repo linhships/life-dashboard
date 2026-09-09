@@ -2,7 +2,7 @@ import { createPasscodeGate } from "./passcodeGate";
 
 // Passcode gate for the /learning page. See lib/passcodeGate.ts for the
 // mechanism and components/PasscodeAuthGuard.tsx for how the client keeps
-// the session alive. Mirrors lib/linksAuth.ts exactly, with its own
+// the session alive. Mirrors lib/resourcesAuth.ts exactly, with its own
 // cookie name/env var/salt so the two gates are fully independent.
 const gate = createPasscodeGate({
   cookieName: "learning_auth",

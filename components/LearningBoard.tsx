@@ -131,7 +131,7 @@ function ResourceCard({
   const [refreshing, setRefreshing] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [notes, setNotes] = useState(resource.notes ?? "");
-  const fromLink = Boolean(resource.fromLinkId);
+  const fromLink = Boolean(resource.fromResourceId);
 
   useEffect(() => {
     setNotes(resource.notes ?? "");
@@ -180,7 +180,7 @@ function ResourceCard({
         {fromLink ? (
           <p className="mt-2 flex items-center gap-1 text-xs text-slate-400">
             <Link2 className="h-3 w-3" />
-            From Links — edit notes/category there
+            From Resources — edit notes/category there
           </p>
         ) : (
           <textarea
@@ -245,8 +245,8 @@ function ResourceCard({
               type="button"
               title={fromLink ? "Remove from Learning page" : "Delete"}
               onClick={() =>
-                fromLink && resource.fromLinkId
-                  ? onUnlink(resource.fromLinkId)
+                fromLink && resource.fromResourceId
+                  ? onUnlink(resource.fromResourceId)
                   : onDelete(resource.id)
               }
               className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600"
@@ -340,10 +340,10 @@ function ResourceModal({
             <p className="mt-3 text-sm text-slate-600">{resource.description}</p>
           )}
 
-          {resource.fromLinkId ? (
+          {resource.fromResourceId ? (
             <p className="mt-5 flex items-center gap-1.5 text-xs text-slate-400">
               <Link2 className="h-3.5 w-3.5" />
-              This is from your Links page — edit its notes, category, or the
+              This is from your Resources page — edit its notes, category, or the
               &quot;Show on Learning page&quot; checkbox there.
             </p>
           ) : (
@@ -462,12 +462,12 @@ export function LearningBoard({ initialResources }: { initialResources: Learning
     }).catch(() => {});
   };
 
-  // Untags a Links entry's "Show on Learning page" checkbox — this removes
-  // it from this list (via /api/links, not /api/learning) rather than
-  // deleting the underlying link itself.
+  // Untags a Resources entry's "Show on Learning page" checkbox — this
+  // removes it from this list (via /api/resources, not /api/learning)
+  // rather than deleting the underlying resource itself.
   const handleUnlink = async (linkId: string) => {
-    setResources((prev) => prev.filter((r) => r.fromLinkId !== linkId));
-    fetch("/api/links", {
+    setResources((prev) => prev.filter((r) => r.fromResourceId !== linkId));
+    fetch("/api/resources", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: linkId, forLearn: false }),

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchLinkMetadata } from "@/lib/learning";
+import { fetchResourceMetadata } from "@/lib/learning";
 import { isAuthedRequest } from "@/lib/learningAuth";
 
 // Standalone metadata lookup, used by the "Refresh" action on an existing
@@ -14,6 +14,6 @@ export async function POST(request: NextRequest) {
   if (!url) {
     return NextResponse.json({ error: "Missing url" }, { status: 400 });
   }
-  const meta = await fetchLinkMetadata(url);
+  const meta = await fetchResourceMetadata(url);
   return NextResponse.json(meta);
 }

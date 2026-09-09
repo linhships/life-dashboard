@@ -30,11 +30,14 @@
 /data/meals/*.md
 /data/meals/*.jsonl
 
-# Saved links — created directly in the app (no external task), but still
-# personal, so real data stays local. See sample-data/links.json.
-/data/links.json
+# Saved resources (links + file attachments) — created directly in the app
+# (no external task), but still personal, so real data stays local. See
+# sample-data/resources.json. resource-files/ holds uploaded attachments
+# themselves (see lib/resources.ts's saveResourceAttachment).
+/data/resources.json
+/data/resource-files/
 
-# Saved learning resources — same as links.json above, just organized by
+# Saved learning resources — same as resources.json above, just organized by
 # topic instead of category. See sample-data/learning.json.
 /data/learning.json
 

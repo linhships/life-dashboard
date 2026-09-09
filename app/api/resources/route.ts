@@ -1,22 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addLink, deleteLink, fetchLinkMetadata, getLinks, updateLink } from "@/lib/links";
-import { isAuthedRequest } from "@/lib/linksAuth";
+import {
+  addResource,
+  deleteResource,
+  fetchResourceMetadata,
+  getResources,
+  saveResourceAttachment,
+  updateResource,
+} from "@/lib/resources";
+import { isAuthedRequest } from "@/lib/resourcesAuth";
 
 // Guard every route here so the passcode gate can't be bypassed by hitting
 // the API directly (the page itself never even fetches this data server-side
-// unless the cookie checks out — see app/links/page.tsx — but these routes
-// are also reachable independently, e.g. for add/edit/delete actions).
+// unless the cookie checks out — see app/resources/page.tsx — but these
+// routes are also reachable independently, e.g. for add/edit/delete actions).
 function unauthorized() {
   return NextResponse.json({ error: "Locked" }, { status: 401 });
 }
 
 export async function GET(request: NextRequest) {
   if (!isAuthedRequest(request)) return unauthorized();
-  return NextResponse.json(getLinks());
+  return NextResponse.json(getResources());
 }
 
+// Two request shapes land here, told apart by Content-Type:
+//  - multipart/form-data: a file upload (fields: file, category, forLearn,
+//    title?) — saved to disk via saveResourceAttachment and added as a
+//    kind: "file" entry.
+//  - application/json: the original bookmark-a-URL flow (fields: url,
+//    category, forLearn) — added as a kind: "url" entry, same as before.
 export async function POST(request: NextRequest) {
   if (!isAuthedRequest(request)) return unauthorized();
+
+  const contentType = request.headers.get("content-type") || "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const file = form.get("file");
+    const category = form.get("category");
+    const forLearn = form.get("forLearn") === "true";
+    const titleOverride = form.get("title");
+
+    if (!(file instanceof File) || !category || typeof category !== "string") {
+      return NextResponse.json({ error: "Missing file or category" }, { status: 400 });
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const saved = saveResourceAttachment(buffer, file.name);
+
+    const entry = addResource({
+      kind: "file",
+      url: "",
+      title: (typeof titleOverride === "string" && titleOverride.trim()) || file.name,
+      description: "",
+      image: null,
+      category,
+      forLearn,
+      attachmentStoredName: saved.storedName,
+      attachmentFilename: file.name,
+      attachmentMime: saved.mime,
+      attachmentSize: saved.size,
+    });
+
+    return NextResponse.json(entry);
+  }
+
   const body = await request.json();
   const { url, category, forLearn } = body as {
     url?: string;
@@ -35,9 +82,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
 
-  const meta = await fetchLinkMetadata(normalized);
+  const meta = await fetchResourceMetadata(normalized);
 
-  const entry = addLink({
+  const entry = addResource({
+    kind: "url",
     url: normalized,
     title: meta.title || normalized,
     description: meta.description || "",
@@ -64,7 +112,7 @@ export async function PATCH(request: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
-  const updated = updateLink(id, updates);
+  const updated = updateResource(id, updates);
   if (!updated) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -77,6 +125,6 @@ export async function DELETE(request: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
-  deleteLink(id);
+  deleteResource(id);
   return NextResponse.json({ ok: true });
 }

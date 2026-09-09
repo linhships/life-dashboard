@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  LINKS_AUTH_COOKIE,
-  LINKS_AUTH_MAX_AGE_SECONDS,
+  RESOURCES_AUTH_COOKIE,
+  RESOURCES_AUTH_MAX_AGE_SECONDS,
   isAuthedRequest,
   issueToken,
   verifyPasscode,
-} from "@/lib/linksAuth";
+} from "@/lib/resourcesAuth";
 
 // Login: verify the passcode and set the sliding session cookie.
 export async function POST(request: NextRequest) {
@@ -17,16 +17,16 @@ export async function POST(request: NextRequest) {
   }
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(LINKS_AUTH_COOKIE, issueToken(), {
+  res.cookies.set(RESOURCES_AUTH_COOKIE, issueToken(), {
     httpOnly: true,
     sameSite: "lax",
-    maxAge: LINKS_AUTH_MAX_AGE_SECONDS,
+    maxAge: RESOURCES_AUTH_MAX_AGE_SECONDS,
     path: "/",
   });
   return res;
 }
 
-// Heartbeat: called periodically by the client while the Links page is
+// Heartbeat: called periodically by the client while the Resources page is
 // open and active, to slide the session window forward. Fails (401) if the
 // cookie is missing or stale, which the client treats as "locked again."
 export async function PUT(request: NextRequest) {
@@ -34,10 +34,10 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(LINKS_AUTH_COOKIE, issueToken(), {
+  res.cookies.set(RESOURCES_AUTH_COOKIE, issueToken(), {
     httpOnly: true,
     sameSite: "lax",
-    maxAge: LINKS_AUTH_MAX_AGE_SECONDS,
+    maxAge: RESOURCES_AUTH_MAX_AGE_SECONDS,
     path: "/",
   });
   return res;
