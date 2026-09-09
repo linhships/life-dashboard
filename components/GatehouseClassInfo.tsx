@@ -182,6 +182,7 @@ function ClassInfoBox({
           {classInfo.classCode ? ` (${classInfo.classCode})` : ""}
         </p>
       </div>
+      {kitScheduleField && <WeeklyKitScheduleBox field={kitScheduleField} onOpen={onOpen} />}
       {otherFields.length > 0 && (
         <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
           {otherFields.map((f, i) => (
@@ -203,7 +204,6 @@ function ClassInfoBox({
           ))}
         </dl>
       )}
-      {kitScheduleField && <WeeklyKitScheduleBox field={kitScheduleField} onOpen={onOpen} />}
     </div>
   );
 }
