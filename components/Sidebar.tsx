@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  CalendarDays,
   ChevronUp,
   GraduationCap,
   Heart,
@@ -45,7 +44,6 @@ interface RouteGroup {
 }
 
 const TOP_LEVEL_LINKS: TopLevelLink[] = [
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/resources", label: "Resources", icon: Link2 },
   { href: "/learning", label: "Learning", icon: GraduationCap },
 ];
