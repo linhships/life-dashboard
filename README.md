@@ -98,7 +98,7 @@ git. Which folder gets read is an explicit switch, not automatic — see
 "Privacy model" above and `USE_SAMPLE_DATA` in `.env.example`.
 
 The page is rendered dynamically (`export const dynamic = "force-dynamic"`
-in `app/page.tsx`), so it re-reads these files on every request — replacing
+in `app/finance/page.tsx`), so it re-reads these files on every request — replacing
 a CSV or the xlsx and refreshing the browser is all that's needed to see new
 numbers, no restart required.
 

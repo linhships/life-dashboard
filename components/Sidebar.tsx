@@ -129,7 +129,7 @@ export function Sidebar() {
     )
   );
   const [activeId, setActiveId] = useState<string>("overview");
-  const onHome = pathname === "/";
+  const onFinance = pathname === "/finance";
 
   // Restore collapse preference (real app preference, not an in-conversation
   // artifact, so localStorage is fine here).
@@ -147,9 +147,9 @@ export function Sidebar() {
   }, []);
 
   // Highlight whichever section is currently near the top of the viewport.
-  // Only relevant on the home page — other routes don't have these anchors.
+  // Only relevant on the Finance page — other routes don't have these anchors.
   useEffect(() => {
-    if (!onHome) return;
+    if (!onFinance) return;
     const elements = FINANCE_ITEMS.map((item) => document.getElementById(item.id)).filter(
       (el): el is HTMLElement => el !== null
     );
@@ -170,18 +170,18 @@ export function Sidebar() {
 
     elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [onHome]);
+  }, [onFinance]);
 
   const handleNavClick = (id: string) => {
     setMobileOpen(false);
-    if (onHome) {
+    if (onFinance) {
       document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
-      router.push(`/#${id}`);
+      router.push(`/finance#${id}`);
     }
   };
 
-  const isAnyChildActive = onHome && FINANCE_ITEMS.some((item) => item.id === activeId);
+  const isAnyChildActive = onFinance && FINANCE_ITEMS.some((item) => item.id === activeId);
 
   // Auto-expand a group when client-side navigation (not just a fresh page
   // load) lands on one of its sub-pages — e.g. going Meal Plan -> Recipes
@@ -376,11 +376,11 @@ export function Sidebar() {
             >
               {FINANCE_ITEMS.map((item) => {
                 // activeId is only kept in sync by the scroll observer
-                // while onHome (see the useEffect above) — off the home
-                // page it just holds whatever it was last set to, so
-                // without the onHome check here "Overview" (its default
-                // value) would show as active on every other page too.
-                const isActive = onHome && activeId === item.id;
+                // while onFinance (see the useEffect above) — off the
+                // Finance page it just holds whatever it was last set to,
+                // so without the onFinance check here "Overview" (its
+                // default value) would show as active on every other page.
+                const isActive = onFinance && activeId === item.id;
                 return (
                   <li key={item.id}>
                     <button

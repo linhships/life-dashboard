@@ -1,243 +1,110 @@
-import { cookies } from "next/headers";
+import Link from "next/link";
 import {
-  getAccounts,
-  getPensionAllowance,
-  getIncome,
-  getRetirementModel,
-} from "@/lib/data";
-import {
-  netWorthTimeSeries,
-  latestNetWorth,
-  kidsSummary,
-  last12Months,
-} from "@/lib/aggregate";
-import { SectionCard } from "@/components/KpiCard";
-import { NetWorthChart } from "@/components/NetWorthChart";
-import { IncomeChart } from "@/components/IncomeChart";
-import { PensionAllowanceChart } from "@/components/PensionAllowanceChart";
-import { KidsAccounts } from "@/components/KidsAccounts";
-import { FinancePlanProvider } from "@/components/FinancePlanContext";
-import { TopKpis } from "@/components/TopKpis";
-import { DrawdownSummaryCards } from "@/components/DrawdownSummaryCards";
-import { ConnectedContributionPlan } from "@/components/ConnectedContributionPlan";
-import { ConnectedPlanAdjustControls } from "@/components/ConnectedPlanAdjustControls";
-import { PasscodeAuthGuard } from "@/components/PasscodeAuthGuard";
-import { PasscodePageGate } from "@/components/PasscodePageGate";
-import { FINANCE_AUTH_COOKIE, isAuthed } from "@/lib/financeAuth";
-import { type ContributionPlan, type StartingBalances } from "@/lib/simulate";
-import { gbp } from "@/lib/format";
-import type { AssumptionItem } from "@/lib/types";
-import { ArrowLeftRight, PiggyBank, TrendingUp, Users, Wallet } from "lucide-react";
+  GraduationCap,
+  Heart,
+  Landmark,
+  Link2,
+  Newspaper,
+  School,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
+import { ICON_BADGE, type ThemeColor } from "@/lib/theme";
 
-export const dynamic = "force-dynamic";
+// The root route used to just be the Finance dashboard (app/page.tsx, now
+// moved to app/finance/page.tsx) — with 9+ unrelated sections behind the
+// sidebar, landing straight in Finance stopped making sense. This is a
+// plain static hub: one tile per top-level destination, no data fetching
+// of its own, so it never needs GATEHOUSE_DIR/NEWS_BRIEFING_DIR/etc. to be
+// configured to render.
 
-function findAssumption(items: AssumptionItem[], needle: string): number {
-  const item = items.find((i) =>
-    i.label.toLowerCase().includes(needle.toLowerCase())
-  );
-  return typeof item?.value === "number" ? item.value : 0;
+interface Tile {
+  href: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  iconColor: ThemeColor;
 }
 
-export default async function Home() {
-  const cookieStore = await cookies();
-  const authed = isAuthed(cookieStore.get(FINANCE_AUTH_COOKIE)?.value);
+const TILES: Tile[] = [
+  {
+    href: "/finance",
+    label: "Finance",
+    description: "Net worth, cash flow, pension allowance, kids' accounts.",
+    icon: Landmark,
+    iconColor: "blue",
+  },
+  {
+    href: "/news",
+    label: "News",
+    description: "Daily briefing and AI briefing digests.",
+    icon: Newspaper,
+    iconColor: "slate",
+  },
+  {
+    href: "/meals",
+    label: "Food",
+    description: "Weekly meal plan and saved recipes.",
+    icon: UtensilsCrossed,
+    iconColor: "amber",
+  },
+  {
+    href: "/tori-photos",
+    label: "Milo & Arlo",
+    description: "Photos and updates from Tori, and Milo's nursery.",
+    icon: Heart,
+    iconColor: "rose",
+  },
+  {
+    href: "/gatehouse-info",
+    label: "Gatehouse",
+    description: "Class info, communication, and notes for Milo's school.",
+    icon: School,
+    iconColor: "purple",
+  },
+  {
+    href: "/resources",
+    label: "Resources",
+    description: "Saved links and file attachments, by category.",
+    icon: Link2,
+    iconColor: "emerald",
+  },
+  {
+    href: "/learning",
+    label: "Learning",
+    description: "Topic-organized reading and reference material.",
+    icon: GraduationCap,
+    iconColor: "blue",
+  },
+];
 
-  // Gate check happens before any finance data is fetched, so an
-  // unauthenticated request never gets it in the page's HTML.
-  if (!authed) {
-    return (
-      <main className="mx-auto max-w-6xl px-6 py-10">
-        <PasscodePageGate authEndpoint="/api/finance/auth" label="Finance" />
-      </main>
-    );
-  }
-
-  const [accounts, pensionAllowance, income, retirement] = await Promise.all([
-    Promise.resolve(getAccounts()),
-    Promise.resolve(getPensionAllowance()),
-    Promise.resolve(getIncome()),
-    getRetirementModel(),
-  ]);
-
-  const netWorth = latestNetWorth(accounts);
-  const netWorthSeries = netWorthTimeSeries(accounts);
-  const kids = kidsSummary(accounts);
-  const recentIncome = last12Months(income);
-
-  const currentAge = findAssumption(retirement.assumptions, "Current age");
-  const targetRetirementAge = findAssumption(
-    retirement.assumptions,
-    "Target retirement age"
-  );
-  const sippAccessAge = findAssumption(retirement.assumptions, "SIPP access age");
-  const baseYear = retirement.projection[0]?.year ?? new Date().getFullYear();
-
-  const currentYearAllowance = pensionAllowance[pensionAllowance.length - 1];
-
-  const isaAnnual = findAssumption(
-    retirement.assumptions,
-    "ISA annual contribution while contributing"
-  );
-  const isaYears = findAssumption(
-    retirement.assumptions,
-    "ISA — years you plan to contribute"
-  );
-  const giaAnnual = findAssumption(
-    retirement.assumptions,
-    "GIA annual contribution while contributing"
-  );
-  const giaYears = findAssumption(
-    retirement.assumptions,
-    "GIA — years you plan to contribute"
-  );
-  const sippAnnual = findAssumption(
-    retirement.assumptions,
-    "SIPP annual contribution while contributing"
-  );
-  const sippYears = findAssumption(
-    retirement.assumptions,
-    "SIPP — years you plan to contribute"
-  );
-
-  const isa0 = findAssumption(retirement.assumptions, "ISA — current balance");
-  const gia0 = findAssumption(retirement.assumptions, "GIA — current balance");
-  const sipp0 = findAssumption(retirement.assumptions, "SIPP — combined total");
-  const lifeExpectancy = findAssumption(
-    retirement.assumptions,
-    "Life expectancy / plan to age"
-  );
-  const statePensionAge = findAssumption(retirement.assumptions, "State pension age");
-  const statePension = findAssumption(
-    retirement.assumptions,
-    "State pension (£/yr"
-  );
-  const targetSpend = findAssumption(
-    retirement.assumptions,
-    "Desired annual retirement spending"
-  );
-  const longHorizonSwr = findAssumption(
-    retirement.assumptions,
-    "Safe withdrawal rate — long retirement"
-  );
-
-  const defaultPlan: ContributionPlan = {
-    isaAnnual,
-    isaYears,
-    giaAnnual,
-    giaYears,
-    sippAnnual,
-    sippYears,
-  };
-  const start: StartingBalances = { isa0, gia0, sipp0 };
-
+export default function Home() {
   return (
-    <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
-      <header id="overview" className="scroll-mt-6">
-        <h1 className="text-2xl font-bold text-slate-900">Finance Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Long-term picture: net worth, income, retirement plan, and the kids&apos; accounts.
-        </p>
+    <main className="mx-auto max-w-5xl px-6 py-10">
+      <header>
+        <h1 className="text-2xl font-bold text-slate-900">Life Dashboard</h1>
+        <p className="mt-2 text-sm text-slate-500">Pick a section to get started.</p>
       </header>
 
-      <PasscodeAuthGuard authEndpoint="/api/finance/auth" label="Finance">
-        <FinancePlanProvider start={start} initialPlan={defaultPlan} initialSpend={targetSpend}>
-          <TopKpis
-            netWorth={netWorth}
-            currentAge={currentAge}
-            targetRetirementAge={targetRetirementAge}
-            sippAccessAge={sippAccessAge}
-            longHorizonSwr={longHorizonSwr}
-          />
-
-          <DrawdownSummaryCards
-            currentAge={currentAge}
-            targetRetirementAge={targetRetirementAge}
-            sippAccessAge={sippAccessAge}
-            lifeExpectancy={lifeExpectancy}
-            statePensionAge={statePensionAge}
-            statePension={statePension}
-          />
-
-          <SectionCard
-            id="adjust-plan"
-            title="Adjust the plan"
-            description="Change your contribution plan, target spend, or emergency buffer — every KPI, chart, and the narrative below update live."
-            icon={TrendingUp}
-            iconColor="blue"
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {TILES.map(({ href, label, description, icon: Icon, iconColor }) => (
+          <Link
+            key={href}
+            href={href}
+            className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
           >
-            <ConnectedPlanAdjustControls
-              currentAge={currentAge}
-              targetRetirementAge={targetRetirementAge}
-            />
-          </SectionCard>
-
-          <SectionCard
-            id="net-worth"
-            title="Net worth over time"
-            description="ISA, GIA, SIPP and savings balances by snapshot date."
-            icon={Wallet}
-            iconColor="blue"
-          >
-            <NetWorthChart data={netWorthSeries} />
-          </SectionCard>
-
-          <SectionCard
-            id="coast-fire"
-            title="Coast FIRE plan & tax-aware drawdown"
-            description="Adjust how much you contribute (and for how long) and your target spend, and see the Coast FIRE trajectory plus the full tax-aware drawdown to life expectancy update live — UK income tax + CGT, SIPP's 25% tax-free portion taken in phased slices, ISA/GIA/SIPP drawn in the tax-cheapest order. Deterministic 5% real growth, doesn't model market variance. Starting balances and default plan come from retirement_model.xlsx."
-            icon={TrendingUp}
-            iconColor="emerald"
-          >
-            <ConnectedContributionPlan
-              baseYear={baseYear}
-              currentAge={currentAge}
-              targetRetirementAge={targetRetirementAge}
-              sippAccessAge={sippAccessAge}
-              lifeExpectancy={lifeExpectancy}
-              statePensionAge={statePensionAge}
-              statePension={statePension}
-            />
-          </SectionCard>
-        </FinancePlanProvider>
-
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <SectionCard
-            id="cash-flow"
-            title="Cash flow"
-            description="Last 12 months: payroll net pay vs. what actually landed in the bank."
-            icon={ArrowLeftRight}
-            iconColor="blue"
-          >
-            <IncomeChart data={recentIncome} />
-          </SectionCard>
-
-          <SectionCard
-            id="pension"
-            title="Pension annual allowance"
-            description={
-              currentYearAllowance
-                ? `${currentYearAllowance.taxYear}: ${gbp(
-                    currentYearAllowance.carryForwardRemainder
-                  )} of allowance still available.`
-                : undefined
-            }
-            icon={PiggyBank}
-            iconColor="purple"
-          >
-            <PensionAllowanceChart data={pensionAllowance} />
-          </SectionCard>
-        </div>
-
-        <SectionCard
-          id="kids"
-          title="Kids' accounts"
-          description="Junior ISA + Junior SIPP balances, latest snapshot."
-          icon={Users}
-          iconColor="amber"
-        >
-          <KidsAccounts kids={kids} />
-        </SectionCard>
-      </PasscodeAuthGuard>
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-xl ${ICON_BADGE[iconColor]}`}
+            >
+              <Icon className="h-5 w-5" />
+            </div>
+            <p className="mt-3 text-sm font-semibold text-slate-900 group-hover:text-blue-600">
+              {label}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">{description}</p>
+          </Link>
+        ))}
+      </div>
     </main>
   );
 }

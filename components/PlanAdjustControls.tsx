@@ -57,7 +57,7 @@ function NumberField({
 
 // Pulled out of InteractiveContributionPlan and rendered right below the
 // "Coast FIRE & tax-aware drawdown" KPI summary near the top of the page
-// (see ConnectedPlanAdjustControls + app/page.tsx), so the plan controls
+// (see ConnectedPlanAdjustControls + app/finance/page.tsx), so the plan controls
 // are visible without scrolling into the charts further down — everything
 // on the page that reads the live plan (KPIs, charts, narrative) still
 // updates live via FinancePlanContext regardless of where this box sits.

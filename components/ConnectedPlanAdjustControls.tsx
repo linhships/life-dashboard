@@ -11,7 +11,7 @@ interface Props {
 // Thin wrapper that connects the (reusable, controlled) PlanAdjustControls
 // to the shared FinancePlanContext — same pattern as ConnectedContributionPlan,
 // just for the plan-editing box on its own so it can be positioned separately
-// from the charts (see app/page.tsx).
+// from the charts (see app/finance/page.tsx).
 export function ConnectedPlanAdjustControls({ currentAge, targetRetirementAge }: Props) {
   const { plan, setPlan, spend, setSpend, liquidReserve, setLiquidReserve, initialPlan, initialSpend } =
     useFinancePlan();

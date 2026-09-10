@@ -1,6 +1,6 @@
 import { createPasscodeGate } from "./passcodeGate";
 
-// Passcode gate for the Finance dashboard (the root "/" route and its
+// Passcode gate for the Finance dashboard (the "/finance" route and its
 // data API routes). Same mechanism as lib/resourcesAuth.ts, separate cookie
 // and env var so the two sections lock independently.
 const gate = createPasscodeGate({
