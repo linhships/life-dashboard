@@ -142,20 +142,24 @@ function sortGroups(groups: GroupedCategory[], sort: CategorySort): GroupedCateg
 function ResourceCard({
   resource,
   categories,
+  inLearningTopic,
   onDelete,
   onRefresh,
   onRecategorize,
   onNotesChange,
-  onForLearnChange,
+  onExcludeFromLearningChange,
   onOpen,
 }: {
   resource: ResourceEntry;
   categories: string[];
+  // Whether this resource's category is a Learning topic — only then does
+  // the per-resource "Exclude from Learning" opt-out make sense to show.
+  inLearningTopic: boolean;
   onDelete: (id: string) => void;
   onRefresh: (id: string) => void;
   onRecategorize: (id: string, category: string) => void;
   onNotesChange: (id: string, notes: string) => void;
-  onForLearnChange: (id: string, forLearn: boolean) => void;
+  onExcludeFromLearningChange: (id: string, exclude: boolean) => void;
   onOpen: (id: string) => void;
 }) {
   const isFile = resource.kind === "file";
@@ -234,15 +238,17 @@ function ResourceCard({
           className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
         />
 
-        <label className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-          <input
-            type="checkbox"
-            checked={Boolean(resource.forLearn)}
-            onChange={(e) => onForLearnChange(resource.id, e.target.checked)}
-            className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-300"
-          />
-          Show on Learning page
-        </label>
+        {inLearningTopic && (
+          <label className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+            <input
+              type="checkbox"
+              checked={Boolean(resource.excludeFromLearning)}
+              onChange={(e) => onExcludeFromLearningChange(resource.id, e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-300"
+            />
+            Exclude from Learning
+          </label>
+        )}
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
           <select
@@ -439,8 +445,20 @@ function ResourceModal({
   );
 }
 
-export function ResourcesBoard({ initialResources }: { initialResources: ResourceEntry[] }) {
+export function ResourcesBoard({
+  initialResources,
+  initialLearningTopics,
+}: {
+  initialResources: ResourceEntry[];
+  // Category names that are Learning topics (see lib/resources.ts
+  // getLearningTopics) — every resource in one of these shows on the
+  // Learning page unless individually excluded.
+  initialLearningTopics: string[];
+}) {
   const [resources, setResources] = useState<ResourceEntry[]>(initialResources);
+  const [learningTopics, setLearningTopics] = useState<Set<string>>(
+    () => new Set(initialLearningTopics)
+  );
   const [mode, setMode] = useState<"url" | "file">("url");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -448,7 +466,6 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [newCategory, setNewCategory] = useState("");
-  const [forLearn, setForLearn] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openResourceId, setOpenResourceId] = useState<string | null>(null);
@@ -484,7 +501,6 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
     if (fileInputRef.current) fileInputRef.current.value = "";
     setTitle("");
     setNewCategory("");
-    setForLearn(false);
   };
 
   // Dropping a file anywhere on the add-box switches to File mode and
@@ -536,7 +552,6 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
         const form = new FormData();
         form.append("file", file);
         form.append("category", effectiveCategory);
-        form.append("forLearn", String(forLearn));
         if (title.trim()) form.append("title", title.trim());
         res = await fetch("/api/resources", { method: "POST", body: form });
       } else {
@@ -546,7 +561,6 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
           body: JSON.stringify({
             url: url.trim(),
             category: effectiveCategory,
-            forLearn,
             title: title.trim() || undefined,
           }),
         });
@@ -579,13 +593,40 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
     }).catch(() => {});
   };
 
-  const handleForLearnChange = async (id: string, value: boolean) => {
-    setResources((prev) => prev.map((r) => (r.id === id ? { ...r, forLearn: value } : r)));
+  const handleExcludeFromLearningChange = async (id: string, value: boolean) => {
+    setResources((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, excludeFromLearning: value } : r))
+    );
     fetch("/api/resources", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, forLearn: value }),
+      body: JSON.stringify({ id, excludeFromLearning: value }),
     }).catch(() => {});
+  };
+
+  // Toggles a whole category on/off the Learning page. Optimistic, like
+  // the other handlers; the response carries the server's full topic list
+  // which replaces ours so the two can't drift.
+  const handleLearningTopicChange = async (cat: string, value: boolean) => {
+    setLearningTopics((prev) => {
+      const next = new Set(prev);
+      if (value) next.add(cat);
+      else next.delete(cat);
+      return next;
+    });
+    try {
+      const res = await fetch("/api/resources/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: cat, learning: value }),
+      });
+      if (res.ok) {
+        const body = (await res.json()) as { learningTopics?: string[] };
+        if (Array.isArray(body.learningTopics)) setLearningTopics(new Set(body.learningTopics));
+      }
+    } catch {
+      // Leave the optimistic state; next page load re-syncs from disk.
+    }
   };
 
   const handleNotesChange = async (id: string, notes: string) => {
@@ -713,15 +754,6 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
               className="rounded-md border border-slate-200 px-3 py-2 text-sm"
             />
           )}
-          <label className="flex shrink-0 items-center gap-1.5 px-1 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              checked={forLearn}
-              onChange={(e) => setForLearn(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-300"
-            />
-            Show on Learning page
-          </label>
           <button
             type="button"
             onClick={handleAdd}
@@ -761,21 +793,35 @@ export function ResourcesBoard({ initialResources }: { initialResources: Resourc
 
       {grouped.map((group) => (
         <div key={group.category}>
-          <h2 className="mb-3 text-base font-bold text-slate-900">
-            {group.category}{" "}
-            <span className="text-sm font-normal text-slate-400">({group.resources.length})</span>
-          </h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <h2 className="text-base font-bold text-slate-900">
+              {group.category}{" "}
+              <span className="text-sm font-normal text-slate-400">
+                ({group.resources.length})
+              </span>
+            </h2>
+            <label className="flex items-center gap-1.5 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                checked={learningTopics.has(group.category)}
+                onChange={(e) => handleLearningTopicChange(group.category, e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-300"
+              />
+              Learning topic
+            </label>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {group.resources.map((resource) => (
               <ResourceCard
                 key={resource.id}
                 resource={resource}
                 categories={categories}
+                inLearningTopic={learningTopics.has(group.category)}
                 onDelete={handleDelete}
                 onRefresh={handleRefresh}
                 onRecategorize={handleRecategorize}
                 onNotesChange={handleNotesChange}
-                onForLearnChange={handleForLearnChange}
+                onExcludeFromLearningChange={handleExcludeFromLearningChange}
                 onOpen={setOpenResourceId}
               />
             ))}

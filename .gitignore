@@ -35,6 +35,7 @@
 # sample-data/resources.json. resource-files/ holds uploaded attachments
 # themselves (see lib/resources.ts's saveResourceAttachment).
 /data/resources.json
+/data/resource-categories.json
 /data/resource-files/
 
 # Saved learning resources — same as resources.json above, just organized by

@@ -30,10 +30,15 @@ export interface ResourceEntry {
   category: string;
   addedAt: string;
   notes?: string;
-  // When true, this resource also appears on the Learning page (see
-  // lib/learning.ts's getLearningResources, which merges these in live —
-  // there's no separate copy, so editing/deleting the resource here is the
-  // single source of truth for what shows up there too).
+  // What shows on the Learning page is decided per *category* now, not
+  // per resource: a category marked as a "Learning topic" (see
+  // getLearningTopics below) sends all of its resources to the Learning
+  // page, and this flag opts an individual resource back out of that.
+  // Meaningless (ignored) for a resource in a non-learning category.
+  excludeFromLearning?: boolean;
+  // Legacy per-resource "Show on Learning page" flag from before learning
+  // topics were per-category. Only read once, by migrateLearningFlags(),
+  // to seed the category list + exclusions; never written any more.
   forLearn?: boolean;
   // "file" entries only:
   attachmentStoredName?: string; // filename on disk under data/resource-files/
@@ -114,7 +119,10 @@ export function addResource(entry: Omit<ResourceEntry, "id" | "addedAt">): Resou
 export function updateResource(
   id: string,
   updates: Partial<
-    Pick<ResourceEntry, "title" | "description" | "image" | "category" | "notes" | "forLearn">
+    Pick<
+      ResourceEntry,
+      "title" | "description" | "image" | "category" | "notes" | "excludeFromLearning"
+    >
   >
 ): ResourceEntry | null {
   const resources = getResources();
@@ -123,6 +131,84 @@ export function updateResource(
   resources[idx] = { ...resources[idx], ...updates };
   saveResources(resources);
   return resources[idx];
+}
+
+// ---------------------------------------------------------------------------
+// Learning topics (per-category)
+//
+// Categories aren't stored anywhere on their own — a category exists purely
+// as the set of resources tagged with it. The one piece of per-category
+// state, "is this category a Learning topic?", lives in
+// data/resource-categories.json as a plain list of category names.
+
+const CATEGORIES_FILE = "resource-categories.json";
+
+interface CategorySettings {
+  learningTopics: string[];
+}
+
+function readCategorySettings(): CategorySettings | null {
+  const file = dataPath(CATEGORIES_FILE);
+  if (!fs.existsSync(file)) return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, "utf-8"));
+    const topics = Array.isArray(parsed?.learningTopics) ? parsed.learningTopics : [];
+    return { learningTopics: topics.filter((t: unknown) => typeof t === "string") };
+  } catch {
+    return null;
+  }
+}
+
+function saveCategorySettings(settings: CategorySettings): void {
+  const file = writeDataPath(CATEGORIES_FILE);
+  const dir = path.dirname(file);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n", "utf-8");
+}
+
+// One-time migration from the old per-resource `forLearn` checkbox: the
+// first time there's no categories file, reconstruct the same Learning
+// page contents under the new model — every category that had at least
+// one `forLearn` resource becomes a Learning topic, and any resource in
+// such a category that *wasn't* flagged gets excludeFromLearning so it
+// doesn't suddenly appear. Persists both so it only ever runs once; with
+// no legacy flags at all it just writes an empty topic list.
+function migrateLearningFlags(): CategorySettings {
+  const resources = getResources();
+  const topics = new Set<string>();
+  for (const r of resources) {
+    if (r.forLearn) topics.add(r.category);
+  }
+  if (topics.size > 0) {
+    let changed = false;
+    for (const r of resources) {
+      if (topics.has(r.category) && !r.forLearn && !r.excludeFromLearning) {
+        r.excludeFromLearning = true;
+        changed = true;
+      }
+    }
+    if (changed) saveResources(resources);
+  }
+  const settings = { learningTopics: Array.from(topics).sort() };
+  saveCategorySettings(settings);
+  return settings;
+}
+
+export function getLearningTopics(): string[] {
+  return (readCategorySettings() ?? migrateLearningFlags()).learningTopics;
+}
+
+export function setCategoryLearning(category: string, isLearning: boolean): string[] {
+  const current = new Set(getLearningTopics());
+  if (isLearning) current.add(category);
+  else current.delete(category);
+  const topics = Array.from(current).sort();
+  saveCategorySettings({ learningTopics: topics });
+  return topics;
+}
+
+export function isOnLearningPage(resource: ResourceEntry, learningTopics: Set<string>): boolean {
+  return learningTopics.has(resource.category) && !resource.excludeFromLearning;
 }
 
 export function deleteResource(id: string): void {

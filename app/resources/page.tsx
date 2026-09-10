@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getResources } from "@/lib/resources";
+import { getLearningTopics, getResources } from "@/lib/resources";
 import { ResourcesBoard } from "@/components/ResourcesBoard";
 import { PasscodeAuthGuard } from "@/components/PasscodeAuthGuard";
 import { PasscodePageGate } from "@/components/PasscodePageGate";
@@ -24,6 +24,7 @@ export default async function ResourcesPage() {
   }
 
   const resources = getResources();
+  const learningTopics = getLearningTopics();
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
@@ -40,7 +41,7 @@ export default async function ResourcesPage() {
       </header>
 
       <PasscodeAuthGuard authEndpoint="/api/resources/auth" label="Resources">
-        <ResourcesBoard initialResources={resources} />
+        <ResourcesBoard initialResources={resources} initialLearningTopics={learningTopics} />
       </PasscodeAuthGuard>
     </main>
   );

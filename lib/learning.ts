@@ -1,7 +1,12 @@
 import fs from "fs";
 import path from "path";
 import { hashId } from "./hash";
-import { fetchResourceMetadata, getResources } from "./resources";
+import {
+  fetchResourceMetadata,
+  getLearningTopics,
+  getResources,
+  isOnLearningPage,
+} from "./resources";
 import { dataPath, writeDataPath } from "./dataDir";
 
 // Same "saved directly in the app, personal data" pattern as
@@ -22,13 +27,13 @@ export interface LearningResource {
   topic: string;
   addedAt: string;
   notes?: string;
-  // Present only on entries derived live from a Resources entry with its
-  // "Show on Learning page" checkbox on (see lib/resources.ts's `forLearn`
-  // field) — these are NOT stored in learning.json, so there's no copy
-  // that can drift out of sync. Editing/untagging happens on the Resources
-  // page (or via the resources API); the Learning UI treats an entry with
-  // this set as read-only / "from Resources" rather than an independent
-  // resource.
+  // Present only on entries derived live from a Resources entry whose
+  // category is a Learning topic (see lib/resources.ts's getLearningTopics
+  // / excludeFromLearning) — these are NOT stored in learning.json, so
+  // there's no copy that can drift out of sync. Editing/excluding happens
+  // on the Resources page (or via the resources API); the Learning UI
+  // treats an entry with this set as read-only / "from Resources" rather
+  // than an independent resource.
   fromResourceId?: string;
 }
 
@@ -84,16 +89,18 @@ export function deleteLearningResource(id: string): void {
   saveLearningResources(resources);
 }
 
-// Live view of every Resources entry flagged "Show on Learning page" —
-// computed fresh from resources.json on every call, never persisted here.
-// resource.category becomes the Learning "topic" bucket it's grouped
-// under. A "file" kind resource has no external url of its own, so its
-// url here points at the same /api/resources/file route the Resources
-// page uses to open/download it — the Learning card's "Visit"/hostname
-// display just shows that internal path for those.
+// Live view of every Resources entry in a Learning-topic category (minus
+// the ones individually excluded) — computed fresh from resources.json on
+// every call, never persisted here. resource.category becomes the
+// Learning "topic" bucket it's grouped under. A "file" kind resource has
+// no external url of its own, so its url here points at the same
+// /api/resources/file route the Resources page uses to open/download it —
+// the Learning card's "Visit"/hostname display just shows that internal
+// path for those.
 export function getLinkedLearningResources(): LearningResource[] {
+  const topics = new Set(getLearningTopics());
   return getResources()
-    .filter((r) => r.forLearn)
+    .filter((r) => isOnLearningPage(r, topics))
     .map((r) => ({
       id: `resource-${r.id}`,
       url: r.kind === "file" ? `/api/resources/file?id=${r.id}` : r.url,

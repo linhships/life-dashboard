@@ -462,15 +462,15 @@ export function LearningBoard({ initialResources }: { initialResources: Learning
     }).catch(() => {});
   };
 
-  // Untags a Resources entry's "Show on Learning page" checkbox — this
-  // removes it from this list (via /api/resources, not /api/learning)
-  // rather than deleting the underlying resource itself.
+  // Ticks the Resources entry's "Exclude from Learning" box — this removes
+  // it from this list (via /api/resources, not /api/learning) rather than
+  // deleting the underlying resource itself.
   const handleUnlink = async (linkId: string) => {
     setResources((prev) => prev.filter((r) => r.fromResourceId !== linkId));
     fetch("/api/resources", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: linkId, forLearn: false }),
+      body: JSON.stringify({ id: linkId, excludeFromLearning: true }),
     }).catch(() => {});
   };
 

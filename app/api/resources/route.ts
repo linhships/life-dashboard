@@ -23,12 +23,14 @@ export async function GET(request: NextRequest) {
 }
 
 // Two request shapes land here, told apart by Content-Type:
-//  - multipart/form-data: a file upload (fields: file, category, forLearn,
-//    title?) — saved to disk via saveResourceAttachment and added as a
+//  - multipart/form-data: a file upload (fields: file, category, title?)
+//    — saved to disk via saveResourceAttachment and added as a
 //    kind: "file" entry.
 //  - application/json: the original bookmark-a-URL flow (fields: url,
-//    category, forLearn, title?) — added as a kind: "url" entry, same as
-//    before. `title` is optional in both shapes: if left blank, it falls
+//    category, title?) — added as a kind: "url" entry, same as before.
+// Whether a new resource shows on the Learning page follows from its
+// category (see lib/resources.ts getLearningTopics), so there's no
+// per-resource flag to pass here. `title` is optional in both shapes: if left blank, it falls
 //    back to the fetched OG title (url) or the uploaded filename (file).
 export async function POST(request: NextRequest) {
   if (!isAuthedRequest(request)) return unauthorized();
@@ -39,7 +41,6 @@ export async function POST(request: NextRequest) {
     const form = await request.formData();
     const file = form.get("file");
     const category = form.get("category");
-    const forLearn = form.get("forLearn") === "true";
     const titleOverride = form.get("title");
 
     if (!(file instanceof File) || !category || typeof category !== "string") {
@@ -56,7 +57,6 @@ export async function POST(request: NextRequest) {
       description: "",
       image: null,
       category,
-      forLearn,
       attachmentStoredName: saved.storedName,
       attachmentFilename: file.name,
       attachmentMime: saved.mime,
@@ -67,10 +67,9 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { url, category, forLearn, title: titleOverride } = body as {
+  const { url, category, title: titleOverride } = body as {
     url?: string;
     category?: string;
-    forLearn?: boolean;
     title?: string;
   };
 
@@ -94,7 +93,6 @@ export async function POST(request: NextRequest) {
     description: meta.description || "",
     image: meta.image,
     category,
-    forLearn: Boolean(forLearn),
   });
 
   return NextResponse.json(entry);
@@ -110,7 +108,7 @@ export async function PATCH(request: NextRequest) {
     image?: string | null;
     category?: string;
     notes?: string;
-    forLearn?: boolean;
+    excludeFromLearning?: boolean;
   };
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
