@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getAllLearningResources } from "@/lib/learning";
+import { getLearningGuides } from "@/lib/learningGuides";
 import { LearningBoard } from "@/components/LearningBoard";
 import { PasscodeAuthGuard } from "@/components/PasscodeAuthGuard";
 import { PasscodePageGate } from "@/components/PasscodePageGate";
@@ -24,6 +25,8 @@ export default async function LearningPage() {
   }
 
   const resources = getAllLearningResources();
+  // Topic -> guide slug, for the "Study guide" link on each topic heading.
+  const guideSlugs = Object.fromEntries(getLearningGuides().map((g) => [g.topic, g.slug]));
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
@@ -40,7 +43,7 @@ export default async function LearningPage() {
       </header>
 
       <PasscodeAuthGuard authEndpoint="/api/learning/auth" label="Learning">
-        <LearningBoard initialResources={resources} />
+        <LearningBoard initialResources={resources} guideSlugs={guideSlugs} />
       </PasscodeAuthGuard>
     </main>
   );

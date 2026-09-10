@@ -41,6 +41,7 @@
 # Saved learning resources — same as resources.json above, just organized by
 # topic instead of category. See sample-data/learning.json.
 /data/learning.json
+/data/learning-guides/
 
 # Food list + recipes — same bring-your-own-data model as meals. Real data
 # lives in FOOD_PLANNING_DIR (see .env.local); sample-data/food/ is only a

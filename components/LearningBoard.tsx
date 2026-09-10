@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Check, Copy, ExternalLink, Link2, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import type { LearningResource } from "@/lib/learning";
@@ -384,7 +385,15 @@ function ResourceModal({
   );
 }
 
-export function LearningBoard({ initialResources }: { initialResources: LearningResource[] }) {
+export function LearningBoard({
+  initialResources,
+  guideSlugs = {},
+}: {
+  initialResources: LearningResource[];
+  // Topic name -> study-guide slug for topics that have a guide written
+  // (see lib/learningGuides.ts); drives the "Study guide" link per topic.
+  guideSlugs?: Record<string, string>;
+}) {
   const [resources, setResources] = useState<LearningResource[]>(initialResources);
   const [url, setUrl] = useState("");
   const [topic, setTopic] = useState("");
@@ -574,10 +583,23 @@ export function LearningBoard({ initialResources }: { initialResources: Learning
 
       {grouped.map((group) => (
         <div key={group.topic}>
-          <h2 className="mb-3 text-base font-bold text-slate-900">
-            {group.topic}{" "}
-            <span className="text-sm font-normal text-slate-400">({group.resources.length})</span>
-          </h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <h2 className="text-base font-bold text-slate-900">
+              {group.topic}{" "}
+              <span className="text-sm font-normal text-slate-400">
+                ({group.resources.length})
+              </span>
+            </h2>
+            {guideSlugs[group.topic] && (
+              <Link
+                href={`/learning/${guideSlugs[group.topic]}`}
+                className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Study guide
+              </Link>
+            )}
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {group.resources.map((resource) => (
               <ResourceCard
