@@ -80,7 +80,11 @@ function DayCarousel({ photos }: { photos: ArloNurseryPhoto[] }) {
   }, [hasMultiple, n]);
 
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden bg-white sm:aspect-[16/9]">
+    // Fixed aspect ratio when stacked above the update on mobile (nothing
+    // to match height against there); on desktop it instead stretches to
+    // the update column's natural height, via md:h-full plus the parent
+    // row's default flex align-items: stretch — see DayCard.
+    <div className="relative aspect-[4/3] w-full overflow-hidden bg-white sm:aspect-[16/9] md:aspect-auto md:h-full">
       <div
         className={`flex h-full ${
           withTransition ? "transition-transform duration-700 ease-in-out" : ""
