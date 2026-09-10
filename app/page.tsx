@@ -51,7 +51,7 @@ const TILES: Tile[] = [
   {
     href: "/tori-photos",
     label: "Milo & Arlo",
-    description: "Photos and updates from Tori, and Milo's nursery.",
+    description: "Photos and updates from Tori, and from both boys' nurseries.",
     icon: Heart,
     iconColor: "rose",
   },
