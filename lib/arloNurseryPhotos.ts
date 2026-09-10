@@ -55,8 +55,10 @@ const MONTHS: Record<string, number> = {
   dec: 12,
 };
 
-// Matches "### Tuesday, Aug 11, 2026" day headers in updates.md.
-const DAY_HEADING_RE = /^###\s+\w+,\s+(\w{3})\w*\s+(\d{1,2}),\s+(\d{4})\s*$/;
+// Matches "### Tuesday, August 11, 2026" day headers in updates.md (full
+// month name, not the 3-letter abbreviation — MONTHS is keyed by the first
+// 3 letters lowercased, so "August" and "Aug" both resolve the same way).
+const DAY_HEADING_RE = /^###\s+\w+,\s+(\w+)\s+(\d{1,2}),\s+(\d{4})\s*$/;
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -69,47 +71,174 @@ export interface ArloNurseryPhoto {
   date: string; // YYYY-MM-DD
 }
 
+// The Bright Horizons app data at the top of each day's block is a fixed
+// set of "- Label: detail" bullets — split out into named fields (each an
+// array, since a day can log several meals/nappies/sleeps) so the gallery
+// can render them as a small emoji-labeled visualization instead of a wall
+// of bullet text. Any bullet that doesn't match a known label (rare — e.g.
+// "- Arlo-Minh was sick") lands in `other` verbatim, so nothing is silently
+// dropped just because it doesn't fit the usual shape.
+export interface ArloDayFacts {
+  signedIn: string | null;
+  signedOut: string | null;
+  expectedPickup: string | null;
+  meals: string[];
+  nappy: string[];
+  sleep: string[];
+  activity: string[];
+  notes: string[];
+  other: string[];
+}
+
 export interface ArloNurseryDay {
   date: string; // YYYY-MM-DD
   photos: ArloNurseryPhoto[];
-  updateMarkdown: string | null;
+  facts: ArloDayFacts | null;
+  // Free-text portion of the day's block that isn't one of the fixed
+  // bullets above — mainly the teacher's own written observations (bold
+  // "**Name — time**" paragraphs), rendered as markdown.
+  observationsMarkdown: string | null;
 }
 
-// Splits one month's updates.md into { date, body } blocks, one per "### "
-// day heading. The file has some boilerplate outside any day heading — an
-// intro paragraph before the first heading, and a "This file was compiled
-// automatically..." footer after the last one, both preceded by a bare
-// "---" line — so anything from the last "\n---" onward is dropped before
-// splitting, and content before the first heading is simply never matched.
-function parseUpdatesFile(content: string): Map<string, string> {
-  const lastDivider = content.lastIndexOf("\n---");
-  const trimmed = lastDivider === -1 ? content : content.slice(0, lastDivider);
+function hasFacts(f: ArloDayFacts): boolean {
+  return (
+    f.signedIn !== null ||
+    f.signedOut !== null ||
+    f.expectedPickup !== null ||
+    f.meals.length > 0 ||
+    f.nappy.length > 0 ||
+    f.sleep.length > 0 ||
+    f.activity.length > 0 ||
+    f.notes.length > 0 ||
+    f.other.length > 0
+  );
+}
 
-  const lines = trimmed.split(/\r?\n/);
-  const byDate = new Map<string, string>();
-  let currentDate: string | null = null;
-  let currentLines: string[] = [];
+// A field paragraph looks like "**Label:** detail text." or, for a
+// parenthesized variant, "**Label (extra):** detail text." — `extra` is the
+// note's timestamp for "Note (16:19):" or the author for "Observation
+// (Tanisha T):"/"Post (Name, time):". The "s" flag makes "." match
+// newlines too, since an observation paragraph can carry a second line
+// (e.g. a trailing "Tags: ..." line) with no blank line before it.
+const FIELD_RE = /^\*\*(.+?):\*\*\s*([\s\S]*)$/;
 
-  const flush = () => {
-    if (currentDate && currentLines.length > 0) {
-      const body = currentLines.join("\n").trim();
-      if (body) byDate.set(currentDate, body);
+// "13:03 Bottle – Soya Milk (All). 12:09 Bottle – Soya Milk (Little)."
+// (meals/nappy changes), or "13:24–14:27 (1 hour 3 minutes). 12:24–13:18
+// (54 minutes)." (sleep) — entries are period-separated, each one starting
+// with a "H:MM" or "HH:MM" time, which is what the split looks ahead for
+// (a plain ". " split would also break on any period inside a food name).
+function splitTimedEntries(value: string): string[] {
+  return value
+    .split(/\.\s+(?=\d{1,2}:\d{2})/)
+    .map((s) => s.trim().replace(/\.\s*$/, ""))
+    .filter(Boolean);
+}
+
+function stripTrailingPeriod(value: string): string {
+  return value.trim().replace(/\.\s*$/, "");
+}
+
+// Pulls the "(...)" suffix off a field label, e.g. "Note (16:19)" ->
+// { base: "Note", extra: "16:19" }.
+function splitLabel(label: string): { base: string; extra: string | null } {
+  const m = label.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+  if (!m) return { base: label.trim(), extra: null };
+  return { base: m[1].trim(), extra: m[2].trim() };
+}
+
+// Splits one month's updates.md into a { facts, observationsMarkdown } pair
+// per "### " day heading. Each day's block is a run of blank-line-separated
+// "**Label:** ..." paragraphs — a fixed set of labels (Arrival & departure,
+// Meals, Nappy changes, Sleep, Activity, Note, Health) are pulled out into
+// ArloDayFacts; anything else (Observation/Post paragraphs — the teacher's
+// own written updates, each headed by an author and/or time) is kept as
+// markdown and concatenated into observationsMarkdown, in the order it
+// appears.
+function parseUpdatesFile(
+  content: string
+): Map<string, { facts: ArloDayFacts | null; observationsMarkdown: string | null }> {
+  const byDate = new Map<
+    string,
+    { facts: ArloDayFacts | null; observationsMarkdown: string | null }
+  >();
+
+  // Split into day blocks: everything between one "### " heading and the
+  // next (or end of file). content.split keeps the delimiter out, so pair
+  // each heading match up with the text that follows it.
+  const headingRe = new RegExp(DAY_HEADING_RE.source, "gm");
+  const headings = [...content.matchAll(headingRe)];
+
+  for (let i = 0; i < headings.length; i++) {
+    const h = headings[i];
+    const [, monthName, day, year] = h;
+    const month = MONTHS[monthName.slice(0, 3).toLowerCase()];
+    if (!month) continue;
+    const date = `${year}-${pad(month)}-${pad(Number(day))}`;
+
+    const start = (h.index ?? 0) + h[0].length;
+    const end = i + 1 < headings.length ? (headings[i + 1].index ?? content.length) : content.length;
+    const body = content.slice(start, end).trim();
+    if (!body) continue;
+
+    const facts: ArloDayFacts = {
+      signedIn: null,
+      signedOut: null,
+      expectedPickup: null,
+      meals: [],
+      nappy: [],
+      sleep: [],
+      activity: [],
+      notes: [],
+      other: [],
+    };
+    const observationParts: string[] = [];
+
+    const paragraphs = body.split(/\n\s*\n/);
+    for (const para of paragraphs) {
+      const trimmedPara = para.trim();
+      if (!trimmedPara) continue;
+      const fm = trimmedPara.match(FIELD_RE);
+      if (!fm) {
+        observationParts.push(trimmedPara);
+        continue;
+      }
+      const [, rawLabel, rest] = fm;
+      const { base, extra } = splitLabel(rawLabel);
+      const baseLower = base.toLowerCase();
+
+      if (baseLower === "arrival & departure") {
+        const inM = rest.match(/Signed into Baby Room\s+([\d:]+)/i);
+        if (inM) facts.signedIn = inM[1];
+        const outM = rest.match(/Signed out of Baby Room\s+([\d:]+)/i);
+        if (outM) facts.signedOut = outM[1];
+        const pickupM = rest.match(/Expected pick ?up\s+([\d:]+(?:\s+by\s+\w+)?)/i);
+        if (pickupM) facts.expectedPickup = pickupM[1];
+      } else if (baseLower === "meals") {
+        facts.meals.push(...splitTimedEntries(rest));
+      } else if (baseLower === "nappy changes" || baseLower === "nappy") {
+        facts.nappy.push(...splitTimedEntries(rest));
+      } else if (baseLower === "sleep") {
+        facts.sleep.push(...splitTimedEntries(rest));
+      } else if (baseLower === "activity") {
+        facts.activity.push(stripTrailingPeriod(rest));
+      } else if (baseLower === "note") {
+        const text = stripTrailingPeriod(rest);
+        facts.notes.push(extra ? `${extra}: ${text}` : text);
+      } else if (baseLower === "health") {
+        facts.other.push(stripTrailingPeriod(rest));
+      } else {
+        // Observation (Name)/Post (Name, time)/anything unrecognized — a
+        // free-text teacher update, kept as its own markdown paragraph
+        // with the original bold header (name/time) preserved.
+        observationParts.push(trimmedPara);
+      }
     }
-    currentLines = [];
-  };
 
-  for (const line of lines) {
-    const m = line.match(DAY_HEADING_RE);
-    if (m) {
-      flush();
-      const [, monAbbr, day, year] = m;
-      const month = MONTHS[monAbbr.toLowerCase()];
-      currentDate = month ? `${year}-${pad(month)}-${pad(Number(day))}` : null;
-      continue;
+    const observationsMarkdown = observationParts.length > 0 ? observationParts.join("\n\n") : null;
+    if (hasFacts(facts) || observationsMarkdown) {
+      byDate.set(date, { facts: hasFacts(facts) ? facts : null, observationsMarkdown });
     }
-    if (currentDate) currentLines.push(line);
   }
-  flush();
 
   return byDate;
 }
@@ -121,7 +250,10 @@ export function getArloNurseryDays(): ArloNurseryDay[] {
   if (!dir || !fs.existsSync(dir)) return [];
 
   const photosByDate = new Map<string, ArloNurseryPhoto[]>();
-  const updatesByDate = new Map<string, string>();
+  const updatesByDate = new Map<
+    string,
+    { facts: ArloDayFacts | null; observationsMarkdown: string | null }
+  >();
 
   let years: fs.Dirent[];
   try {
@@ -179,8 +311,8 @@ export function getArloNurseryDays(): ArloNurseryDay[] {
           } catch {
             continue;
           }
-          for (const [date, body] of parseUpdatesFile(content)) {
-            updatesByDate.set(date, body);
+          for (const [date, parsed] of parseUpdatesFile(content)) {
+            updatesByDate.set(date, parsed);
           }
         }
       }
@@ -188,13 +320,18 @@ export function getArloNurseryDays(): ArloNurseryDay[] {
   }
 
   const allDates = new Set<string>([...photosByDate.keys(), ...updatesByDate.keys()]);
-  const days: ArloNurseryDay[] = Array.from(allDates).map((date) => ({
-    date,
-    // Filename has no time component, so photos within a day fall back to
-    // their IMG number (which is chronological on export) for ordering.
-    photos: (photosByDate.get(date) ?? []).sort((a, b) => a.file.localeCompare(b.file)),
-    updateMarkdown: updatesByDate.get(date) ?? null,
-  }));
+  const days: ArloNurseryDay[] = Array.from(allDates).map((date) => {
+    const update = updatesByDate.get(date);
+    return {
+      date,
+      // Filename has no time component, so photos within a day fall back
+      // to their IMG number (which is chronological on export) for
+      // ordering.
+      photos: (photosByDate.get(date) ?? []).sort((a, b) => a.file.localeCompare(b.file)),
+      facts: update?.facts ?? null,
+      observationsMarkdown: update?.observationsMarkdown ?? null,
+    };
+  });
 
   // Chronological — oldest first, same convention as the Tori/Milo
   // galleries; the gallery component reverses this for display.

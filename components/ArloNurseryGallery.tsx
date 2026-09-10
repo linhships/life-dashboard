@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import type { ArloNurseryDay, ArloNurseryPhoto } from "@/lib/arloNurseryPhotos";
+import type { ArloDayFacts, ArloNurseryDay, ArloNurseryPhoto } from "@/lib/arloNurseryPhotos";
 
 function photoUrl(photo: ArloNurseryPhoto): string {
   return `/api/arlo-nursery/image?monthDir=${encodeURIComponent(
@@ -140,40 +140,163 @@ function DayCarousel({ photos }: { photos: ArloNurseryPhoto[] }) {
   );
 }
 
-// The nursery-app update text for a day (meals/naps/nappies + teacher
-// observations, see lib/arloNurseryPhotos.ts) can run long, so it's
-// collapsed to a fixed height by default with a fade-out + toggle, same
-// "read more" idea as the news feed excerpts.
-function UpdateText({ markdown }: { markdown: string }) {
-  const [expanded, setExpanded] = useState(false);
+// Emoji picked from keywords in the entry text, so the visualization reads
+// at a glance rather than as another wall of text. None of this changes
+// what's stored (lib/arloNurseryPhotos.ts keeps the plain parsed strings) —
+// it's a presentation-only mapping, same idea as the kit-schedule/PE&Games
+// visual boxes on the Gatehouse class info page.
+function mealIcon(entry: string): string {
+  const lower = entry.toLowerCase();
+  if (lower.includes("breakfast")) return "🥣";
+  if (lower.includes("snack")) return "🍎";
+  if (lower.includes("lunch")) return "🍽️";
+  if (lower.includes("pudding")) return "🍮";
+  if (lower.includes("tea")) return "🫖";
+  if (lower.includes("bottle")) return "🍼";
+  return "🍽️";
+}
 
+function nappyIcon(entry: string): string {
+  const lower = entry.toLowerCase();
+  const wet = lower.includes("wet");
+  const bm = /\bbm\b/.test(lower);
+  if (wet && bm) return "💧💩";
+  if (bm) return "💩";
+  if (wet) return "💧";
+  return "🧷";
+}
+
+function activityIcon(entry: string): string {
+  const lower = entry.toLowerCase();
+  if (/park|garden|walk|wharf|outdoor|rooftop/.test(lower)) return "🌳";
+  if (/paint|art|craft|colour/.test(lower)) return "🎨";
+  if (/music|sing|instrument|shaker/.test(lower)) return "🎵";
+  if (/book|story|read/.test(lower)) return "📖";
+  if (/animal|zoo/.test(lower)) return "🦁";
+  return "🧸";
+}
+
+function otherIcon(entry: string): string {
+  return /sick|ill|unwell|poorly/i.test(entry) ? "🤒" : "📌";
+}
+
+// One labeled row: an emoji, the field's name, and its entries as small
+// chips (each with its own icon from the functions above). Renders nothing
+// if there's nothing logged for this field that day.
+function FactRow({
+  emoji,
+  label,
+  items,
+}: {
+  emoji: string;
+  label: string;
+  items: { icon: string; text: string }[];
+}) {
+  if (items.length === 0) return null;
   return (
-    <div className="px-4 py-3">
-      <div className={`relative ${expanded ? "" : "max-h-48 overflow-hidden"}`}>
-        <div className="prose-arlo-update text-xs leading-relaxed text-slate-600">
-          <ReactMarkdown
-            components={{
-              p: (props) => <p className="mb-1.5 last:mb-0" {...props} />,
-              ul: (props) => <ul className="mb-1.5 list-disc space-y-0.5 pl-4" {...props} />,
-              li: (props) => <li {...props} />,
-              strong: (props) => <strong className="font-semibold text-slate-800" {...props} />,
-              em: (props) => <em className="text-slate-500" {...props} />,
-            }}
-          >
-            {markdown}
-          </ReactMarkdown>
+    <div className="flex items-start gap-2 px-4 py-2">
+      <span className="w-5 shrink-0 text-center text-base leading-5">{emoji}</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+          {label}
+        </p>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {items.map((it, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-1.5 py-0.5 text-[11px] leading-relaxed text-slate-700"
+            >
+              <span>{it.icon}</span>
+              {it.text}
+            </span>
+          ))}
         </div>
-        {!expanded && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white" />
-        )}
       </div>
-      <button
-        type="button"
-        onClick={() => setExpanded((e) => !e)}
-        className="mt-1 text-xs font-medium text-blue-600 hover:underline"
-      >
-        {expanded ? "Show less" : "Show more"}
-      </button>
+    </div>
+  );
+}
+
+// Arrival/departure/pickup as one inline row rather than a chip list — it's
+// at most three short values, and reads better as a single line.
+function ArrivalDepartureRow({ facts }: { facts: ArloDayFacts }) {
+  if (!facts.signedIn && !facts.signedOut && !facts.expectedPickup) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-xs text-slate-700">
+      {facts.signedIn && (
+        <span className="inline-flex items-center gap-1">
+          🌅 Arrived <span className="font-semibold text-slate-900">{facts.signedIn}</span>
+        </span>
+      )}
+      {facts.signedOut && (
+        <span className="inline-flex items-center gap-1">
+          🌇 Left <span className="font-semibold text-slate-900">{facts.signedOut}</span>
+        </span>
+      )}
+      {facts.expectedPickup && (
+        <span className="inline-flex items-center gap-1">🚗 Pickup {facts.expectedPickup}</span>
+      )}
+    </div>
+  );
+}
+
+// The structured Bright Horizons app data (see lib/arloNurseryPhotos.ts:
+// ArloDayFacts) as a small emoji-labeled visualization instead of plain
+// bullet text.
+function DayFacts({ facts }: { facts: ArloDayFacts }) {
+  return (
+    <div className="divide-y divide-slate-100">
+      <ArrivalDepartureRow facts={facts} />
+      <FactRow
+        emoji="🍽️"
+        label="Meals"
+        items={facts.meals.map((m) => ({ icon: mealIcon(m), text: m }))}
+      />
+      <FactRow
+        emoji="🧷"
+        label="Nappy"
+        items={facts.nappy.map((n) => ({ icon: nappyIcon(n), text: n }))}
+      />
+      <FactRow emoji="😴" label="Sleep" items={facts.sleep.map((s) => ({ icon: "😴", text: s }))} />
+      <FactRow
+        emoji="🧸"
+        label="Activity"
+        items={facts.activity.map((a) => ({ icon: activityIcon(a), text: a }))}
+      />
+      <FactRow
+        emoji="📌"
+        label="Other"
+        items={facts.other.map((o) => ({ icon: otherIcon(o), text: o }))}
+      />
+      {facts.notes.length > 0 && (
+        <div className="space-y-0.5 px-4 py-2 text-[11px] italic text-slate-500">
+          {facts.notes.map((n, i) => (
+            <p key={i}>📝 {n}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The teacher's own free-text updates for a day (see
+// lib/arloNurseryPhotos.ts: observationsMarkdown) — shown in full, no
+// collapse/truncation.
+function UpdateText({ markdown, bordered }: { markdown: string; bordered: boolean }) {
+  return (
+    <div className={`px-4 py-3 ${bordered ? "border-t border-slate-100" : ""}`}>
+      <div className="prose-arlo-update text-xs leading-relaxed text-slate-600">
+        <ReactMarkdown
+          components={{
+            p: (props) => <p className="mb-1.5 last:mb-0" {...props} />,
+            ul: (props) => <ul className="mb-1.5 list-disc space-y-0.5 pl-4" {...props} />,
+            li: (props) => <li {...props} />,
+            strong: (props) => <strong className="font-semibold text-slate-800" {...props} />,
+            em: (props) => <em className="text-slate-500" {...props} />,
+          }}
+        >
+          {markdown}
+        </ReactMarkdown>
+      </div>
     </div>
   );
 }
@@ -201,9 +324,11 @@ function DayCard({ day }: { day: ArloNurseryDay }) {
             )}
           </div>
 
-          {day.updateMarkdown ? (
-            <UpdateText markdown={day.updateMarkdown} />
-          ) : (
+          {day.facts && <DayFacts facts={day.facts} />}
+          {day.observationsMarkdown && (
+            <UpdateText markdown={day.observationsMarkdown} bordered={Boolean(day.facts)} />
+          )}
+          {!day.facts && !day.observationsMarkdown && (
             <p className="px-4 py-3 text-xs text-slate-400">No nursery-app update logged.</p>
           )}
         </div>
