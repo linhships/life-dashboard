@@ -3,6 +3,7 @@ import {
   ARLO_NURSERY_PHOTOS_AUTH_COOKIE,
   ARLO_NURSERY_PHOTOS_AUTH_MAX_AGE_SECONDS,
   isAuthedRequest,
+  isGateEnabled,
   issueToken,
   verifyPasscode,
 } from "@/lib/arloNurseryPhotosAuth";
@@ -30,6 +31,11 @@ export async function POST(request: NextRequest) {
 // active, to slide the session window forward. Fails (401) if the cookie
 // is missing or stale.
 export async function PUT(request: NextRequest) {
+  // Gate disabled (no passcode configured): nothing to refresh — and
+  // issueToken() would throw without a passcode — so just report ok.
+  if (!isGateEnabled()) {
+    return NextResponse.json({ ok: true });
+  }
   if (!isAuthedRequest(request)) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
