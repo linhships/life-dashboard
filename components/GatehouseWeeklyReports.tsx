@@ -252,13 +252,28 @@ function MonthEventsList({
 // School Meals page (lib/gatehouseMeals.ts). Rendered inside that week's
 // card alongside (or, for weeks with no captured messages, instead of)
 // the usual report prose.
-function WeekMenuTable({ menu }: { menu: WeeklyMenu }) {
+function WeekMenuTable({
+  menu,
+  weekRange,
+  standalone = false,
+}: {
+  menu: WeeklyMenu;
+  weekRange: string;
+  // true when this is the whole week entry (no report prose to sit
+  // alongside) — then it's rendered as its own card rather than nested
+  // inside a white week card, so there's no box-in-a-box.
+  standalone?: boolean;
+}) {
   if (menu.days.length === 0) return null;
   return (
-    <div className="mt-4 overflow-x-auto rounded-lg border border-orange-200 bg-orange-50/50 p-4">
+    <div
+      className={`overflow-x-auto rounded-xl border border-orange-200 bg-orange-50/50 ${
+        standalone ? "p-5" : "mt-4 p-4"
+      }`}
+    >
       <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-orange-700">
         <UtensilsCrossed className="h-3.5 w-3.5" />
-        Lunch menu
+        Lunch menu · {weekRange}
       </p>
       {menu.note && <p className="mt-1 text-xs text-slate-500">{menu.note}</p>}
       <table className="mt-2 w-full min-w-[520px] text-xs">
@@ -419,14 +434,18 @@ export function GatehouseWeeklyReports({
                   );
 
                   return weeks.map(({ weekStart, weekEnd, report, menu }) => {
+                    const weekRange = formatWeekRange(weekStart, weekEnd);
+                    // Menu-only week: just the orange menu card, with the
+                    // week's dates in its own title — no outer white card.
+                    if (!report && menu) {
+                      return <WeekMenuTable key={weekStart} menu={menu} weekRange={weekRange} standalone />;
+                    }
                     const footnoteNumberById = new Map(
                       (report?.messages ?? []).map((m, i) => [m.id, i + 1])
                     );
                     return (
                       <div key={weekStart} className="rounded-xl border border-slate-200 bg-white p-5">
-                        <h3 className="text-sm font-bold text-slate-900">
-                          Week of {formatWeekRange(weekStart, weekEnd)}
-                        </h3>
+                        <h3 className="text-sm font-bold text-slate-900">Week of {weekRange}</h3>
                         {report && (
                           <div className="mt-3">
                             <ReportBody
@@ -437,7 +456,7 @@ export function GatehouseWeeklyReports({
                             <FootnoteList messages={report.messages} onOpen={setOpenMessageId} />
                           </div>
                         )}
-                        {menu && <WeekMenuTable menu={menu} />}
+                        {menu && <WeekMenuTable menu={menu} weekRange={weekRange} />}
                       </div>
                     );
                   });
