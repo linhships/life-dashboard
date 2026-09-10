@@ -379,23 +379,27 @@ export function GatehouseWeeklyReports({
           countParts.push(`${messageCount} ${messageCount === 1 ? "message" : "messages"}`);
         }
         return (
-          <div key={group.key} className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          // Month = a plain collapsible heading, not a card — the week
+          // entries inside are the cards. Same header pattern as the
+          // nursery galleries' month groups, so a card never sits directly
+          // inside another card of the same color.
+          <div key={group.key}>
             <button
               type="button"
               onClick={() => toggleMonth(group.key)}
-              className="flex w-full items-center justify-between gap-3 p-5 text-left"
+              className="flex w-full items-center gap-3 rounded-lg py-2 text-left hover:bg-slate-100"
             >
-              <span className="text-base font-bold text-slate-900">{group.label}</span>
-              <span className="flex items-center gap-3 text-xs text-slate-400">
-                {countParts.join(" · ")}
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                />
-              </span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+                  isOpen ? "" : "-rotate-90"
+                }`}
+              />
+              <h2 className="text-lg font-bold text-slate-900">{group.label}</h2>
+              <span className="text-sm text-slate-400">{countParts.join(" · ")}</span>
             </button>
 
             {isOpen && (
-              <div className="space-y-4 border-t border-slate-100 p-5 pt-4">
+              <div className="mt-3 space-y-4">
                 <MonthEventsList events={group.events} onOpen={setOpenMessageId} />
 
                 {/* Merge each month's weekly reports with that month's menu
