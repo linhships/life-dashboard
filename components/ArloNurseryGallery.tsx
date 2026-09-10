@@ -148,8 +148,8 @@ function UpdateText({ markdown }: { markdown: string }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border-t border-slate-100 px-4 py-3">
-      <div className={`relative ${expanded ? "" : "max-h-28 overflow-hidden"}`}>
+    <div className="px-4 py-3">
+      <div className={`relative ${expanded ? "" : "max-h-48 overflow-hidden"}`}>
         <div className="prose-arlo-update text-xs leading-relaxed text-slate-600">
           <ReactMarkdown
             components={{
@@ -179,21 +179,35 @@ function UpdateText({ markdown }: { markdown: string }) {
 }
 
 function DayCard({ day }: { day: ArloNurseryDay }) {
+  const hasPhotos = day.photos.length > 0;
+
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      {day.photos.length > 0 && <DayCarousel photos={day.photos} />}
-
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-900">{formatDayHeading(day.date)}</p>
-        {day.photos.length > 0 && (
-          <span className="flex shrink-0 items-center gap-1 text-xs text-slate-400">
-            <Images className="h-3.5 w-3.5" />
-            {formatPhotoCount(day.photos.length)}
-          </span>
+      <div className="flex flex-col md:flex-row">
+        {hasPhotos && (
+          <div className="md:w-[45%] md:shrink-0">
+            <DayCarousel photos={day.photos} />
+          </div>
         )}
-      </div>
 
-      {day.updateMarkdown && <UpdateText markdown={day.updateMarkdown} />}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+            <p className="text-sm font-semibold text-slate-900">{formatDayHeading(day.date)}</p>
+            {hasPhotos && (
+              <span className="flex shrink-0 items-center gap-1 text-xs text-slate-400">
+                <Images className="h-3.5 w-3.5" />
+                {formatPhotoCount(day.photos.length)}
+              </span>
+            )}
+          </div>
+
+          {day.updateMarkdown ? (
+            <UpdateText markdown={day.updateMarkdown} />
+          ) : (
+            <p className="px-4 py-3 text-xs text-slate-400">No nursery-app update logged.</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -263,7 +277,7 @@ export function ArloNurseryGallery({ days }: { days: ArloNurseryDay[] }) {
             </button>
 
             {!isCollapsed && (
-              <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="mt-4 space-y-5">
                 {group.days.map((day) => (
                   <DayCard key={day.date} day={day} />
                 ))}
