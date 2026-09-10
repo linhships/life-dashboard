@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
+import { getLearningGuides } from "@/lib/learningGuides";
 import { THEME_INIT_SCRIPT } from "@/lib/themePrefs";
 
 // Tab icon = Linh's emoji from the Troettger AI calendar convention (👩🏻),
@@ -19,7 +20,16 @@ export const metadata: Metadata = {
   },
 };
 
+// The sidebar's Learning group depends on files on disk, so every route
+// renders dynamically — otherwise the statically prerendered pages (/,
+// /settings) would keep a build-time snapshot of the guide list.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // Study guides are files on disk (lib/learningGuides.ts); the sidebar
+  // lists them under Learning. Read here (server) and passed down, since
+  // the Sidebar itself is a client component.
+  const learningGuides = getLearningGuides().map((g) => ({ slug: g.slug, label: g.topic }));
   return (
     // suppressHydrationWarning: the script below deliberately sets
     // data-theme on this element before React hydrates (see
@@ -36,7 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full bg-slate-50 font-sans">
         <div className="flex min-h-full flex-col md:flex-row">
-          <Sidebar />
+          <Sidebar learningGuides={learningGuides} />
           <div className="min-w-0 flex-1">{children}</div>
         </div>
       </body>

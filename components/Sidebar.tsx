@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -28,6 +28,22 @@ interface SubItem {
 interface RouteSubItem {
   href: string;
   label: string;
+  // Match the pathname exactly instead of by prefix — needed for an
+  // "overview" item whose href is a prefix of its siblings' (e.g.
+  // /learning next to /learning/<guide>).
+  exact?: boolean;
+}
+
+// Study guides listed under the Learning group — passed in from the
+// server layout (they're files on disk, see lib/learningGuides.ts).
+export interface SidebarGuide {
+  slug: string;
+  label: string;
+}
+
+function isItemActive(item: RouteSubItem, pathname: string | null): boolean {
+  if (!pathname) return false;
+  return item.exact ? pathname === item.href : pathname.startsWith(item.href);
 }
 
 interface TopLevelLink {
@@ -45,7 +61,6 @@ interface RouteGroup {
 
 const TOP_LEVEL_LINKS: TopLevelLink[] = [
   { href: "/resources", label: "Resources", icon: Link2 },
-  { href: "/learning", label: "Learning", icon: GraduationCap },
 ];
 
 // Collapsible parent groups for routes that belong together — each one
@@ -111,8 +126,25 @@ const FINANCE_ITEMS: SubItem[] = [
 
 const COLLAPSE_KEY = "life-dashboard-sidebar-collapsed";
 
-export function Sidebar() {
+export function Sidebar({ learningGuides = [] }: { learningGuides?: SidebarGuide[] }) {
   const pathname = usePathname();
+  // Learning is a group whose children depend on which guides exist on
+  // disk, so it's assembled here rather than in the static list above.
+  const routeGroups = useMemo<RouteGroup[]>(
+    () => [
+      {
+        key: "learning",
+        label: "Learning",
+        icon: GraduationCap,
+        items: [
+          { href: "/learning", label: "Overview", exact: true },
+          ...learningGuides.map((g) => ({ href: `/learning/${g.slug}`, label: g.label })),
+        ],
+      },
+      ...ROUTE_GROUPS,
+    ],
+    [learningGuides]
+  );
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -123,9 +155,9 @@ export function Sidebar() {
   // flash). Keyed by group key so each group's state is independent.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
-      ROUTE_GROUPS.map((group) => [
+      routeGroups.map((group) => [
         group.key,
-        group.items.some((item) => pathname?.startsWith(item.href)),
+        group.items.some((item) => isItemActive(item, pathname)),
       ])
     )
   );
@@ -192,8 +224,8 @@ export function Sidebar() {
     setOpenGroups((prev) => {
       let changed = false;
       const next = { ...prev };
-      for (const group of ROUTE_GROUPS) {
-        const isActive = group.items.some((item) => pathname?.startsWith(item.href));
+      for (const group of routeGroups) {
+        const isActive = group.items.some((item) => isItemActive(item, pathname));
         if (isActive && !next[group.key]) {
           next[group.key] = true;
           changed = true;
@@ -201,7 +233,7 @@ export function Sidebar() {
       }
       return changed ? next : prev;
     });
-  }, [pathname]);
+  }, [pathname, routeGroups]);
 
   return (
     <>
@@ -285,10 +317,10 @@ export function Sidebar() {
           })}
 
           {/* Collapsible route groups (Food, Milo & Arlo, ...) */}
-          {ROUTE_GROUPS.map((group) => {
+          {routeGroups.map((group) => {
             const isGroupOpen = openGroups[group.key] ?? false;
             const isAnyGroupChildActive = group.items.some((item) =>
-              pathname?.startsWith(item.href)
+              isItemActive(item, pathname)
             );
             const Icon = group.icon;
             return (
@@ -323,7 +355,7 @@ export function Sidebar() {
                     }`}
                   >
                     {group.items.map((item) => {
-                      const isActive = pathname?.startsWith(item.href) ?? false;
+                      const isActive = isItemActive(item, pathname);
                       return (
                         <li key={item.href}>
                           <Link
