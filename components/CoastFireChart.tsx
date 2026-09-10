@@ -32,7 +32,7 @@ export function CoastFireChart({
   return (
     <ResponsiveContainer width="100%" height={360}>
       <AreaChart data={data} margin={{ top: 28, right: 40, left: 16, bottom: 16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#ebe4da" />
         <XAxis
           dataKey="year"
           tick={{ fontSize: 12 }}
@@ -55,8 +55,8 @@ export function CoastFireChart({
           dataKey="isaGia"
           name="ISA + GIA"
           stackId="1"
-          stroke="#2563eb"
-          fill="#2563eb"
+          stroke="#2f6b4f"
+          fill="#2f6b4f"
           fillOpacity={0.6}
         />
         <Area
@@ -64,14 +64,14 @@ export function CoastFireChart({
           dataKey="sipp"
           name="SIPP (pension)"
           stackId="1"
-          stroke="#059669"
-          fill="#059669"
+          stroke="#c1843a"
+          fill="#c1843a"
           fillOpacity={0.6}
         />
         {retirementYear && (
           <ReferenceLine
             x={retirementYear}
-            stroke="#64748b"
+            stroke="#8f978f"
             strokeDasharray="4 4"
             label={{ value: "Stop working", fontSize: 11, position: "top" }}
           />
@@ -79,7 +79,7 @@ export function CoastFireChart({
         {sippAccessYear && (
           <ReferenceLine
             x={sippAccessYear}
-            stroke="#64748b"
+            stroke="#8f978f"
             strokeDasharray="4 4"
             label={(labelProps: { viewBox?: { x: number; y: number } }) => {
               const viewBox = labelProps.viewBox;

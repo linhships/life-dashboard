@@ -32,7 +32,7 @@ export function ContributionChart({ data }: { data: ContributionYear[] }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={chartData} margin={{ top: 8, right: 32, left: 16, bottom: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#ebe4da" />
         <XAxis dataKey="year" tick={{ fontSize: 12 }} />
         <YAxis
           tick={{ fontSize: 12 }}
@@ -46,9 +46,9 @@ export function ContributionChart({ data }: { data: ContributionYear[] }) {
           }}
         />
         <Legend />
-        <Bar dataKey="ISA" fill="#2563eb" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="GIA" fill="#7c3aed" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="SIPP" fill="#059669" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="ISA" fill="#2f6b4f" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="GIA" fill="#7e6aa8" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="SIPP" fill="#c1843a" radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

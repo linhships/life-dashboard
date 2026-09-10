@@ -24,7 +24,7 @@ export function DrawdownBalanceChart({ data }: { data: DrawdownRow[] }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <AreaChart data={chartData} margin={{ top: 8, right: 32, left: 16, bottom: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#ebe4da" />
         <XAxis dataKey="age" tick={{ fontSize: 12 }} label={{ value: "Age", position: "insideBottom", offset: -4, fontSize: 12 }} />
         <YAxis
           tick={{ fontSize: 12 }}
@@ -32,9 +32,9 @@ export function DrawdownBalanceChart({ data }: { data: DrawdownRow[] }) {
         />
         <Tooltip formatter={(v) => gbp(Number(v))} labelFormatter={(l) => `Age ${l}`} />
         <Legend />
-        <Area type="monotone" dataKey="ISA" stackId="1" stroke="#2563eb" fill="#2563eb" fillOpacity={0.6} />
-        <Area type="monotone" dataKey="GIA" stackId="1" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.6} />
-        <Area type="monotone" dataKey="SIPP" stackId="1" stroke="#059669" fill="#059669" fillOpacity={0.6} />
+        <Area type="monotone" dataKey="ISA" stackId="1" stroke="#2f6b4f" fill="#2f6b4f" fillOpacity={0.6} />
+        <Area type="monotone" dataKey="GIA" stackId="1" stroke="#7e6aa8" fill="#7e6aa8" fillOpacity={0.6} />
+        <Area type="monotone" dataKey="SIPP" stackId="1" stroke="#c1843a" fill="#c1843a" fillOpacity={0.6} />
       </AreaChart>
     </ResponsiveContainer>
   );

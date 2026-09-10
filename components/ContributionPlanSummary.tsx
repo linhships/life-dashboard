@@ -17,9 +17,9 @@ export function ContributionPlanSummary({
   sipp: { annualAmount: number; years: number };
 }) {
   const items: PlanItem[] = [
-    { label: "ISA", ...isa, color: "#2563eb" },
-    { label: "GIA", ...gia, color: "#7c3aed" },
-    { label: "SIPP", ...sipp, color: "#059669" },
+    { label: "ISA", ...isa, color: "#2f6b4f" },
+    { label: "GIA", ...gia, color: "#7e6aa8" },
+    { label: "SIPP", ...sipp, color: "#c1843a" },
   ];
 
   return (
@@ -27,7 +27,7 @@ export function ContributionPlanSummary({
       {items.map((item) => (
         <div
           key={item.label}
-          className="rounded-xl border border-slate-200 p-4 transition-shadow hover:shadow-md"
+          className="rounded-xl border border-slate-200 bg-slate-50 p-4"
         >
           <div className="flex items-center gap-2">
             <span

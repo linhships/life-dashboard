@@ -26,7 +26,7 @@ export function KidsAccounts({ kids }: { kids: ChildSummary[] }) {
         return (
           <div
             key={kid.name}
-            className="rounded-xl border border-slate-200 p-4 transition-shadow hover:shadow-md"
+            className="rounded-xl border border-slate-200 bg-slate-50 p-4"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">

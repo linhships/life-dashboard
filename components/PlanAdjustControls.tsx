@@ -110,7 +110,7 @@ export function PlanAdjustControls({
         />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="space-y-2 rounded-xl border border-slate-200 p-3 transition-shadow hover:shadow-md">
+        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
             <span className="h-2 w-2 rounded-full bg-blue-600" />
             ISA
@@ -130,7 +130,7 @@ export function PlanAdjustControls({
             step={1}
           />
         </div>
-        <div className="space-y-2 rounded-xl border border-slate-200 p-3 transition-shadow hover:shadow-md">
+        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
             <span className="h-2 w-2 rounded-full bg-purple-600" />
             GIA
@@ -150,7 +150,7 @@ export function PlanAdjustControls({
             step={1}
           />
         </div>
-        <div className="space-y-2 rounded-xl border border-slate-200 p-3 transition-shadow hover:shadow-md">
+        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
             <span className="h-2 w-2 rounded-full bg-emerald-600" />
             SIPP

@@ -14,10 +14,10 @@ import { gbp } from "@/lib/format";
 import type { NetWorthPoint } from "@/lib/aggregate";
 
 const COLORS: Record<string, string> = {
-  ISA: "#2563eb",
-  GIA: "#7c3aed",
-  SIPP: "#059669",
-  Savings: "#d97706",
+  ISA: "#2f6b4f",
+  GIA: "#7e6aa8",
+  SIPP: "#c1843a",
+  Savings: "#c4614a",
 };
 
 export function NetWorthChart({ data }: { data: NetWorthPoint[] }) {
@@ -28,7 +28,7 @@ export function NetWorthChart({ data }: { data: NetWorthPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={320}>
       <AreaChart data={data} margin={{ top: 8, right: 32, left: 16, bottom: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#ebe4da" />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
         <YAxis
           tick={{ fontSize: 12 }}
