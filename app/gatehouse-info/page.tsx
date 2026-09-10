@@ -19,11 +19,11 @@ export default function GatehouseInfoPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
       <header>
-        <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
           <Backpack className="h-4 w-4" />
           <span>Class Info</span>
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Gatehouse — Class Info</h1>
+        <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-900">Gatehouse — Class Info</h1>
         <p className="mt-2 text-sm text-slate-500">
           Milo&apos;s class, and the logins/passwords Gatehouse has circulated by email or
           WhatsApp. Click any highlighted item to see the original message.

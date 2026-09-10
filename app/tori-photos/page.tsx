@@ -31,7 +31,7 @@ export default async function ToriPhotosPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
       <header>
-        <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
           <Heart className="h-4 w-4" />
           <span>
             {days.length} days · {totalPhotos} {totalPhotos === 1 ? "photo" : "photos"}
@@ -40,7 +40,7 @@ export default async function ToriPhotosPage() {
               : ""}
           </span>
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Tori & the boys</h1>
+        <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-900">Tori & the boys</h1>
         <p className="mt-2 text-sm text-slate-500">
           Every photo and video Tori sent while looking after Milo and Arlo, from her first day
           to her last — pulled from your WhatsApp chats with her and grouped by the day she sent

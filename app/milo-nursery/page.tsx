@@ -29,13 +29,13 @@ export default async function MiloNurseryPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
       <header>
-        <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
           <Baby className="h-4 w-4" />
           <span>
             {days.length} days · {totalPhotos} {totalPhotos === 1 ? "photo" : "photos"}
           </span>
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Milo&apos;s Nursery</h1>
+        <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-900">Milo&apos;s Nursery</h1>
         <p className="mt-2 text-sm text-slate-500">
           Photos from Milo&apos;s time at nursery, grouped by the day they were taken.
         </p>

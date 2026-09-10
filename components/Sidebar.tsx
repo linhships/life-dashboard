@@ -270,9 +270,9 @@ export function Sidebar() {
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
                 title={collapsed ? link.label : undefined}
-                className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors first:mt-0 ${
+                className={`mt-1 flex w-full items-center gap-3 rounded-full px-2.5 py-2 text-sm font-medium transition-colors first:mt-0 ${
                   isActive
-                    ? "bg-blue-50 text-blue-600"
+                    ? "bg-slate-900 text-white"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 } ${collapsed ? "md:justify-center" : ""}`}
               >
@@ -299,9 +299,9 @@ export function Sidebar() {
                     setOpenGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))
                   }
                   title={collapsed ? group.label : undefined}
-                  className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                  className={`mt-1 flex w-full items-center gap-3 rounded-full px-2.5 py-2 text-sm font-medium transition-colors ${
                     isAnyGroupChildActive
-                      ? "bg-blue-50 text-blue-600"
+                      ? "bg-slate-100 text-slate-900"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   } ${collapsed ? "md:justify-center" : ""}`}
                 >
@@ -329,9 +329,9 @@ export function Sidebar() {
                           <Link
                             href={item.href}
                             onClick={() => setMobileOpen(false)}
-                            className={`sidebar-subnav-item block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                            className={`sidebar-subnav-item block w-full rounded-full px-3 py-2 text-left text-sm font-medium transition-colors ${
                               isActive
-                                ? "bg-blue-50 text-blue-600"
+                                ? "bg-slate-900 text-white"
                                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                             }`}
                           >
@@ -351,9 +351,9 @@ export function Sidebar() {
             type="button"
             onClick={() => setFinanceOpen((o) => !o)}
             title={collapsed ? "Finance" : undefined}
-            className={`mt-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+            className={`mt-1 flex w-full items-center gap-3 rounded-full px-2.5 py-2 text-sm font-medium transition-colors ${
               isAnyChildActive
-                ? "bg-blue-50 text-blue-600"
+                ? "bg-slate-100 text-slate-900"
                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             } ${collapsed ? "md:justify-center" : ""}`}
           >
@@ -387,9 +387,9 @@ export function Sidebar() {
                     <button
                       type="button"
                       onClick={() => handleNavClick(item.id)}
-                      className={`sidebar-subnav-item block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                      className={`sidebar-subnav-item block w-full rounded-full px-3 py-2 text-left text-sm font-medium transition-colors ${
                         isActive
-                          ? "bg-blue-50 text-blue-600"
+                          ? "bg-slate-900 text-white"
                           : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                       }`}
                     >
@@ -407,9 +407,9 @@ export function Sidebar() {
             href="/settings"
             onClick={() => setMobileOpen(false)}
             title={collapsed ? "Settings" : undefined}
-            className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+            className={`flex w-full items-center gap-3 rounded-full px-2.5 py-2 text-sm font-medium transition-colors ${
               pathname?.startsWith("/settings")
-                ? "bg-blue-50 text-blue-600"
+                ? "bg-slate-900 text-white"
                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             } ${collapsed ? "justify-center" : ""}`}
           >
@@ -420,7 +420,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={toggleCollapsed}
-            className={`hidden w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 md:flex ${
+            className={`hidden w-full items-center gap-2 rounded-full px-2.5 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 md:flex ${
               collapsed ? "justify-center" : ""
             }`}
           >

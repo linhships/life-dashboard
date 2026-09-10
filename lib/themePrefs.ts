@@ -4,9 +4,11 @@ export const THEME_STORAGE_KEY = "life-dashboard-theme";
 
 export const THEMES: { id: ThemeId; label: string; description: string }[] = [
   {
+    // Still stored as "classic" (it's the no-data-theme default) so any
+    // saved preference from before the redesign keeps working.
     id: "classic",
-    label: "Classic",
-    description: "The current look — cool slate and blue, square corners.",
+    label: "Editorial",
+    description: "The default — warm cream, green-charcoal ink, serif headings, soft rounded cards.",
   },
   {
     id: "haven",

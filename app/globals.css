@@ -1,8 +1,103 @@
 @import "tailwindcss";
 
+/* Default ("Editorial") theme — the look with no data-theme attribute set.
+   Modeled on a warm, editorial family-whiteboard style: a blush-cream
+   page, deep green-charcoal ink instead of black, sage/peach tinted
+   surfaces instead of saturated accents, hairline dividers at low
+   contrast rather than mid-grey borders, generously rounded cards, and a
+   serif display face for headings over a system sans for body text.
+
+   Same mechanism as the Haven/Neobrutal themes further down: the
+   Tailwind color/radius/shadow tokens that every existing utility class
+   already reads (--color-slate-*, --color-blue-*, --radius-*, --shadow-sm,
+   --color-white) are redefined here, so the whole app repaints with no
+   per-component markup changes. Haven/Neobrutal override these same
+   tokens again under their own html[data-theme] selector, so they keep
+   their own looks. */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f7f1eb;
+  --foreground: #1f2923;
+
+  /* Neutrals: cool slate -> warm greige/sage, ending in green-charcoal
+     ink. 50 is the page background itself (app/layout.tsx paints the body
+     with bg-slate-50, so it has to equal --background), 100 the tinted
+     panel/hover shade, 200 the hairline divider, 400/500 secondary text,
+     900 the ink. */
+  --color-slate-50: #f7f1eb;
+  --color-slate-100: #efe8df;
+  --color-slate-200: #e5ddd2;
+  --color-slate-300: #cfc6ba;
+  --color-slate-400: #8f978f;
+  --color-slate-500: #6f7a72;
+  --color-slate-600: #55605a;
+  --color-slate-700: #3e4a43;
+  --color-slate-800: #2d3832;
+  --color-slate-900: #1f2923;
+
+  /* "White" surfaces: warm off-white card fill rather than pure #fff, so
+     cards sit softly on the cream page instead of glaring against it. */
+  --color-white: #fcfaf7;
+
+  /* Primary accent (links, active states, primary buttons): blue ->
+     forest green, with a pale sage tint for the 50/100 washes. */
+  --color-blue-50: #e6eee6;
+  --color-blue-100: #d3e2d4;
+  --color-blue-200: #b1cdb4;
+  --color-blue-300: #86b08c;
+  --color-blue-600: #2f6b4f;
+  --color-blue-700: #265a42;
+  --color-blue-800: #1e4835;
+
+  /* Positive/success: emerald -> a slightly muted, warmer green */
+  --color-emerald-50: #e8f1e8;
+  --color-emerald-100: #d3e6d4;
+  --color-emerald-200: #adcfb0;
+  --color-emerald-600: #3a8a5e;
+  --color-emerald-700: #2f7150;
+
+  /* Negative/danger: rose -> soft terracotta, peach-tinted washes */
+  --color-rose-50: #f8e6de;
+  --color-rose-100: #f4d6c9;
+  --color-rose-200: #ecb8a5;
+  --color-rose-600: #c4614a;
+  --color-rose-700: #a64f3b;
+
+  /* Purple -> muted plum, lavender wash */
+  --color-purple-50: #efeaf3;
+  --color-purple-100: #e2d9ea;
+  --color-purple-200: #c9b9d8;
+  --color-purple-600: #7e6aa8;
+  --color-purple-700: #67558c;
+
+  /* Amber -> warm ochre, peach-cream washes (the reference's "special
+     items" panel color) */
+  --color-amber-50: #f8e9dc;
+  --color-amber-100: #f4dcc8;
+  --color-amber-200: #ecc4a3;
+  --color-amber-600: #c1843a;
+  --color-amber-700: #9f6a2c;
+
+  /* Generously rounded cards and controls */
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+
+}
+
+/* Shadows: barely there. Cards separate from the page by their warmer
+   fill + hairline, not by a drop shadow. Tailwind v4 inlines shadow
+   values into the utility (no --shadow-* variable to override), so these
+   repaint the compiled classes directly via --tw-shadow, the same way the
+   Neobrutal theme does further down. Unlayered, so they beat the layered
+   utilities without needing !important; Neobrutal's own !important
+   versions still win when that theme is active. */
+.shadow-sm {
+  --tw-shadow: 0 1px 2px 0 rgb(31 41 35 / 0.04);
+}
+.shadow-md,
+.hover\:shadow-md:hover {
+  --tw-shadow: 0 4px 12px -2px rgb(31 41 35 / 0.08), 0 1px 2px 0 rgb(31 41 35 / 0.04);
 }
 
 @theme inline {
@@ -12,9 +107,30 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* Display face for headings. ui-serif resolves to New York on Apple
+   devices (the closest system match to the reference's serif), with the
+   usual serif fallbacks elsewhere. Not shipped as a webfont on purpose —
+   no network fetch at build time, no FOUT. Kept as a plain custom
+   property (not a @theme token) so it's guaranteed to be emitted even
+   though no utility class references it — only the h1/h2 rule below. */
+:root {
+  --font-display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Headings use the serif display face, everything else stays sans. The
+   utility classes on each heading (text-2xl, font-bold, ...) still control
+   size/weight — this only swaps the family and tightens the tracking a
+   touch, which serifs want at display sizes. Neobrutal opts back out of
+   this below to keep its all-sans, bold-grotesque look. */
+h1,
+h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 /* Haven theme: a second, warmer/rounder color scheme, toggled by setting
@@ -151,6 +267,27 @@ html[data-theme="neobrutal"] {
   --radius-lg: 0.1875rem;
   --radius-xl: 0.3125rem;
   --radius-2xl: 0.375rem;
+
+  /* The default theme warms --color-white to an off-white card fill and
+     sets a serif display face for headings (see :root at the top); this
+     look wants stark white paper and an all-sans bold grotesque, so both
+     are reset here. Neutrals from slate-200 up are also reset to
+     Tailwind's stock cool greys — the default theme's warm greige would
+     otherwise bleed into this palette's secondary text. */
+  --color-white: #ffffff;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+}
+html[data-theme="neobrutal"] h1,
+html[data-theme="neobrutal"] h2 {
+  font-family: var(--font-sans);
+  letter-spacing: normal;
 }
 
 /* From here down, every selector wraps the theme condition in :where(),

@@ -12,7 +12,7 @@ export default async function MealsPage() {
   if (!plan) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="text-2xl font-bold text-slate-900">Weekly meal plan</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Weekly meal plan</h1>
         <p className="mt-4 text-sm text-slate-500">
           No meal plan found yet. Run the weekly food-planning task, or set{" "}
           <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">MEAL_PLAN_DIR</code> in{" "}
@@ -30,11 +30,11 @@ export default async function MealsPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
       <header>
-        <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
           <UtensilsCrossed className="h-4 w-4" />
           <span>Week of {plan.weekStart}</span>
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">{plan.title}</h1>
+        <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-900">{plan.title}</h1>
         {plan.intro && <p className="mt-2 text-sm text-slate-500">{plan.intro}</p>}
       </header>
 

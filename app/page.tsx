@@ -82,8 +82,13 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <header>
-        <h1 className="text-2xl font-bold text-slate-900">Life Dashboard</h1>
-        <p className="mt-2 text-sm text-slate-500">Pick a section to get started.</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          Life Dashboard
+        </p>
+        <h1 className="mt-2 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
+          Welcome back, Linh.
+        </h1>
+        <p className="mt-3 text-sm text-slate-500">Pick a section to get started.</p>
       </header>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -12,7 +12,7 @@ export default async function NewsPage() {
   if (!briefing) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="text-2xl font-bold text-slate-900">Daily briefing</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Daily briefing</h1>
         <p className="mt-4 text-sm text-slate-500">
           No briefing found yet. Run the daily-news task, or set{" "}
           <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">NEWS_BRIEFING_DIR</code>{" "}
@@ -30,7 +30,7 @@ export default async function NewsPage() {
           <Newspaper className="h-3.5 w-3.5" />
           <span>Daily briefing · {briefing.date}</span>
         </div>
-        <h1 className="mt-1 text-3xl font-bold text-slate-900">{briefing.title}</h1>
+        <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-900">{briefing.title}</h1>
         {briefing.intro && (
           <div className="mt-4 max-w-3xl space-y-3 font-serif text-sm leading-relaxed text-slate-800">
             <ReactMarkdown
