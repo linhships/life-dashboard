@@ -56,6 +56,37 @@ function isChiarline(sender: string): boolean {
 // like "He napped 12:30-2" .
 const MIN_NOTE_LENGTH = 14;
 
+// This is a two-way chat, so roughly half of what she writes is
+// arranging hours, confirming plans, or being polite — "Morning! Sure,
+// thank you!:)", "I should be able to stay longer on either Monday 9th or
+// Tuesday 10th November". None of that belongs in a report about how the
+// boys are doing, so a message has to look like it's *about them* to be
+// kept.
+//
+// Two ways to qualify:
+//   1. it mentions something from their day (a nap, a meal, the park, a
+//      mood) — kept outright, since that's the whole point of the report;
+//   2. failing that, it at least refers to one of them, and doesn't read
+//      as scheduling.
+//
+// It's a heuristic over informal chat, so it's tuned to over-keep rather
+// than risk dropping a real update: "Do you want me to take Milo to the
+// playground?" survives, which is fine, while the two examples above
+// don't.
+const CHILD_RE =
+  /\b(milo|arlo|little man|little one|little guy|boys?|he|him|his|they|them|baby|bubba)\b/i;
+
+const CARE_RE =
+  /\b(nap|napped|napping|slept|asleep|awake|woke|ate|eaten|eating|food|lunch|snack|breakfast|dinner|milk|bottle|pouch|jar|drank|nappy|nappies|potty|toilet|poo|wee|bath|teeth|teething|park|playground|played|playing|walk|walked|steps|crawl|climb|swing|slide|sand|paint|painting|story|sang|singing|library|museum|soft play|swim|tired|hungry|cried|crying|upset|fussy|grumpy|giggl|laugh|smiled|poorly|temperature|cuddle|scooter|nursery|class|session)\b/i;
+
+const LOGISTICS_RE =
+  /\b(stay (?:until|longer|late|till)|until what time|what time|works best|let me know which|invoice|payslip|paid|payment|salary|holiday|annual leave|day off|appointment|monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|june|july|august|september|october|november|december)\b/i;
+
+function isAboutTheBoys(text: string): boolean {
+  if (CARE_RE.test(text)) return true;
+  return CHILD_RE.test(text) && !LOGISTICS_RE.test(text);
+}
+
 // The export reaches back to July 2025, but only the current arrangement
 // is wanted here — everything before this date is skipped, photos and
 // notes alike. (The chat itself marks the changeover: the group was
@@ -103,6 +134,7 @@ function stripMediaMarkers(body: string): string {
   return body
     .replace(ATTACH_RE, "")
     .replace(/\b(?:image|video|audio|document|sticker|GIF)\s+omitted\b/gi, "")
+    .replace(/<This message was edited>/gi, "")
     .replace(/‎/g, "")
     .trim();
 }
@@ -173,7 +205,7 @@ export function getChiarlineDays(): ChiarlineDay[] {
 
       if (!isChiarline(msg.sender) || !isInRange(msg.date)) continue;
       const text = stripMediaMarkers(msg.body);
-      if (!text || !isSubstantive(text)) continue;
+      if (!text || !isSubstantive(text) || !isAboutTheBoys(text)) continue;
       const bucket = notesByDate.get(msg.date);
       const note = { time: msg.time, text };
       if (bucket) bucket.push(note);

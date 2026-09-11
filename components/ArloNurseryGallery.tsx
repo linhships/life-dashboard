@@ -257,7 +257,7 @@ function ArrivalDepartureRow({ facts }: { facts: ArloDayFacts }) {
 // The structured Bright Horizons app data (see lib/arloNurseryPhotos.ts:
 // ArloDayFacts) as a small emoji-labeled visualization instead of plain
 // bullet text.
-function DayFacts({ facts }: { facts: ArloDayFacts }) {
+export function DayFacts({ facts }: { facts: ArloDayFacts }) {
   return (
     <div className="divide-y divide-slate-100">
       <ArrivalDepartureRow facts={facts} />
@@ -296,7 +296,7 @@ function DayFacts({ facts }: { facts: ArloDayFacts }) {
 // The teacher's own free-text updates for a day (see
 // lib/arloNurseryPhotos.ts: observationsMarkdown) — shown in full, no
 // collapse/truncation.
-function UpdateText({ markdown, bordered }: { markdown: string; bordered: boolean }) {
+export function UpdateText({ markdown, bordered }: { markdown: string; bordered: boolean }) {
   return (
     <div className={`px-4 py-3 ${bordered ? "border-t border-slate-100" : ""}`}>
       <div className="prose-arlo-update text-xs leading-relaxed text-slate-600">
