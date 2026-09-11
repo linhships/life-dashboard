@@ -28,10 +28,16 @@ function chiarlineDir(): string | null {
 }
 
 // "[07/07/2025, 15:03:42] Chiarline Madrigal: Hellooo:) Milo fell asleep…"
-// This export uses 24-hour times with no am/pm (unlike the Tori one), and
-// WhatsApp prefixes some lines with an invisible left-to-right mark, which
-// is stripped before matching.
-const LINE_RE = /^\[(\d{2})\/(\d{2})\/(\d{4}), (\d{1,2}):(\d{2})(?::(\d{2}))?\]\s([^:]+):\s?(.*)$/;
+// or "[26/07/2024, 12:35:19 pm] Chiarline Madrigal: …"
+//
+// WhatsApp's timestamp format is not stable between exports of the *same*
+// chat — one export of this group came out 24-hour, a later one 12-hour
+// with am/pm — so both are accepted and normalised to 24-hour below. The
+// space before "pm" is a narrow no-break space (U+202F) in practice, not a
+// plain one. WhatsApp also prefixes some lines with an invisible
+// left-to-right mark, which is stripped before matching.
+const LINE_RE =
+  /^\[(\d{2})\/(\d{2})\/(\d{4}), (\d{1,2}):(\d{2})(?::(\d{2}))?(?:[\s  ]*([ap])\.?m\.?)?\]\s([^:]+):\s?(.*)$/i;
 const ATTACH_RE = /<attached:\s*([^>]+)>/;
 
 // Media filenames carry their own timestamp, which is what days are keyed
@@ -173,10 +179,16 @@ function parseChat(chatFile: string): ParsedMessage[] {
       }
       continue;
     }
-    const [, dd, mm, yyyy, hh, min, , sender, body] = m;
+    const [, dd, mm, yyyy, rawHour, min, , meridiem, sender, body] = m;
+    let hour = Number(rawHour);
+    if (meridiem) {
+      const isPm = meridiem.toLowerCase() === "p";
+      if (isPm && hour < 12) hour += 12;
+      if (!isPm && hour === 12) hour = 0;
+    }
     messages.push({
       date: `${yyyy}-${mm}-${dd}`,
-      time: `${hh.padStart(2, "0")}:${min}`,
+      time: `${String(hour).padStart(2, "0")}:${min}`,
       sender: sender.trim(),
       body,
     });
