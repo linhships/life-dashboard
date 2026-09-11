@@ -56,6 +56,17 @@ function isChiarline(sender: string): boolean {
 // like "He napped 12:30-2" .
 const MIN_NOTE_LENGTH = 14;
 
+// The export reaches back to July 2025, but only the current arrangement
+// is wanted here — everything before this date is skipped, photos and
+// notes alike. (The chat itself marks the changeover: the group was
+// renamed "Chiarline - Milo - Arlo" on 18 May 2026.) Widen or narrow the
+// report by moving this one date.
+const EARLIEST_DATE = "2026-05-01";
+
+function isInRange(date: string): boolean {
+  return date >= EARLIEST_DATE;
+}
+
 export interface ChiarlineMedia {
   id: string;
   file: string;
@@ -160,7 +171,7 @@ export function getChiarlineDays(): ChiarlineDay[] {
       const am = msg.body.match(ATTACH_RE);
       if (am) senderByFile.set(am[1].trim(), msg.sender);
 
-      if (!isChiarline(msg.sender)) continue;
+      if (!isChiarline(msg.sender) || !isInRange(msg.date)) continue;
       const text = stripMediaMarkers(msg.body);
       if (!text || !isSubstantive(text)) continue;
       const bucket = notesByDate.get(msg.date);
@@ -185,6 +196,7 @@ export function getChiarlineDays(): ChiarlineDay[] {
 
       const [, y, mo, da, h, mi, se] = match;
       const date = `${y}-${mo}-${da}`;
+      if (!isInRange(date)) continue;
       const entry: ChiarlineMedia = {
         id: hashId(`chiarline|${file}`),
         file,
@@ -218,7 +230,12 @@ export function getChiarlineDays(): ChiarlineDay[] {
 export function resolveChiarlineMediaPath(file: string): string | null {
   const dir = chiarlineDir();
   if (!dir) return null;
-  if (!PHOTO_FILENAME_RE.test(file) && !VIDEO_FILENAME_RE.test(file)) return null;
+  const match = file.match(PHOTO_FILENAME_RE) ?? file.match(VIDEO_FILENAME_RE);
+  if (!match) return null;
+  // Same cutoff the report uses, so an older file can't be fetched by
+  // guessing its name even though nothing links to it.
+  const [, y, mo, da] = match;
+  if (!isInRange(`${y}-${mo}-${da}`)) return null;
   for (const exportDir of exportDirs(dir)) {
     const resolved = path.join(exportDir, file);
     if (fs.existsSync(resolved) && fs.statSync(resolved).isFile()) return resolved;
