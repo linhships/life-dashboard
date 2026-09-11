@@ -217,6 +217,10 @@ function MonthEventsList({
   onOpen: (id: string) => void;
 }) {
   if (events.length === 0) return null;
+  // Dim (rather than strike through) anything before today — these are
+  // still useful as a record of what happened, just no longer the thing
+  // to act on, so a strikethrough ("cancelled") reads wrong here.
+  const today = new Date().toISOString().slice(0, 10);
   return (
     <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4">
       <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-blue-700">
@@ -224,25 +228,31 @@ function MonthEventsList({
         Upcoming
       </p>
       <ul className="mt-2 space-y-1.5">
-        {events.map((e, i) => (
-          <li key={i} className="flex items-baseline gap-2 text-sm">
-            <span className="w-36 shrink-0 font-semibold text-slate-500">
-              {formatShortDate(e.date)}
-            </span>
-            <span className="text-slate-700">
-              {e.event}
-              {e.message && (
-                <button
-                  type="button"
-                  onClick={() => onOpen(e.message!.id)}
-                  className="ml-1 align-super text-[11px] font-semibold text-blue-600 hover:underline"
-                >
-                  [source]
-                </button>
-              )}
-            </span>
-          </li>
-        ))}
+        {events.map((e, i) => {
+          const isPast = e.date < today;
+          return (
+            <li
+              key={i}
+              className={`flex items-baseline gap-2 text-sm ${isPast ? "opacity-45" : ""}`}
+            >
+              <span className="w-36 shrink-0 font-semibold text-slate-500">
+                {formatShortDate(e.date)}
+              </span>
+              <span className="text-slate-700">
+                {e.event}
+                {e.message && (
+                  <button
+                    type="button"
+                    onClick={() => onOpen(e.message!.id)}
+                    className="ml-1 align-super text-[11px] font-semibold text-blue-600 hover:underline"
+                  >
+                    [source]
+                  </button>
+                )}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

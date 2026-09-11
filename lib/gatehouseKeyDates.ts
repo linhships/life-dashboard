@@ -61,8 +61,19 @@ export function getGatehouseKeyDates(): GatehouseKeyDate[] {
 }
 
 // fromDate defaults to today (server clock) — filters out events already
-// in the past so the box only shows what's actually still ahead.
+// in the past so the box only shows what's actually still ahead. Pass an
+// earlier fromDate (see isoDaysAgo below) to widen the window, e.g. so a
+// recently-passed event can stay visible (dimmed) rather than vanishing
+// the instant it's over.
 export function getUpcomingGatehouseKeyDates(fromDate?: string): GatehouseKeyDate[] {
   const cutoff = fromDate ?? new Date().toISOString().slice(0, 10);
   return getGatehouseKeyDates().filter((d) => d.date >= cutoff);
+}
+
+// Helper for callers that want a lookback window instead of the default
+// today-only cutoff — e.g. getUpcomingGatehouseKeyDates(isoDaysAgo(14)).
+export function isoDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
 }

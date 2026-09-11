@@ -1,6 +1,6 @@
 import { School } from "lucide-react";
 import { getGatehouseReports } from "@/lib/gatehouseReports";
-import { getUpcomingGatehouseKeyDates } from "@/lib/gatehouseKeyDates";
+import { getUpcomingGatehouseKeyDates, isoDaysAgo } from "@/lib/gatehouseKeyDates";
 import { getGatehouseMeals } from "@/lib/gatehouseMeals";
 import { GatehouseWeeklyReports } from "@/components/GatehouseWeeklyReports";
 
@@ -12,7 +12,11 @@ export const dynamic = "force-dynamic";
 // other two Milo & Arlo pages which hold photos of the kids.
 export default function GatehouseCommsPage() {
   const reports = getGatehouseReports();
-  const upcomingEvents = getUpcomingGatehouseKeyDates();
+  // Two weeks back, not just today, so a just-passed event (e.g. the
+  // flu spray that was Mon this week) stays visible a little longer —
+  // GatehouseWeeklyReports dims anything before today rather than
+  // dropping it outright.
+  const upcomingEvents = getUpcomingGatehouseKeyDates(isoDaysAgo(14));
   const meals = getGatehouseMeals();
   const totalMessages = new Set(reports.flatMap((r) => r.messages.map((m) => m.id))).size;
 
