@@ -88,7 +88,28 @@ const CARE_RE =
 const LOGISTICS_RE =
   /\b(stay (?:until|longer|late|till)|until what time|what time|works best|let me know which|invoice|payslip|paid|payment|salary|holiday|annual leave|day off|appointment|monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|june|july|august|september|october|november|december)\b/i;
 
+// The awkward middle case: messages that talk about the boys by name and
+// mention nursery, the playground, lunch — and are still only agreeing a
+// plan. "I am happy to drop Milo off to nursery with Arlo so we can go
+// straight to the playground afterwards. Thank you for planning for
+// tomorrow, I will take them to mile end in the afternoon." Every keyword
+// above fires, but nothing in it says how the boys actually were.
+//
+// What separates them is tense: arrangements are forward-looking and
+// conditional ("I will", "shall I", "do you want me to"), while a real
+// update reports something that already happened ("he ate", "Arlo was very
+// happy", "fell asleep"). So a message that reads as arranging is dropped
+// *unless* it also reports — which keeps the ones that do both, e.g. "Yes
+// he fell asleep about 10 minutes ago … shall I wake him at 2?".
+const PLANNING_RE =
+  /\b(i(?:'m| am)? (?:would be |am )?(?:more than )?happy to|happy to (?:drop|take|look after|help|stay)|i will (?:take|drop|bring|do|be)|i'll (?:take|drop|bring|do|be)|shall i|do you want me to|would you like me to|i can (?:take|drop|do|bring|stay)|i could (?:take|drop|do)|thank you for (?:the |all the )?(?:updates|planning|letting me know)|let me know|see you (?:tomorrow|then|shortly|soon)|is that (?:ok|okay|fine))\b/i;
+
+const OBSERVATION_RE =
+  /\b(ate|drank|slept|napped|woke|fell asleep|cried|crying|laughed|giggl\w*|played|enjoyed|loved|finished|managed|climbed|walked|ran|pointing|pointed|gulped|smiling|smiled|wiggling|taking more steps|was|were|has been|did (?:so|really|very|great)|seems|seemed|looks|is (?:still|taking|running|not very|very)|he's|didn't)\b/i;
+
 function isAboutTheBoys(text: string): boolean {
+  // Arranging the day rather than reporting on it.
+  if (PLANNING_RE.test(text) && !OBSERVATION_RE.test(text)) return false;
   if (CARE_RE.test(text)) return true;
   return CHILD_RE.test(text) && !LOGISTICS_RE.test(text);
 }
