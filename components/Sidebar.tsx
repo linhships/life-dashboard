@@ -217,6 +217,14 @@ export function Sidebar({ learningGuides = [] }: { learningGuides?: SidebarGuide
 
   const isAnyChildActive = onFinance && FINANCE_ITEMS.some((item) => item.id === activeId);
 
+  // The /family section is the cut-down view shared with the grandparents
+  // (see FAMILY-ACCESS.md). It gets its own header and deliberately has no
+  // way to navigate into the rest of the app — so this nav isn't rendered
+  // there at all. Belt and braces on top of the proxy only forwarding
+  // /family: even if someone reached these pages another way, there'd be
+  // no Finance link sitting in front of them.
+  const onFamily = pathname?.startsWith("/family") ?? false;
+
   // Auto-expand a group when client-side navigation (not just a fresh page
   // load) lands on one of its sub-pages — e.g. going Meal Plan -> Recipes
   // without the sidebar remounting. Only opens, never closes, so manually
@@ -235,6 +243,8 @@ export function Sidebar({ learningGuides = [] }: { learningGuides?: SidebarGuide
       return changed ? next : prev;
     });
   }, [pathname, routeGroups]);
+
+  if (onFamily) return null;
 
   return (
     <>

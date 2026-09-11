@@ -4,8 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import type { MiloNurseryDay, MiloNurseryPhoto } from "@/lib/miloNurseryPhotos";
 
-function photoUrl(photo: MiloNurseryPhoto): string {
-  return `/api/milo-nursery/image?file=${encodeURIComponent(photo.file)}`;
+// The route that serves the photo bytes. Configurable because the
+// grandparent-facing /family view reuses this gallery but has to go
+// through /api/family/milo-image (its own passcode, and the only API
+// prefix the tailnet proxy forwards) — see FAMILY-ACCESS.md.
+const DEFAULT_IMAGE_ENDPOINT = "/api/milo-nursery/image";
+
+function photoUrl(photo: MiloNurseryPhoto, endpoint: string): string {
+  return `${endpoint}?file=${encodeURIComponent(photo.file)}`;
 }
 
 function formatPhotoCount(n: number): string {
@@ -36,7 +42,7 @@ function formatMonthHeading(key: string): string {
 // for how the clone-slide technique avoids the "huge jump" when wrapping
 // from last photo back to first. This version drops all the video-specific
 // bits (refs, autoplay, onPause) since this folder is photos only.
-function DayCarousel({ day }: { day: MiloNurseryDay }) {
+function DayCarousel({ day, imageEndpoint }: { day: MiloNurseryDay; imageEndpoint: string }) {
   const photos = day.photos;
   const n = photos.length;
   const hasMultiple = n > 1;
@@ -97,7 +103,7 @@ function DayCarousel({ day }: { day: MiloNurseryDay }) {
                   letterboxed with white margins, rather than cropped. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={photoUrl(p)}
+                src={photoUrl(p, imageEndpoint)}
                 alt=""
                 loading="lazy"
                 decoding="async"
@@ -173,7 +179,13 @@ function groupByMonth(days: MiloNurseryDay[]): MonthGroup[] {
   return groups;
 }
 
-export function MiloNurseryGallery({ days }: { days: MiloNurseryDay[] }) {
+export function MiloNurseryGallery({
+  days,
+  imageEndpoint = DEFAULT_IMAGE_ENDPOINT,
+}: {
+  days: MiloNurseryDay[];
+  imageEndpoint?: string;
+}) {
   // `days` comes in oldest-first. Reverse before grouping so the most
   // recent month lands first and, within it, the most recent day is first
   // too — most-recent-on-top throughout, same as the Tori gallery.
@@ -223,7 +235,7 @@ export function MiloNurseryGallery({ days }: { days: MiloNurseryDay[] }) {
             {!isCollapsed && (
               <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
                 {group.days.map((day) => (
-                  <DayCarousel key={day.date} day={day} />
+                  <DayCarousel key={day.date} day={day} imageEndpoint={imageEndpoint} />
                 ))}
               </div>
             )}

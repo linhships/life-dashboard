@@ -1,0 +1,50 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  FAMILY_AUTH_COOKIE,
+  FAMILY_AUTH_MAX_AGE_SECONDS,
+  isAuthedRequest,
+  isGateEnabled,
+  issueToken,
+  verifyPasscode,
+} from "@/lib/familyAuth";
+
+// Login: verify the passcode and set the sliding session cookie.
+export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}));
+  const { passcode } = body as { passcode?: string };
+
+  if (!passcode || !verifyPasscode(passcode)) {
+    return NextResponse.json({ ok: false, error: "Incorrect passcode" }, { status: 401 });
+  }
+
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set(FAMILY_AUTH_COOKIE, issueToken(), {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: FAMILY_AUTH_MAX_AGE_SECONDS,
+    path: "/",
+  });
+  return res;
+}
+
+// Heartbeat: called periodically by the client while the page is open and
+// active, to slide the session window forward. Fails (401) if the cookie
+// is missing or stale.
+export async function PUT(request: NextRequest) {
+  // Gate disabled (no passcode configured): nothing to refresh — and
+  // issueToken() would throw without a passcode — so just report ok.
+  if (!isGateEnabled()) {
+    return NextResponse.json({ ok: true });
+  }
+  if (!isAuthedRequest(request)) {
+    return NextResponse.json({ ok: false }, { status: 401 });
+  }
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set(FAMILY_AUTH_COOKIE, issueToken(), {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: FAMILY_AUTH_MAX_AGE_SECONDS,
+    path: "/",
+  });
+  return res;
+}

@@ -5,8 +5,13 @@ import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { ArloDayFacts, ArloNurseryDay, ArloNurseryPhoto } from "@/lib/arloNurseryPhotos";
 
-function photoUrl(photo: ArloNurseryPhoto): string {
-  return `/api/arlo-nursery/image?monthDir=${encodeURIComponent(
+// The route that serves the photo bytes — configurable for the same reason
+// as in MiloNurseryGallery.tsx (the /family view goes through
+// /api/family/arlo-image instead).
+const DEFAULT_IMAGE_ENDPOINT = "/api/arlo-nursery/image";
+
+function photoUrl(photo: ArloNurseryPhoto, endpoint: string): string {
+  return `${endpoint}?monthDir=${encodeURIComponent(
     photo.monthDir
   )}&file=${encodeURIComponent(photo.file)}`;
 }
@@ -38,7 +43,13 @@ function formatMonthHeading(key: string): string {
 // components/MiloNurseryGallery.tsx's DayCarousel — see the comments there
 // for how the clone-slide technique avoids the "huge jump" when wrapping
 // from last photo back to first.
-function DayCarousel({ photos }: { photos: ArloNurseryPhoto[] }) {
+function DayCarousel({
+  photos,
+  imageEndpoint,
+}: {
+  photos: ArloNurseryPhoto[];
+  imageEndpoint: string;
+}) {
   const n = photos.length;
   const hasMultiple = n > 1;
 
@@ -96,7 +107,7 @@ function DayCarousel({ photos }: { photos: ArloNurseryPhoto[] }) {
           <div key={`${p.id}-${i}`} className="h-full w-full shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={photoUrl(p)}
+              src={photoUrl(p, imageEndpoint)}
               alt=""
               loading="lazy"
               decoding="async"
@@ -305,7 +316,7 @@ function UpdateText({ markdown, bordered }: { markdown: string; bordered: boolea
   );
 }
 
-function DayCard({ day }: { day: ArloNurseryDay }) {
+function DayCard({ day, imageEndpoint }: { day: ArloNurseryDay; imageEndpoint: string }) {
   const hasPhotos = day.photos.length > 0;
 
   return (
@@ -313,7 +324,7 @@ function DayCard({ day }: { day: ArloNurseryDay }) {
       <div className="flex flex-col md:flex-row">
         {hasPhotos && (
           <div className="md:w-[45%] md:shrink-0">
-            <DayCarousel photos={day.photos} />
+            <DayCarousel photos={day.photos} imageEndpoint={imageEndpoint} />
           </div>
         )}
 
@@ -360,7 +371,13 @@ function groupByMonth(days: ArloNurseryDay[]): MonthGroup[] {
   return groups;
 }
 
-export function ArloNurseryGallery({ days }: { days: ArloNurseryDay[] }) {
+export function ArloNurseryGallery({
+  days,
+  imageEndpoint = DEFAULT_IMAGE_ENDPOINT,
+}: {
+  days: ArloNurseryDay[];
+  imageEndpoint?: string;
+}) {
   // `days` comes in oldest-first. Reverse before grouping so the most
   // recent month lands first and, within it, the most recent day is first
   // too — most-recent-on-top throughout, same as the other galleries.
@@ -408,7 +425,7 @@ export function ArloNurseryGallery({ days }: { days: ArloNurseryDay[] }) {
             {!isCollapsed && (
               <div className="mt-4 space-y-5">
                 {group.days.map((day) => (
-                  <DayCard key={day.date} day={day} />
+                  <DayCard key={day.date} day={day} imageEndpoint={imageEndpoint} />
                 ))}
               </div>
             )}

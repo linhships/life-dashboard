@@ -4,8 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import type { ToriCareDay, ToriPhoto } from "@/lib/toriPhotos";
 
-function mediaUrl(photo: ToriPhoto): string {
-  return `/api/tori-photos/image?chat=${encodeURIComponent(photo.chat)}&file=${encodeURIComponent(
+// The route that serves the photo/video bytes — configurable for the same
+// reason as in MiloNurseryGallery.tsx (the /family view goes through
+// /api/family/tori-image instead).
+const DEFAULT_MEDIA_ENDPOINT = "/api/tori-photos/image";
+
+function mediaUrl(photo: ToriPhoto, endpoint: string): string {
+  return `${endpoint}?chat=${encodeURIComponent(photo.chat)}&file=${encodeURIComponent(
     photo.file
   )}`;
 }
@@ -43,7 +48,7 @@ function formatMonthHeading(key: string): string {
 // image for prev/next, plus a row of dot indicators along the bottom that
 // jump straight to a given slide — the reference layout this was asked to
 // match (TailAdmin's carousel demo).
-function DayCarousel({ day }: { day: ToriCareDay }) {
+function DayCarousel({ day, mediaEndpoint }: { day: ToriCareDay; mediaEndpoint: string }) {
   const photos = day.photos;
   const n = photos.length;
   const hasMultiple = n > 1;
@@ -162,7 +167,7 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
                   ref={(el) => {
                     videoRefs.current[i] = el;
                   }}
-                  src={mediaUrl(p)}
+                  src={mediaUrl(p, mediaEndpoint)}
                   controls
                   autoPlay={i === pos}
                   muted
@@ -183,7 +188,7 @@ function DayCarousel({ day }: { day: ToriCareDay }) {
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={mediaUrl(p)}
+                  src={mediaUrl(p, mediaEndpoint)}
                   alt=""
                   loading="lazy"
                   decoding="async"
@@ -260,7 +265,13 @@ function groupByMonth(days: ToriCareDay[]): MonthGroup[] {
   return groups;
 }
 
-export function ToriPhotosGallery({ days }: { days: ToriCareDay[] }) {
+export function ToriPhotosGallery({
+  days,
+  mediaEndpoint = DEFAULT_MEDIA_ENDPOINT,
+}: {
+  days: ToriCareDay[];
+  mediaEndpoint?: string;
+}) {
   // `days` comes in oldest-first. Reverse before grouping so the most
   // recent month lands first and, within it, the most recent day is first
   // too — most-recent-on-top throughout.
@@ -311,7 +322,7 @@ export function ToriPhotosGallery({ days }: { days: ToriCareDay[] }) {
             {!isCollapsed && (
               <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
                 {group.days.map((day) => (
-                  <DayCarousel key={day.date} day={day} />
+                  <DayCarousel key={day.date} day={day} mediaEndpoint={mediaEndpoint} />
                 ))}
               </div>
             )}
