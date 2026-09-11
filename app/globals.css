@@ -15,7 +15,11 @@
    tokens again under their own html[data-theme] selector, so they keep
    their own looks. */
 :root {
-  --background: #f7f1eb;
+  /* Page is a warm blush; cards are near-white (--color-white below).
+     The two used to sit ~2% apart, which read as flat — the gap is now
+     wide enough that a card lifts off the page on its own, without
+     needing a heavier border or shadow to do the work. */
+  --background: #f4ece4;
   --foreground: #1f2923;
 
   /* Neutrals: cool slate -> warm greige/sage, ending in green-charcoal
@@ -23,9 +27,9 @@
      with bg-slate-50, so it has to equal --background), 100 the tinted
      panel/hover shade, 200 the hairline divider, 400/500 secondary text,
      900 the ink. */
-  --color-slate-50: #f7f1eb;
-  --color-slate-100: #efe8df;
-  --color-slate-200: #e5ddd2;
+  --color-slate-50: #f4ece4;
+  --color-slate-100: #ebe1d6;
+  --color-slate-200: #e2d7c9;
   --color-slate-300: #cfc6ba;
   --color-slate-400: #8f978f;
   --color-slate-500: #6f7a72;
@@ -34,9 +38,10 @@
   --color-slate-800: #2d3832;
   --color-slate-900: #1f2923;
 
-  /* "White" surfaces: warm off-white card fill rather than pure #fff, so
-     cards sit softly on the cream page instead of glaring against it. */
-  --color-white: #fcfaf7;
+  /* "White" surfaces: still not pure #fff — a trace of warmth keeps cards
+     from glaring — but close enough to it to stand clearly off the blush
+     page above. */
+  --color-white: #fffdfb;
 
   /* Primary accent (links, active states, primary buttons): blue ->
      forest green, with a pale sage tint for the 50/100 washes. */

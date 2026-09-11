@@ -18,8 +18,8 @@ interface Swatch {
 
 const SWATCHES: Record<ThemeId, Swatch> = {
   classic: {
-    bg: "#f7f1eb",
-    card: "#fcfaf7",
+    bg: "#f4ece4",
+    card: "#fffdfb",
     accent: "#2f6b4f",
     accent2: "#c4614a",
     radius: "1.25rem",
