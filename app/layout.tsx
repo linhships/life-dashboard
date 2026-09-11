@@ -4,12 +4,14 @@ import { Sidebar } from "@/components/Sidebar";
 import { getLearningGuides } from "@/lib/learningGuides";
 import { THEME_INIT_SCRIPT } from "@/lib/themePrefs";
 
-// Tab icon = Linh's emoji from the Troettger AI calendar convention (👩🏻),
-// inlined as an SVG data URL so no separate icon file is needed.
+// Tab icon = the same serif "L" monogram as components/BrandMark.tsx
+// (ink square, off-white letter), inlined as an SVG data URL so no
+// separate icon file is needed. Colours are literal here (an SVG data URL
+// can't read the page's CSS variables) and match the default theme.
 const FAVICON =
   "data:image/svg+xml," +
   encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><text x="32" y="52" font-size="62" text-anchor="middle">👩🏻</text></svg>'
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#1f2923"/><text x="32" y="47" font-family="ui-serif, Iowan Old Style, Palatino, Georgia, serif" font-size="42" font-weight="600" fill="#fcfaf7" text-anchor="middle">L</text></svg>'
   );
 
 export const metadata: Metadata = {
