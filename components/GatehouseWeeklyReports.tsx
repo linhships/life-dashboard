@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Calendar, ChevronDown, UtensilsCrossed } from "lucide-react";
 import type { GatehouseMessage } from "@/lib/gatehouse";
 import type { GatehouseMealsData, WeeklyMenu } from "@/lib/gatehouseMeals";
-import { MessageModal, formatMessageDate, sourceIcon } from "./gatehouseShared";
+import { MessageModal, formatDateOnly, formatMessageDate, sourceIcon } from "./gatehouseShared";
+import { dateForDay } from "@/lib/weekdays";
 
 export interface WeekReportData {
   weekStart: string; // ISO date, Monday
@@ -247,6 +248,20 @@ function MonthEventsList({
   );
 }
 
+// The span a menu actually covers, worked out from which weekday columns
+// it has. Returns "" if the day names aren't recognisable, in which case
+// the heading just drops the range rather than showing something wrong.
+function formatMenuRange(menu: WeeklyMenu): string {
+  const dates = menu.days
+    .map((d) => dateForDay(menu.weekStart, d.day))
+    .filter((d): d is string => d !== null)
+    .sort();
+  if (dates.length === 0) return "";
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  return first === last ? formatDateOnly(first) : formatWeekRange(first, last);
+}
+
 // Full lunch menu for one week — Mon-Fri (or whichever days are known) x
 // Main/Vegetarian/Side/Dessert, transcribed from the school's public
 // School Meals page (lib/gatehouseMeals.ts). Rendered inside that week's
@@ -254,17 +269,21 @@ function MonthEventsList({
 // the usual report prose.
 function WeekMenuTable({
   menu,
-  weekRange,
   standalone = false,
 }: {
   menu: WeeklyMenu;
-  weekRange: string;
   // true when this is the whole week entry (no report prose to sit
   // alongside) — then it's rendered as its own card rather than nested
   // inside a white week card, so there's no box-in-a-box.
   standalone?: boolean;
 }) {
   if (menu.days.length === 0) return null;
+  // The days the menu actually covers, not the week it belongs to — a
+  // partial week (the two Nursery settling-in days, say) should say
+  // "3 September – 4 September", not the whole Mon–Sun span. Even a full
+  // week reads better as its Mon–Fri range, since lunch isn't served at
+  // the weekend.
+  const menuRange = formatMenuRange(menu);
   return (
     <div
       className={`overflow-x-auto rounded-xl border border-orange-200 bg-orange-50/50 ${
@@ -273,7 +292,7 @@ function WeekMenuTable({
     >
       <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-orange-700">
         <UtensilsCrossed className="h-3.5 w-3.5" />
-        Lunch menu · {weekRange}
+        Lunch menu{menuRange ? ` · ${menuRange}` : ""}
       </p>
       {menu.note && <p className="mt-1 text-xs text-slate-500">{menu.note}</p>}
       <table className="mt-2 w-full min-w-[520px] text-xs">
@@ -442,7 +461,7 @@ export function GatehouseWeeklyReports({
                     // Menu-only week: just the orange menu card, with the
                     // week's dates in its own title — no outer white card.
                     if (!report && menu) {
-                      return <WeekMenuTable key={weekStart} menu={menu} weekRange={weekRange} standalone />;
+                      return <WeekMenuTable key={weekStart} menu={menu} standalone />;
                     }
                     const footnoteNumberById = new Map(
                       (report?.messages ?? []).map((m, i) => [m.id, i + 1])
@@ -460,7 +479,7 @@ export function GatehouseWeeklyReports({
                             <FootnoteList messages={report.messages} onOpen={setOpenMessageId} />
                           </div>
                         )}
-                        {menu && <WeekMenuTable menu={menu} weekRange={weekRange} />}
+                        {menu && <WeekMenuTable menu={menu} />}
                       </div>
                     );
                   });
