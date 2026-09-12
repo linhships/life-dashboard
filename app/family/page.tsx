@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowRight, Baby, Heart, School } from "lucide-react";
+import { ArrowRight, Baby, Heart, School, UtensilsCrossed } from "lucide-react";
 import { getMiloNurseryDays } from "@/lib/miloNurseryPhotos";
 import { getArloNurseryDays } from "@/lib/arloNurseryPhotos";
 import { getToriCareDays } from "@/lib/toriPhotos";
 import { getGatehouseReports } from "@/lib/gatehouseReports";
+import { getCurrentMealPlan } from "@/lib/mealplan";
 import { PasscodePageGate } from "@/components/PasscodePageGate";
 import { FAMILY_AUTH_COOKIE, isAuthed } from "@/lib/familyAuth";
 
@@ -26,6 +27,7 @@ export default async function FamilyHomePage() {
     getToriCareDays(),
   ];
   const reports = getGatehouseReports();
+  const mealPlan = getCurrentMealPlan();
 
   const countPhotos = (days: { photos: unknown[] }[]) =>
     days.reduce((sum, d) => sum + d.photos.length, 0);
@@ -61,6 +63,13 @@ export default async function FamilyHomePage() {
           : "Dates and news from Gatehouse",
       icon: School,
       tint: "bg-purple-50 text-purple-600",
+    },
+    {
+      href: "/family/meals",
+      label: "This week's meals",
+      blurb: mealPlan ? `Week of ${mealPlan.weekStart}` : "No meal plan published yet",
+      icon: UtensilsCrossed,
+      tint: "bg-amber-50 text-amber-600",
     },
   ];
 
