@@ -235,12 +235,29 @@ export function parsePlan(markdown: string, weekStart: string): MealPlan {
   };
 }
 
+function readPlanFile(weekStart: string): MealPlan | null {
+  const file = path.join(mealsDir(), `Weekly_Plan_${weekStart}.md`);
+  if (!fs.existsSync(file)) return null;
+  return parsePlan(fs.readFileSync(file, "utf-8"), weekStart);
+}
+
 export function getCurrentMealPlan(): MealPlan | null {
   const weeks = listPlanWeeks();
   const weekStart = pickCurrentWeek(weeks);
   if (!weekStart) return null;
-  const raw = fs.readFileSync(path.join(mealsDir(), `Weekly_Plan_${weekStart}.md`), "utf-8");
-  return parsePlan(raw, weekStart);
+  return readPlanFile(weekStart);
+}
+
+// Whichever dated plan comes right after the current one in
+// listPlanWeeks() — not necessarily "current + 7 days" on the calendar,
+// in case a week ever gets skipped. Null if nothing's been drafted yet
+// (the family page just won't show a second tab).
+export function getNextMealPlan(): MealPlan | null {
+  const weeks = listPlanWeeks();
+  const weekStart = pickCurrentWeek(weeks);
+  if (!weekStart) return null;
+  const nextWeek = weeks[weeks.indexOf(weekStart) + 1];
+  return nextWeek ? readPlanFile(nextWeek) : null;
 }
 
 function feedbackPath(): string {

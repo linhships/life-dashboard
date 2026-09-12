@@ -5,7 +5,7 @@ import { getMiloNurseryDays } from "@/lib/miloNurseryPhotos";
 import { getArloNurseryDays } from "@/lib/arloNurseryPhotos";
 import { getToriCareDays } from "@/lib/toriPhotos";
 import { getGatehouseReports } from "@/lib/gatehouseReports";
-import { getCurrentMealPlan } from "@/lib/mealplan";
+import { getCurrentMealPlan, getNextMealPlan } from "@/lib/mealplan";
 import { PasscodePageGate } from "@/components/PasscodePageGate";
 import { FAMILY_AUTH_COOKIE, isAuthed } from "@/lib/familyAuth";
 
@@ -28,6 +28,7 @@ export default async function FamilyHomePage() {
   ];
   const reports = getGatehouseReports();
   const mealPlan = getCurrentMealPlan();
+  const nextMealPlan = getNextMealPlan();
 
   const countPhotos = (days: { photos: unknown[] }[]) =>
     days.reduce((sum, d) => sum + d.photos.length, 0);
@@ -66,8 +67,10 @@ export default async function FamilyHomePage() {
     },
     {
       href: "/family/meals",
-      label: "This week's meals",
-      blurb: mealPlan ? `Week of ${mealPlan.weekStart}` : "No meal plan published yet",
+      label: "Meals",
+      blurb: mealPlan
+        ? `Week of ${mealPlan.weekStart}${nextMealPlan ? " — next week's is up too" : ""}`
+        : "No meal plan published yet",
       icon: UtensilsCrossed,
       tint: "bg-amber-50 text-amber-600",
     },

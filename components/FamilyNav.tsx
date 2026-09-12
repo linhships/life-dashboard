@@ -12,7 +12,7 @@ const FAMILY_LINKS: { href: string; label: string }[] = [
   { href: "/family/arlo", label: "Arlo's nursery" },
   { href: "/family/tori", label: "With Tori" },
   { href: "/family/gatehouse", label: "Milo's school" },
-  { href: "/family/meals", label: "This week's meals" },
+  { href: "/family/meals", label: "Meals" },
 ];
 
 export function FamilyNav() {
