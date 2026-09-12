@@ -1,15 +1,24 @@
+import type { ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
-import { getCurrentMealPlan, readLatestGroceryChecks, readLatestMealFeedback } from "@/lib/mealplan";
+import {
+  getCurrentMealPlan,
+  getNextMealPlan,
+  readLatestGroceryChecks,
+  readLatestMealFeedback,
+  type MealPlan,
+} from "@/lib/mealplan";
 import { MealPlanGrid } from "@/components/MealPlanGrid";
 import { GroceryChecklist } from "@/components/GroceryChecklist";
+import { SimpleTabs } from "@/components/SimpleTabs";
 import { UtensilsCrossed } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function MealsPage() {
-  const plan = getCurrentMealPlan();
+  const thisWeek = getCurrentMealPlan();
+  const nextWeek = getNextMealPlan();
 
-  if (!plan) {
+  if (!thisWeek) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Weekly meal plan</h1>
@@ -23,12 +32,16 @@ export default async function MealsPage() {
     );
   }
 
+  // Both live in one flat, append-only log each (see lib/mealplan.ts) —
+  // every entry's id already encodes its own weekStart, so one read
+  // covers every week and each week's grid below just finds its own keys
+  // in the same map. No need to read per-week.
   const feedback = readLatestMealFeedback();
   const groceryChecks = readLatestGroceryChecks();
   const today = new Date().toISOString().slice(0, 10);
 
-  return (
-    <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
+  const renderPlan = (plan: MealPlan): ReactNode => (
+    <div className="space-y-8">
       <header>
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
           <UtensilsCrossed className="h-4 w-4" />
@@ -63,6 +76,15 @@ export default async function MealsPage() {
           initialChecked={groceryChecks}
         />
       )}
+    </div>
+  );
+
+  const tabs = [{ label: "This week", content: renderPlan(thisWeek) }];
+  if (nextWeek) tabs.push({ label: "Next week", content: renderPlan(nextWeek) });
+
+  return (
+    <main className="mx-auto max-w-6xl px-6 py-10">
+      {tabs.length > 1 ? <SimpleTabs tabs={tabs} /> : tabs[0].content}
     </main>
   );
 }
