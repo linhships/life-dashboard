@@ -79,6 +79,17 @@ export function GroceryChecklist({
                     })}
                   </ul>
                 )}
+                {sub.trailingNotes.length > 0 && (
+                  <ul
+                    className={`space-y-1 text-xs text-slate-500 ${
+                      sub.items.length > 0 ? "mt-2 border-t border-slate-100 pt-2" : ""
+                    }`}
+                  >
+                    {sub.trailingNotes.map((note, i) => (
+                      <li key={i}>{note}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             ))}
           </div>

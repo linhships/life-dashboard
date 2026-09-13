@@ -37,6 +37,11 @@ export interface GroceryItem {
 export interface GrocerySubsection {
   subheading: string | null;
   note: string;
+  // A "Notes:" paragraph written as its own bulleted list *after* the
+  // shopping items (see meals.md's per-delivery notes) — kept separate
+  // from `items` so it renders as plain text below the checklist rather
+  // than as more checkboxes indistinguishable from actual groceries.
+  trailingNotes: string[];
   items: GroceryItem[];
 }
 
@@ -122,21 +127,30 @@ function parseGrocerySection(
   const ensureSubsection = (subheading: string | null): GrocerySubsection => {
     const last = subsections[subsections.length - 1];
     if (last && last.subheading === subheading) return last;
-    const next: GrocerySubsection = { subheading, note: "", items: [] };
+    const next: GrocerySubsection = { subheading, note: "", trailingNotes: [], items: [] };
     subsections.push(next);
     return next;
   };
 
   let current = ensureSubsection(null);
+  // Flips on the first plain-text line encountered *after* items have
+  // already started (e.g. a "Notes:" paragraph following the shopping
+  // list). From then on, every line — including further "- " ones —
+  // belongs to that trailing note, not to a new checkable item; without
+  // this, a note that happens to be written as its own bulleted list
+  // renders as more checkboxes with no way to tell them apart from real
+  // groceries.
+  let inTrailingNote = false;
 
   for (const rawLine of lines) {
     const trimmed = rawLine.trim();
     if (!trimmed) continue;
     if (trimmed.startsWith("### ")) {
       current = ensureSubsection(trimmed.replace(/^###\s+/, ""));
+      inTrailingNote = false;
       continue;
     }
-    if (trimmed.startsWith("- ")) {
+    if (trimmed.startsWith("- ") && !inTrailingNote) {
       const text = trimmed.slice(2).trim();
       current.items.push({
         id: hashId(`${weekStart}|${heading}|${current.subheading ?? ""}|${text}`),
@@ -144,12 +158,26 @@ function parseGrocerySection(
       });
       continue;
     }
-    // Plain text line (intro paragraph, "Notes:", etc.) — attach to the
-    // current subsection as a small note above its items.
-    current.note = current.note ? `${current.note} ${trimmed}` : trimmed;
+
+    const lineText = trimmed.startsWith("- ") ? trimmed.slice(2).trim() : trimmed;
+    if (current.items.length > 0) inTrailingNote = true;
+    if (inTrailingNote) {
+      // The bare "Notes:" label itself is just a heading for what
+      // follows, not content worth showing on its own.
+      if (!/^notes?:?$/i.test(lineText)) current.trailingNotes.push(lineText);
+    } else {
+      // Plain text line before any items (intro paragraph) — attach to
+      // the subsection as a small note above the list.
+      current.note = current.note ? `${current.note} ${lineText}` : lineText;
+    }
   }
 
-  return { heading, subsections: subsections.filter((s) => s.note || s.items.length > 0) };
+  return {
+    heading,
+    subsections: subsections.filter(
+      (s) => s.note || s.trailingNotes.length > 0 || s.items.length > 0
+    ),
+  };
 }
 
 export function parsePlan(markdown: string, weekStart: string): MealPlan {
