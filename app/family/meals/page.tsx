@@ -1,30 +1,25 @@
 import type { ReactNode } from "react";
-import { cookies } from "next/headers";
 import ReactMarkdown from "react-markdown";
 import { UtensilsCrossed } from "lucide-react";
 import { getCurrentMealPlan, getNextMealPlan, type MealPlan } from "@/lib/mealplan";
 import { FamilyMealPlan } from "@/components/FamilyMealPlan";
+import { FamilyGroceryList } from "@/components/FamilyGroceryList";
 import { SimpleTabs } from "@/components/SimpleTabs";
-import { PasscodePageGate } from "@/components/PasscodePageGate";
-import { FAMILY_AUTH_COOKIE, isAuthed } from "@/lib/familyAuth";
 
 export const dynamic = "force-dynamic";
 
 // Read-only view of the household's weekly meal plan (see lib/mealplan.ts
 // / app/meals/page.tsx for Linh's own, interactive version) — what's for
-// dinner each day, in case that's useful for whoever's visiting or
-// cooking. No rating buttons, no grocery lists; see
-// components/FamilyMealPlan.tsx for why.
+// dinner each day, plus the delivery grocery lists, in case that's
+// useful for whoever's visiting or cooking. No rating buttons, no
+// checkboxes on the groceries; see components/FamilyMealPlan.tsx and
+// components/FamilyGroceryList.tsx for why.
+//
+// Deliberately no passcode gate, unlike the rest of /family: it's just
+// this week's/next week's dinner plan, no photos of the kids, so there's
+// nothing here worth putting behind FAMILY_PASSCODE. Same reasoning as
+// Learning/Resources being passcode-free elsewhere in the app.
 export default async function FamilyMealsPage() {
-  const cookieStore = await cookies();
-  if (!isAuthed(cookieStore.get(FAMILY_AUTH_COOKIE)?.value)) {
-    return (
-      <main className="mx-auto max-w-5xl px-6 py-10">
-        <PasscodePageGate authEndpoint="/api/family/auth" label="Milo & Arlo" />
-      </main>
-    );
-  }
-
   const thisWeek = getCurrentMealPlan();
   const nextWeek = getNextMealPlan();
 
@@ -55,6 +50,9 @@ export default async function FamilyMealsPage() {
         )}
       </div>
       <FamilyMealPlan weekStart={plan.weekStart} today={today} rows={plan.rows} />
+      {plan.grocerySections.length > 0 && (
+        <FamilyGroceryList sections={plan.grocerySections} />
+      )}
     </div>
   );
 
