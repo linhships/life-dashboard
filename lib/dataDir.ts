@@ -26,7 +26,26 @@ import path from "path";
 // Both dataPath() (reads) and writeDataPath() (writes — links.json/
 // learning.json today) resolve identically; there's no case where a read
 // and a write for the same segments could land in different folders.
-const REAL_DIR = path.join(process.cwd(), "data");
+// Where the real folder *is* is separate from which folder is *used*.
+// It defaults to <repo>/data, but can sit anywhere on the machine via
+// DATA_DIR in .env.local — the same bring-your-own-folder pattern every
+// other external source here already uses (NEWS_BRIEFING_DIR,
+// GATEHOUSE_DIR, ...), for the same reason: this data isn't owned by the
+// repo and doesn't travel with it, so a new machine should be able to
+// point at wherever it actually keeps it rather than move it in. A
+// relative DATA_DIR resolves against the repo root.
+//
+// This deliberately does NOT weaken the guarantee above: DATA_DIR only
+// relocates the real folder, it never decides between real and sample —
+// that stays USE_SAMPLE_DATA's job alone, so "which am I looking at" is
+// still answered by exactly one setting. A DATA_DIR pointing somewhere
+// that doesn't exist is a missing folder, and renders as empty/error
+// state; it never silently falls through to sample-data/.
+const DATA_DIR_OVERRIDE = process.env.DATA_DIR?.trim();
+
+const REAL_DIR = DATA_DIR_OVERRIDE
+  ? path.resolve(process.cwd(), DATA_DIR_OVERRIDE)
+  : path.join(process.cwd(), "data");
 const SAMPLE_DIR = path.join(process.cwd(), "sample-data");
 
 const FORCE_SAMPLE = process.env.USE_SAMPLE_DATA?.trim().toLowerCase() === "true";
