@@ -175,10 +175,9 @@ function nappyIcon(entry: string): string {
   const lower = entry.toLowerCase();
   const wet = lower.includes("wet");
   const bm = /\bbm\b/.test(lower);
-  if (wet && bm) return "💧💩";
-  if (bm) return "💩";
-  if (wet) return "💧";
-  return "🧷";
+  const base = wet && bm ? "💧💩" : bm ? "💩" : wet ? "💧" : "🧷";
+  // "Wet (Cream)" — barrier cream applied at the same change.
+  return lower.includes("cream") ? `${base}🧴` : base;
 }
 
 function activityIcon(entry: string): string {
@@ -193,6 +192,131 @@ function activityIcon(entry: string): string {
 
 function otherIcon(entry: string): string {
   return /sick|ill|unwell|poorly/i.test(entry) ? "🤒" : "📌";
+}
+
+// An emoji for the dish itself, on top of the meal-type icon above, so a
+// day's food reads as food rather than as a row of identical plates. Keyed
+// on words that actually appear in the nursery's menus. Order matters and
+// is the whole trick: the dish's *form* wins first (a "Blueberry and Banana
+// Cake" is cake, not fruit), then its protein ("Salmon Pasta Bake" is fish,
+// not pasta), then its staple, and only then loose fruit and veg — which is
+// how you'd describe the plate out loud.
+const FOOD_ICONS: [RegExp, string][] = [
+  // form of the dish
+  [/custard/i, "🍮"],
+  [/yoghurt|yogurt/i, "🍨"],
+  [/cake|tray bake|muffin/i, "🧁"],
+  [/scone/i, "🥯"],
+  [/soup/i, "🍲"],
+  [/\bpie\b/i, "🥧"],
+  [/sandwich/i, "🥪"],
+  [/cracker/i, "🍘"],
+  [/toast/i, "🍞"],
+  [/pitta|pita|bread|naan/i, "🫓"],
+  [/weetabix|porridge|cereal|\boats?\b/i, "🥣"],
+  // protein
+  [/salmon|\bfish\b|tuna|\bcod\b/i, "🐟"],
+  [/chicken/i, "🍗"],
+  [/beef|lamb|chilli|pork|mince|meatball/i, "🥩"],
+  [/\beggs?\b/i, "🥚"],
+  [/cheese/i, "🧀"],
+  [/beans/i, "🫘"],
+  [/stir.?fry/i, "🥡"],
+  // staple
+  [/pasta|spaghetti|lasagne|macaroni/i, "🍝"],
+  [/noodle/i, "🍜"],
+  [/rice|risotto|couscous/i, "🍚"],
+  [/potato|mash|jacket/i, "🥔"],
+  // fruit
+  [/apple/i, "🍎"],
+  [/banana/i, "🍌"],
+  [/watermelon|melon/i, "🍉"],
+  [/orange/i, "🍊"],
+  [/peach|apricot|nectarine/i, "🍑"],
+  [/pineapple/i, "🍍"],
+  [/blueberr|blackberr|raspberr|berry/i, "🫐"],
+  [/mango/i, "🥭"],
+  [/pear\b/i, "🍐"],
+  [/grape/i, "🍇"],
+  [/strawberr/i, "🍓"],
+  // veg
+  [/cauliflower|broccoli|courgette|zucchini|vegetable|\bveg\b/i, "🥦"],
+  [/sweetcorn|\bcorn\b/i, "🌽"],
+  [/peas\b/i, "🫛"],
+  [/carrot/i, "🥕"],
+  [/tomato/i, "🍅"],
+  // drink
+  [/milk/i, "🥛"],
+  [/juice/i, "🧃"],
+  [/water\b/i, "💧"],
+];
+
+function foodIcon(dish: string): string {
+  for (const [re, icon] of FOOD_ICONS) {
+    if (re.test(dish)) return icon;
+  }
+  return "🍴";
+}
+
+// How much of it he actually ate, which the app used to hide inside the
+// entry text. A traffic-light dot rather than a red cross for "None" — it's
+// a baby's lunch, not a test score.
+function portionDot(portion: string): string | null {
+  const p = portion.trim().toLowerCase();
+  if (p === "all" || p === "all+" || p === "most") return "🟢";
+  if (p === "half") return "🟡";
+  if (p === "little" || p === "some") return "🟠";
+  if (p === "none") return "⚪️";
+  return null;
+}
+
+// "13:03 Bottle – Soya Milk (All)" -> time, meal type, and one entry per
+// dish. Anything that doesn't fit the shape is handed back whole as a
+// single unnamed dish, so an unexpected line still renders as text.
+function parseMealEntry(entry: string): {
+  time: string | null;
+  type: string | null;
+  dishes: { name: string; portion: string | null }[];
+} {
+  const m = entry.match(/^(\d{1,2}:\d{2})\s+(.+?)\s*[\u2013-]\s*([\s\S]+)$/);
+  if (!m) return { time: null, type: null, dishes: [{ name: entry.trim(), portion: null }] };
+  return { time: m[1], type: m[2].trim(), dishes: parseDishes(m[3]) };
+}
+
+// Dishes are comma-separated, but a dish name can contain commas of its own
+// ("... with Sweet Potato Mash, Peas, Sweetcorn and Tomato Sauce (All)"), so
+// the split is driven by each "(portion)" instead — slice between the
+// brackets and drop only a *leading* comma.
+function parseDishes(text: string): { name: string; portion: string | null }[] {
+  const out: { name: string; portion: string | null }[] = [];
+  const re = /\(([^)]*)\)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const name = text.slice(last, m.index).replace(/^\s*,\s*/, "").trim();
+    if (name) out.push({ name, portion: m[1].trim() || null });
+    last = re.lastIndex;
+  }
+  const tail = text.slice(last).replace(/^\s*,\s*/, "").trim();
+  if (tail) out.push({ name: tail, portion: null });
+  return out.length > 0 ? out : [{ name: text.trim(), portion: null }];
+}
+
+// Minutes between two same-day "HH:MM" clock readings.
+function minutesBetween(from: string, to: string): number | null {
+  const a = from.match(/^(\d{1,2}):(\d{2})$/);
+  const b = to.match(/^(\d{1,2}):(\d{2})$/);
+  if (!a || !b) return null;
+  const mins = (Number(b[1]) * 60 + Number(b[2])) - (Number(a[1]) * 60 + Number(a[2]));
+  return mins > 0 ? mins : null;
+}
+
+function formatDuration(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
 // One labeled row: an emoji, the field's name, and its entries as small
@@ -235,6 +359,9 @@ function FactRow({
 // at most three short values, and reads better as a single line.
 function ArrivalDepartureRow({ facts }: { facts: ArloDayFacts }) {
   if (!facts.signedIn && !facts.signedOut && !facts.expectedPickup) return null;
+  const mins =
+    facts.signedIn && facts.signedOut ? minutesBetween(facts.signedIn, facts.signedOut) : null;
+  const atNursery = mins === null ? null : formatDuration(mins);
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-xs text-slate-700">
       {facts.signedIn && (
@@ -250,6 +377,66 @@ function ArrivalDepartureRow({ facts }: { facts: ArloDayFacts }) {
       {facts.expectedPickup && (
         <span className="inline-flex items-center gap-1">🚗 Pickup {facts.expectedPickup}</span>
       )}
+      {atNursery && (
+        <span className="inline-flex items-center gap-1 text-slate-500">
+          ⏱️ <span className="font-semibold text-slate-700">{atNursery}</span> at nursery
+        </span>
+      )}
+    </div>
+  );
+}
+
+// One meal per line: the time in a gutter, the meal type, then a chip per
+// dish carrying its own food emoji and how much of it he ate. Replaces the
+// generic FactRow for meals, where a single chip per entry buried both the
+// dish and the portion in one run of text.
+function MealsRow({ meals }: { meals: string[] }) {
+  if (meals.length === 0) return null;
+  return (
+    <div className="flex items-start gap-2 px-4 py-2">
+      <span className="w-5 shrink-0 text-center text-base leading-5">🍽️</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Meals</p>
+        <div className="mt-1 space-y-1.5">
+          {meals.map((entry, i) => {
+            const { time, type, dishes } = parseMealEntry(entry);
+            return (
+              <div key={i} className="flex items-start gap-2">
+                <span className="w-9 shrink-0 pt-1 text-[11px] font-semibold tabular-nums text-slate-400">
+                  {time ?? ""}
+                </span>
+                <div className="min-w-0 flex-1">
+                  {type && (
+                    <p className="text-[11px] leading-4 text-slate-500">
+                      {mealIcon(type)} {type}
+                    </p>
+                  )}
+                  <div className="mt-0.5 flex flex-wrap gap-1">
+                    {dishes.map((d, j) => {
+                      const dot = d.portion ? portionDot(d.portion) : null;
+                      return (
+                        <span
+                          key={j}
+                          className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-1.5 py-0.5 text-[11px] leading-relaxed text-slate-700"
+                        >
+                          <span>{foodIcon(d.name)}</span>
+                          {d.name}
+                          {d.portion && (
+                            <span className="text-slate-400">
+                              {dot ? `${dot} ` : ""}
+                              {d.portion}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -261,11 +448,7 @@ export function DayFacts({ facts }: { facts: ArloDayFacts }) {
   return (
     <div className="divide-y divide-slate-100">
       <ArrivalDepartureRow facts={facts} />
-      <FactRow
-        emoji="🍽️"
-        label="Meals"
-        items={facts.meals.map((m) => ({ icon: mealIcon(m), text: m }))}
-      />
+      <MealsRow meals={facts.meals} />
       <FactRow
         emoji="🧷"
         label="Nappy"
