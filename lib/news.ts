@@ -67,7 +67,7 @@ function newsDir(): string {
   return process.env.NEWS_BRIEFING_DIR?.trim() || dataPath("news");
 }
 
-const SUMMARY_RE = /^(\d{4}-\d{2}-\d{2})-news-summary\.md$/;
+export const SUMMARY_RE = /^(\d{4}-\d{2}-\d{2})-news-summary\.md$/;
 
 // The daily-news task splits AI-related stories into their own dated file
 // (added 2026-08-31 per that task's own CLAUDE.md, "AI news — separate
@@ -75,7 +75,7 @@ const SUMMARY_RE = /^(\d{4}-\d{2}-\d{2})-news-summary\.md$/;
 // just a different filename suffix and read/rendered as a fully separate
 // briefing (own page, own feedback log) rather than merged into the main
 // one.
-const AI_SUMMARY_RE = /^(\d{4}-\d{2}-\d{2})-ai-briefing\.md$/;
+export const AI_SUMMARY_RE = /^(\d{4}-\d{2}-\d{2})-ai-briefing\.md$/;
 
 // "none" represents a cleared/undone rating — clicking an already-active
 // rate button sends this so the log's "last line wins" reduction (see

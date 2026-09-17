@@ -1,4 +1,5 @@
-import { Settings as SettingsIcon } from "lucide-react";
+import Link from "next/link";
+import { Activity, Settings as SettingsIcon } from "lucide-react";
 import { ThemePicker } from "@/components/ThemePicker";
 
 export default function SettingsPage() {
@@ -18,6 +19,22 @@ export default function SettingsPage() {
 
       <section>
         <ThemePicker />
+      </section>
+
+      <section className="border-t border-slate-200 pt-6">
+        <Link
+          href="/settings/data-sources"
+          className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:bg-slate-50"
+        >
+          <Activity className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+          <span>
+            <span className="block text-sm font-semibold text-slate-900">Data sources</span>
+            <span className="mt-0.5 block text-sm text-slate-500">
+              Where each page reads from and what it found there — the place to look when a
+              section is unexpectedly empty.
+            </span>
+          </span>
+        </Link>
       </section>
     </main>
   );

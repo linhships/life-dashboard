@@ -80,8 +80,15 @@ const TORI_SENDER = "Tori (Nanny)";
 // left-to-right mark (U+200E) — the leading `‎?` strips that.
 const LINE_RE = /^‎?\[\d{2}\/\d{2}\/\d{4}, [\d:]+\s?[ap]m\]\s([^:]+):\s(.*)$/;
 const ATTACH_RE = /<attached:\s*([^>]+)>/;
-const PHOTO_FILENAME_RE = /^\d+-PHOTO-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})\.jpg$/i;
-const VIDEO_FILENAME_RE = /^\d+-VIDEO-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})\.mp4$/i;
+export const PHOTO_FILENAME_RE = /^\d+-PHOTO-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})\.jpg$/i;
+export const VIDEO_FILENAME_RE = /^\d+-VIDEO-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})\.mp4$/i;
+
+// WhatsApp also exports GIFs, as .mp4 with a -GIF- segment. They come from
+// the GIF picker - reaction GIFs, not pictures of the children - so they
+// are deliberately not shown. Named here so the health page can tell
+// "format we chose to skip" apart from "format we no longer recognise":
+// a warning that never clears is a warning nobody reads.
+export const SKIPPED_FILENAME_RE = /^\d+-GIF-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})\.mp4$/i;
 
 export interface ToriPhoto {
   id: string;
