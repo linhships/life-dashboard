@@ -29,7 +29,7 @@ function arloNurseryPhotosDir(): string | null {
 // duplicate-suffix handling needed here (unlike Milo's folder) — this
 // export hasn't hit that collision yet, but the pattern would just fail to
 // match and the file would be silently skipped if it ever does.
-const PHOTO_FILENAME_RE = /^(\d{4}-\d{2}-\d{2})_IMG_\d+\.jpe?g$/i;
+export const PHOTO_FILENAME_RE = /^(\d{4}-\d{2}-\d{2})_IMG_\d+\.jpe?g$/i;
 
 // A month folder as the rest of this file expects it: "<year>/<month
 // name>", e.g. "2026/9 September" — matches how the folders are actually
@@ -38,7 +38,7 @@ const PHOTO_FILENAME_RE = /^(\d{4}-\d{2}-\d{2})_IMG_\d+\.jpe?g$/i;
 // resolveArloNurseryPhotoPath, as a path-traversal guard: because this
 // only ever allows exactly two path segments in this fixed shape, there's
 // no way to smuggle in a "completed" segment or a "..".
-const MONTH_DIR_RE = /^\d{4}\/\d{1,2} [^/]+$/;
+export const MONTH_DIR_RE = /^\d{4}\/\d{1,2} [^/]+$/;
 
 const MONTHS: Record<string, number> = {
   jan: 1,
@@ -120,7 +120,12 @@ function hasFacts(f: ArloDayFacts): boolean {
 // (Tanisha T):"/"Post (Name, time):". The "s" flag makes "." match
 // newlines too, since an observation paragraph can carry a second line
 // (e.g. a trailing "Tags: ..." line) with no blank line before it.
-const FIELD_RE = /^\*\*(.+?):\*\*\s*([\s\S]*)$/;
+// A field label, with or without a colon inside the asterisks. Older
+// exports wrote "**Meals:** ...", newer ones "**Meals**" followed by a
+// bullet list; the colon is optional so both parse. The lazy (.+?) still
+// stops at the real closing "**", so a label that contains a colon of its
+// own ("**Note (16:19):**") is captured whole and handed to splitLabel.
+const FIELD_RE = /^\*\*(.+?):?\*\*\s*([\s\S]*)$/;
 
 // "13:03 Bottle – Soya Milk (All). 12:09 Bottle – Soya Milk (Little)."
 // (meals/nappy changes), or "13:24–14:27 (1 hour 3 minutes). 12:24–13:18
@@ -132,6 +137,23 @@ function splitTimedEntries(value: string): string[] {
     .split(/\.\s+(?=\d{1,2}:\d{2})/)
     .map((s) => s.trim().replace(/\.\s*$/, ""))
     .filter(Boolean);
+}
+
+// Bright Horizons has exported this section two ways. Older files put a
+// field's entries in one prose paragraph, period-separated, which is what
+// splitTimedEntries above handles. Newer files put one markdown bullet per
+// entry. Prefer bullets when the body has any — a bullet body run through
+// the period split comes back as a single blob with "- " still glued to
+// each line — and fall back to the prose split otherwise.
+function splitEntries(value: string): string[] {
+  const bullets = value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("-"))
+    .map((line) => line.replace(/^-\s*/, "").trim())
+    .filter(Boolean);
+  if (bullets.length > 0) return bullets.map(stripTrailingPeriod);
+  return splitTimedEntries(value);
 }
 
 function stripTrailingPeriod(value: string): string {
@@ -207,25 +229,39 @@ function parseUpdatesFile(
       const baseLower = base.toLowerCase();
 
       if (baseLower === "arrival & departure") {
-        const inM = rest.match(/Signed into Baby Room\s+([\d:]+)/i);
+        // The separator between "Baby Room" and the time varies by export
+        // ("Baby Room 10:59", "Baby Room: 10:59"), and pickup is written
+        // "Expected pick up - 15:45: ... picked up by Linh", so the time is
+        // matched as a clock value rather than as "whatever follows a
+        // space", and the name is picked up separately where present.
+        // The room is deliberately not part of the pattern: it's whatever
+        // room he's in that term ("Baby Room" now, "Toddler Room" next),
+        // and the separator before the time varies between exports. So
+        // match the phrase, then the first clock value on that line.
+        const inM = rest.match(/Signed in(?:to)?\b[^\n]*?(\d{1,2}:\d{2})/i);
         if (inM) facts.signedIn = inM[1];
-        const outM = rest.match(/Signed out of Baby Room\s+([\d:]+)/i);
+        const outM = rest.match(/Signed out(?: of)?\b[^\n]*?(\d{1,2}:\d{2})/i);
         if (outM) facts.signedOut = outM[1];
-        const pickupM = rest.match(/Expected pick ?up\s+([\d:]+(?:\s+by\s+\w+)?)/i);
-        if (pickupM) facts.expectedPickup = pickupM[1];
+        const pickupM = rest.match(
+          /Expected pick ?up\s*[:\u2013-]?\s*(\d{1,2}:\d{2})(?:[^\n]*?\bby\s+(\w+))?/i
+        );
+        if (pickupM) {
+          facts.expectedPickup = pickupM[2] ? `${pickupM[1]} by ${pickupM[2]}` : pickupM[1];
+        }
       } else if (baseLower === "meals") {
-        facts.meals.push(...splitTimedEntries(rest));
+        facts.meals.push(...splitEntries(rest));
       } else if (baseLower === "nappy changes" || baseLower === "nappy") {
-        facts.nappy.push(...splitTimedEntries(rest));
+        facts.nappy.push(...splitEntries(rest));
       } else if (baseLower === "sleep") {
-        facts.sleep.push(...splitTimedEntries(rest));
+        facts.sleep.push(...splitEntries(rest));
       } else if (baseLower === "activity") {
-        facts.activity.push(stripTrailingPeriod(rest));
+        facts.activity.push(...splitEntries(rest));
       } else if (baseLower === "note") {
-        const text = stripTrailingPeriod(rest);
-        facts.notes.push(extra ? `${extra}: ${text}` : text);
+        for (const text of splitEntries(rest)) {
+          facts.notes.push(extra ? `${extra}: ${text}` : text);
+        }
       } else if (baseLower === "health") {
-        facts.other.push(stripTrailingPeriod(rest));
+        facts.other.push(...splitEntries(rest));
       } else {
         // Observation (Name)/Post (Name, time)/anything unrecognized — a
         // free-text teacher update, kept as its own markdown paragraph
