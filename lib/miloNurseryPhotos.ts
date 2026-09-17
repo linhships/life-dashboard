@@ -1,4 +1,5 @@
 import fs from "fs";
+import fsp from "fs/promises";
 import path from "path";
 import exifr from "exifr";
 import { hashId } from "./hash";
@@ -18,7 +19,7 @@ import { hashId } from "./hash";
 // photo of Milo) which was hand-confirmed and excluded below. As with the
 // Tori gallery, this list is expected to grow if a bad photo is spotted
 // later by eye.
-const EXCLUDED_PHOTOS = new Set<string>([
+export const EXCLUDED_PHOTOS = new Set<string>([
   // Screenshot of a Bright Horizons nursery-app post (teacher's written
   // update + photos of the wider class, not a photo of Milo) — flagged by
   // the near-white heuristic and hand-confirmed.
@@ -38,7 +39,45 @@ function miloNurseryPhotosDir(): string | null {
 // unsuffixed counterpart, so the pattern allows an optional " (<n>)" rather
 // than dropping them. Used both to pick out which files to read and, in
 // resolveMiloNurseryPhotoPath, as a path-traversal guard.
-const PHOTO_FILENAME_RE = /^IMG_\d+(?: \(\d+\))?\.jpe?g$/i;
+export const PHOTO_FILENAME_RE = /^IMG_\d+(?: \(\d+\))?\.jpe?g$/i;
+
+// Reads one photo's EXIF DateTimeOriginal.
+//
+// exifr is deliberately never handed a file PATH here. Given a path it does
+// its own reading, and inside Next's server bundle that throws on every
+// single file:
+//
+//   TypeError: The "options" argument must be of type object.
+//              Received type string ('/Users/.../IMG_0158.jpeg')
+//
+// It works fine under plain node, so this is a bundling artefact rather
+// than a bug in exifr or in the photos. Combined with the catch around the
+// call site — which exists so one corrupt file can't empty the gallery —
+// it failed 473 times in a row and rendered as an ordinary empty page.
+// Passing bytes avoids exifr's file handling altogether.
+//
+// Only the head of the file is read: EXIF lives in the JPEG header, so a
+// leading chunk is enough, and reading ~130KB instead of a whole photo
+// matters when this runs over the entire folder on every request. If the
+// header alone doesn't carry the tag, fall back to the whole file.
+const EXIF_HEAD_BYTES = 128 * 1024;
+
+async function readDateTimeOriginal(fullPath: string): Promise<Date | undefined> {
+  const handle = await fsp.open(fullPath, "r");
+  try {
+    const buf = Buffer.alloc(EXIF_HEAD_BYTES);
+    const { bytesRead } = await handle.read(buf, 0, EXIF_HEAD_BYTES, 0);
+    const head = await exifr
+      .parse(buf.subarray(0, bytesRead), ["DateTimeOriginal"])
+      .catch(() => null);
+    if (head?.DateTimeOriginal) return head.DateTimeOriginal;
+  } finally {
+    await handle.close();
+  }
+  const whole = await fsp.readFile(fullPath);
+  const tags = await exifr.parse(whole, ["DateTimeOriginal"]).catch(() => null);
+  return tags?.DateTimeOriginal;
+}
 
 export interface MiloNurseryPhoto {
   id: string;
@@ -73,8 +112,7 @@ export async function getMiloNurseryDays(): Promise<MiloNurseryDay[]> {
 
     let dt: Date | undefined;
     try {
-      const tags = await exifr.parse(path.join(dir, file), ["DateTimeOriginal"]);
-      dt = tags?.DateTimeOriginal;
+      dt = await readDateTimeOriginal(path.join(dir, file));
     } catch {
       // Unreadable/corrupt EXIF — skip rather than lose the whole gallery.
     }
