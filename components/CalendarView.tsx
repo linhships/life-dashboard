@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import type { CalendarEvent } from "@/lib/troettgerCalendar";
 import { categoryColorClass } from "@/lib/colorHash";
@@ -14,16 +14,7 @@ import { categoryColorClass } from "@/lib/colorHash";
 // has no write path. File predates week/day support (was
 // CalendarMonthView.tsx); kept the export name simple after the rename.
 
-type ViewMode = "month" | "week" | "day";
-
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const MAX_VISIBLE_PER_DAY = 3;
-const HOUR_HEIGHT = 64; // px per hour in the week/day timeline — tall enough
-// for a title + time + location line to actually be readable, not just a
-// sliver of color (Linh's "make the view more like this so one can read
-// more" feedback, referencing Apple Calendar's week view).
-const GUTTER_WIDTH = 56; // px, the hour-label column in the timeline
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
+type ViewMode = "week" | "day";
 
 // Color-per-event accent for Classic/Haven — a light tint fill plus a
 // stronger left border bar (Apple Calendar-style block), one entry per
@@ -100,21 +91,6 @@ function formatTimeRange(event: CalendarEvent): string {
   return `${formatTime(event.start)} – ${formatTime(event.end)}`;
 }
 
-function formatHourLabel(h: number): string {
-  if (h === 0) return "12 AM";
-  if (h < 12) return `${h} AM`;
-  if (h === 12) return "12 PM";
-  return `${h - 12} PM`;
-}
-
-function startOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-function addMonths(d: Date, n: number): Date {
-  return new Date(d.getFullYear(), d.getMonth() + n, 1);
-}
-
 function addDays(d: Date, n: number): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 }
@@ -122,102 +98,6 @@ function addDays(d: Date, n: number): Date {
 function startOfWeek(d: Date): Date {
   const dow = (d.getDay() + 6) % 7; // 0 = Monday
   return addDays(d, -dow);
-}
-
-// Monday-first grid: previous-month padding, every day of the month, then
-// next-month padding out to a full final week.
-function buildMonthGrid(monthCursor: Date): Date[] {
-  const first = startOfMonth(monthCursor);
-  const firstWeekday = (first.getDay() + 6) % 7; // 0 = Monday
-  const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
-  const cells: Date[] = [];
-  for (let i = firstWeekday; i > 0; i--) {
-    cells.push(new Date(first.getFullYear(), first.getMonth(), 1 - i));
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push(new Date(first.getFullYear(), first.getMonth(), d));
-  }
-  while (cells.length % 7 !== 0) {
-    const last = cells[cells.length - 1];
-    cells.push(new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1));
-  }
-  return cells;
-}
-
-// Only events that start at the exact same time actually compete for
-// horizontal space (lane-split, each getting a fraction of the column's
-// width). Events that overlap but start at different times — e.g. an
-// all-afternoon "No Chiarline" block with a 2-hour outing somewhere in
-// the middle of it — are allowed to just overlap instead: both render at
-// full width, with the shorter one stacked on top (higher z-index) so
-// it stays readable. Per Linh's feedback: "as long as the events don't
-// start at the same time, they can overlap instead of the event being
-// smaller in width."
-interface LaidOutEvent {
-  event: CalendarEvent;
-  top: number;
-  height: number;
-  lane: number;
-  laneCount: number;
-  zIndex: number;
-}
-
-function layoutDayTimedEvents(dayEvents: CalendarEvent[]): LaidOutEvent[] {
-  const timed = dayEvents
-    .filter((e) => !e.allDay)
-    .map((e) => {
-      const start = new Date(e.start);
-      const end = e.end ? new Date(e.end) : new Date(start.getTime() + 60 * 60000);
-      const startMinutes = start.getHours() * 60 + start.getMinutes();
-      let endMinutes = end.getHours() * 60 + end.getMinutes();
-      if (endMinutes <= startMinutes) endMinutes = Math.min(startMinutes + 30, 24 * 60);
-      return { event: e, startMinutes, endMinutes };
-    });
-
-  const groups = new Map<number, typeof timed>();
-  for (const item of timed) {
-    const list = groups.get(item.startMinutes) ?? [];
-    list.push(item);
-    groups.set(item.startMinutes, list);
-  }
-
-  const result: LaidOutEvent[] = [];
-  for (const group of groups.values()) {
-    const laneCount = group.length;
-    group.forEach((item, lane) => {
-      result.push({
-        event: item.event,
-        top: (item.startMinutes / 60) * HOUR_HEIGHT,
-        height: Math.max(((item.endMinutes - item.startMinutes) / 60) * HOUR_HEIGHT, 34),
-        lane,
-        laneCount,
-        // Shorter events sit above longer ones they overlap, so a brief
-        // appointment stays on top of (and readable over) a long
-        // background-ish block rather than getting buried under it.
-        zIndex: 10000 - (item.endMinutes - item.startMinutes),
-      });
-    });
-  }
-  return result;
-}
-
-// Compact single-line chip — used in the month grid, where each day cell
-// is small and just needs to hint what's there.
-function EventChip({ event, showTime }: { event: CalendarEvent; showTime: boolean }) {
-  const accent = chipAccent(event.title);
-  return (
-    <div
-      title={event.title}
-      className={`event-chip ${accent.bg} ${categoryColorClass(
-        event.title
-      )} truncate rounded-lg px-2 py-0.5 text-[11px] font-medium text-slate-800`}
-    >
-      {showTime && !event.allDay && (
-        <span className="event-chip-time opacity-70">{formatTime(event.start)} </span>
-      )}
-      {event.title}
-    </div>
-  );
 }
 
 // Rounded pill for the all-day row in week/day view — roomier than the
@@ -304,10 +184,10 @@ function AllDayBar({ bar }: { bar: AllDayBarLayout }) {
     clippedStart && clippedEnd
       ? "rounded-none"
       : clippedStart
-        ? "rounded-l-none rounded-r-full"
+        ? "rounded-l-none rounded-r-md"
         : clippedEnd
-          ? "rounded-r-none rounded-l-full"
-          : "rounded-full";
+          ? "rounded-r-none rounded-l-md"
+          : "rounded-md";
   return (
     <div
       title={event.title}
@@ -320,19 +200,20 @@ function AllDayBar({ bar }: { bar: AllDayBarLayout }) {
   );
 }
 
-// Full detail block for the week/day hourly timeline: title, time range,
-// and location all readable (wrapped where needed) rather than a
-// single truncated line, per Linh's "make the view more like this so one
-// can read more" feedback against Apple Calendar's week view.
-function TimelineEventBlock({ event, style }: { event: CalendarEvent; style: CSSProperties }) {
+// One event, as a card in a list. No absolute positioning and no height
+// proportional to duration: a 20-minute coffee and a six-hour outing are
+// the same size here, and the time is read off the card rather than off a
+// vertical axis. That is the whole point of dropping the axis — a day with
+// one 09:00 event and one 18:00 event wasted most of its height on empty
+// space representing hours in which nothing happened.
+function EventCard({ event }: { event: CalendarEvent }) {
   const accent = chipAccent(event.title);
   return (
     <div
-      style={style}
       title={event.title}
       className={`event-chip ${accent.bg} ${categoryColorClass(
         event.title
-      )} absolute overflow-hidden rounded-xl px-2.5 py-1.5 text-slate-900 shadow-sm`}
+      )} overflow-hidden rounded-md px-2.5 py-1.5 text-slate-900 shadow-sm`}
     >
       <p className="line-clamp-2 text-[12px] font-semibold leading-tight">{event.title}</p>
       {!event.allDay && (
@@ -350,159 +231,38 @@ function TimelineEventBlock({ event, style }: { event: CalendarEvent; style: CSS
   );
 }
 
-function MonthGrid({
-  monthCursor,
-  eventsByDay,
-  todayKey,
-  onPickDay,
-}: {
-  monthCursor: Date;
-  eventsByDay: Map<string, CalendarEvent[]>;
-  todayKey: string;
-  onPickDay: (d: Date) => void;
-}) {
-  const cells = useMemo(() => buildMonthGrid(monthCursor), [monthCursor]);
-  const [expandedDay, setExpandedDay] = useState<string | null>(null);
-
-  return (
-    <>
-      <div className="grid grid-cols-7">
-        {WEEKDAY_LABELS.map((label) => (
-          <div
-            key={label}
-            className="calendar-weekday-label pb-2 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400"
-          >
-            {label}
-          </div>
-        ))}
-      </div>
-
-      <div className="calendar-grid overflow-hidden rounded-lg">
-        {/* gap-1 instead of cell borders: the days separate by whitespace
-            and their own fill, the same way the week view dropped its
-            lattice. Neobrutal draws the borders back on .calendar-day-cell
-            in globals.css. */}
-        <div className="grid grid-cols-7 gap-1">
-          {cells.map((date) => {
-            const key = isoDateKey(date);
-            const inMonth = date.getMonth() === monthCursor.getMonth();
-            const dayEvents = eventsByDay.get(key) ?? [];
-            const isToday = key === todayKey;
-            const expanded = expandedDay === key;
-            const visible = expanded ? dayEvents : dayEvents.slice(0, MAX_VISIBLE_PER_DAY);
-            const hiddenCount = dayEvents.length - visible.length;
-            return (
-              <div
-                key={key}
-                className={`calendar-day-cell min-h-[92px] rounded-xl p-1.5 ${
-                  inMonth ? "bg-white" : "calendar-day-cell--muted bg-slate-100/50"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => onPickDay(date)}
-                  aria-label={`Open ${date.toDateString()} in day view`}
-                  className={`calendar-day-number inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                    isToday
-                      ? "calendar-day-number--today bg-blue-600 text-white"
-                      : inMonth
-                        ? "text-slate-700 hover:bg-slate-100"
-                        : "text-slate-300 hover:bg-slate-100"
-                  }`}
-                >
-                  {date.getDate()}
-                </button>
-                <div className="mt-1 space-y-1">
-                  {visible.map((event) => (
-                    <EventChip key={event.id} event={event} showTime />
-                  ))}
-                  {hiddenCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setExpandedDay(key)}
-                      className="calendar-more-btn block text-[11px] font-semibold text-slate-400 hover:text-slate-600"
-                    >
-                      {hiddenCount} more…
-                    </button>
-                  )}
-                  {expanded && dayEvents.length > MAX_VISIBLE_PER_DAY && (
-                    <button
-                      type="button"
-                      onClick={() => setExpandedDay(null)}
-                      className="calendar-more-btn block text-[11px] font-semibold text-slate-400 hover:text-slate-600"
-                    >
-                      Show less
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </>
-  );
-}
-
-function CurrentTimeIndicator({ now, days, todayKey }: { now: Date; days: Date[]; todayKey: string }) {
-  const todayIndex = days.findIndex((d) => isoDateKey(d) === todayKey);
-  if (todayIndex === -1) return null;
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const top = (nowMinutes / 60) * HOUR_HEIGHT;
-  const fraction = todayIndex / days.length;
-  return (
-    <div className="calendar-now-line pointer-events-none absolute inset-x-0 z-20" style={{ top }}>
-      <div className="flex items-center">
-        <div className="flex shrink-0 justify-end pr-1" style={{ width: GUTTER_WIDTH }}>
-          <span className="rounded bg-rose-500 px-1 py-0.5 text-[9px] font-semibold leading-none text-white">
-            {now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-          </span>
-        </div>
-        <div className="relative h-px flex-1 bg-rose-500">
-          <span
-            className="absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500"
-            style={{ left: `${fraction * 100}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TimelineView({
+// Week and day are the same thing at different widths: a column per day,
+// each listing that day's events in order. Gone with the hour axis are the
+// gutter of hour labels, the 24 x 64px of scaffolding per column, the
+// overlap-lane layout (two events at once simply sit one above the other
+// now) and the current-time line, which marks a position on an axis that
+// no longer exists.
+function AgendaView({
   days,
   eventsByDay,
   todayKey,
-  now,
 }: {
   days: Date[];
   eventsByDay: Map<string, CalendarEvent[]>;
   todayKey: string;
-  now: Date;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const gridCols = `${GUTTER_WIDTH}px repeat(${days.length}, minmax(0, 1fr))`;
   const allDay = useMemo(() => layoutAllDayBars(days, eventsByDay), [days, eventsByDay]);
-  const includesToday = days.some((d) => isoDateKey(d) === todayKey);
-
-  useEffect(() => {
-    if (!scrollRef.current) return;
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const targetHour = includesToday ? Math.max(nowMinutes / 60 - 1, 0) : 6.5;
-    scrollRef.current.scrollTop = targetHour * HOUR_HEIGHT;
-  }, [days, includesToday, now]);
+  const gridCols = `repeat(${days.length}, minmax(0, 1fr))`;
 
   return (
-    <div className="calendar-timeline overflow-hidden rounded-lg">
-      <div className="grid" style={{ gridTemplateColumns: gridCols }}>
-        <div />
+    <div className="calendar-timeline">
+      {/* Day tiles label the columns of a week. On a single day they only
+          repeat the heading above, as one full-width slab, so they're left
+          off. */}
+      {days.length > 1 && (
+      <div className="grid gap-1" style={{ gridTemplateColumns: gridCols }}>
         {days.map((d) => {
           const key = isoDateKey(d);
           const isToday = key === todayKey;
           return (
             <div
               key={key}
-              className={`calendar-weekday-label mx-1 mb-2 flex items-baseline justify-center gap-1.5 rounded-xl px-2 py-2 ${
+              className={`calendar-weekday-label flex items-baseline justify-center gap-1.5 rounded-md px-2 py-2 ${
                 isToday
                   ? "calendar-day-number--today bg-blue-600 text-white"
                   : "bg-slate-100 text-slate-500"
@@ -511,48 +271,28 @@ function TimelineView({
               <span className="text-[11px] font-medium lowercase tracking-wide">
                 {d.toLocaleDateString("en-GB", { weekday: "short" })}
               </span>
-              <span
-                className={`text-lg font-semibold ${isToday ? "text-white" : "text-slate-900"}`}
-              >
+              <span className={`text-lg font-semibold ${isToday ? "text-white" : "text-slate-900"}`}>
                 {d.getDate()}
               </span>
             </div>
           );
         })}
       </div>
+      )}
 
-      <div className="grid" style={{ gridTemplateColumns: gridCols }}>
-        <div className="py-1.5 pr-2 text-right text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-          All day
-        </div>
-        {/* One grid across all the day columns rather than a cell per day,
-            so a multi-day event can be a single element spanning several of
-            them. The outer columns are equal fractions and this spans all
-            of them, so the inner column edges line up with the day headers
-            and the timeline below. The per-day dividers are drawn as
-            background cells behind the bars instead of each day owning a
-            cell. */}
+      {/* All-day spans stay above the lists and keep their continuous bars:
+          a span is about which days it covers, which a per-day list can't
+          say. Only rendered when there is something on, so an ordinary week
+          doesn't carry an empty strip. */}
+      {allDay.bars.length > 0 && (
         <div
-          className="grid"
-          style={{
-            gridColumn: `2 / span ${days.length}`,
-            gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
-            // Keeps the row's height when there is nothing on at all,
-            // which previously came from the empty per-day cells' padding.
-            minHeight: 34,
-          }}
+          className="mt-2 grid"
+          style={{ gridTemplateColumns: gridCols, gridAutoRows: "minmax(0, auto)" }}
         >
-          {days.map((d, i) => (
-            <div
-              key={`divider-${isoDateKey(d)}`}
-              className="calendar-day-divider"
-              style={{ gridColumn: i + 1, gridRow: `1 / ${allDay.laneCount + 1}` }}
-            />
-          ))}
           {allDay.bars.map((bar) => (
             <div
               key={bar.event.id}
-              className="min-w-0 px-1.5 py-1"
+              className="min-w-0 px-0.5 py-0.5"
               style={{
                 gridColumn: `${bar.startIdx + 1} / span ${bar.span}`,
                 gridRow: bar.lane + 1,
@@ -562,63 +302,25 @@ function TimelineView({
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      <div ref={scrollRef} className="calendar-timeline-body relative max-h-[640px] overflow-y-auto">
-        <div className="grid" style={{ gridTemplateColumns: gridCols }}>
-          <div>
-            {HOURS.map((h) => (
-              <div
-                key={h}
-                style={{ height: HOUR_HEIGHT }}
-                className="calendar-hour-label pr-3 text-right text-[10px] font-medium text-slate-400"
-              >
-                {/* Nudged up so the label reads as marking the start of the
-                    hour. With the rules gone there is no line to sit under,
-                    and a label centred in its block drifts visually to the
-                    half hour. */}
-                <span className="relative -top-1.5">{formatHourLabel(h)}</span>
-              </div>
-            ))}
-          </div>
-          {days.map((d) => {
-            const key = isoDateKey(d);
-            const dayEvents = eventsByDay.get(key) ?? [];
-            const laidOut = layoutDayTimedEvents(dayEvents);
-            return (
-              <div
-                key={key}
-                className="calendar-day-column relative px-1"
-                style={{ height: HOUR_HEIGHT * 24 }}
-              >
-                {/* The hour rules used to be drawn here, one bordered div
-                    per hour. They are gone: the hour labels and each card's
-                    own time carry the reading, and the columns separate by
-                    whitespace. Neobrutal puts the lattice back through
-                    .calendar-hour-rule / .calendar-day-column in
-                    globals.css, since hard borders are that theme's whole
-                    language. */}
-                {HOURS.map((h) => (
-                  <div key={h} style={{ height: HOUR_HEIGHT }} className="calendar-hour-rule" />
-                ))}
-                {laidOut.map(({ event, top, height, lane, laneCount, zIndex }) => (
-                  <TimelineEventBlock
-                    key={event.id}
-                    event={event}
-                    style={{
-                      top,
-                      height,
-                      left: `${(lane / laneCount) * 100}%`,
-                      width: `calc(${100 / laneCount}% - 2px)`,
-                      zIndex,
-                    }}
-                  />
-                ))}
-              </div>
-            );
-          })}
-        </div>
-        <CurrentTimeIndicator now={now} days={days} todayKey={todayKey} />
+      <div
+        className="calendar-timeline-body mt-2 grid gap-1"
+        style={{ gridTemplateColumns: gridCols }}
+      >
+        {days.map((d) => {
+          const key = isoDateKey(d);
+          // All-day events are already drawn as bars above; listing them
+          // again here would show each one twice.
+          const dayEvents = (eventsByDay.get(key) ?? []).filter((e) => !e.allDay);
+          return (
+            <div key={key} className="calendar-day-column min-h-[48px] space-y-1 px-0.5">
+              {dayEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -626,11 +328,9 @@ function TimelineView({
 
 export default function CalendarView({
   events,
-  initialView = "month",
+  initialView = "week",
 }: {
   events: CalendarEvent[];
-  // The family app opens on the week, which is how that calendar gets read
-  // day to day; the month grid is still one click away.
   initialView?: ViewMode;
 }) {
   const today = useMemo(() => new Date(), []);
@@ -655,24 +355,14 @@ export default function CalendarView({
     setCursor(today);
   }
   function goPrev() {
-    setCursor((c) => (view === "month" ? addMonths(startOfMonth(c), -1) : view === "week" ? addDays(c, -7) : addDays(c, -1)));
+    setCursor((c) => (view === "week" ? addDays(c, -7) : addDays(c, -1)));
   }
   function goNext() {
-    setCursor((c) => (view === "month" ? addMonths(startOfMonth(c), 1) : view === "week" ? addDays(c, 7) : addDays(c, 1)));
+    setCursor((c) => (view === "week" ? addDays(c, 7) : addDays(c, 1)));
   }
-  function pickDay(d: Date) {
-    setCursor(d);
-    setView("day");
-  }
-
   let headerTitle: string;
   let rangeLabel: string;
-  if (view === "month") {
-    const monthCursor = startOfMonth(cursor);
-    const monthEnd = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0);
-    headerTitle = monthCursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-    rangeLabel = `${monthCursor.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${monthEnd.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
-  } else if (view === "week") {
+  if (view === "week") {
     const weekStart = startOfWeek(cursor);
     const weekEnd = addDays(weekStart, 6);
     headerTitle = weekStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
@@ -704,7 +394,7 @@ export default function CalendarView({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="calendar-view-switch flex items-center rounded-lg border border-slate-200 p-0.5">
-            {(["month", "week", "day"] as ViewMode[]).map((v) => (
+            {(["week", "day"] as ViewMode[]).map((v) => (
               <button
                 key={v}
                 type="button"
@@ -751,19 +441,10 @@ export default function CalendarView({
       </div>
 
       <div className="mt-6">
-        {view === "month" && (
-          <MonthGrid
-            monthCursor={startOfMonth(cursor)}
-            eventsByDay={eventsByDay}
-            todayKey={todayKey}
-            onPickDay={pickDay}
-          />
-        )}
-        {view === "week" && (
-          <TimelineView days={weekDays} eventsByDay={eventsByDay} todayKey={todayKey} now={today} />
-        )}
-        {view === "day" && (
-          <TimelineView days={[cursor]} eventsByDay={eventsByDay} todayKey={todayKey} now={today} />
+        {view === "week" ? (
+          <AgendaView days={weekDays} eventsByDay={eventsByDay} todayKey={todayKey} />
+        ) : (
+          <AgendaView days={[cursor]} eventsByDay={eventsByDay} todayKey={todayKey} />
         )}
       </div>
     </section>
