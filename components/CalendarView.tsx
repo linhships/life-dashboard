@@ -213,7 +213,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
       title={event.title}
       className={`event-chip ${accent.bg} ${categoryColorClass(
         event.title
-      )} overflow-hidden rounded-md px-2.5 py-1.5 text-slate-900 shadow-sm`}
+      )} overflow-hidden rounded-md p-2 text-slate-900 shadow-sm`}
     >
       <p className="line-clamp-2 text-[12px] font-semibold leading-tight">{event.title}</p>
       {!event.allDay && (
@@ -292,7 +292,7 @@ function AgendaView({
           {allDay.bars.map((bar) => (
             <div
               key={bar.event.id}
-              className="min-w-0 px-0.5 py-0.5"
+              className="min-w-0 py-0.5"
               style={{
                 gridColumn: `${bar.startIdx + 1} / span ${bar.span}`,
                 gridRow: bar.lane + 1,
@@ -314,7 +314,7 @@ function AgendaView({
           // again here would show each one twice.
           const dayEvents = (eventsByDay.get(key) ?? []).filter((e) => !e.allDay);
           return (
-            <div key={key} className="calendar-day-column min-h-[48px] space-y-1 px-0.5">
+            <div key={key} className="calendar-day-column min-h-[48px] space-y-1">
               {dayEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
