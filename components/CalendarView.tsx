@@ -48,8 +48,43 @@ function chipAccent(name: string): { bg: string; border: string } {
   return CHIP_ACCENTS[h % CHIP_ACCENTS.length];
 }
 
+// LOCAL calendar date, matching isoDateKey below — which is what the grid
+// keys its day cells by. This used to return the UTC date
+// (toISOString().slice(0,10)) while the cells were keyed locally, so any
+// event whose local day and UTC day differ was filed under a day the grid
+// never looks up. During BST that is every all-day event: iCloud sends
+// them as date-only values, ical.js resolves them to local midnight, and
+// local midnight is 23:00 the PREVIOUS day in UTC — so an all-day event
+// starting Monday was filed under Sunday and vanished from a Mon–Sun week
+// entirely. Timed events were unaffected (09:15 BST is still the 19th in
+// UTC), which is why only the all-day row came up empty.
 function dayKey(iso: string): string {
-  return new Date(iso).toISOString().slice(0, 10);
+  return isoDateKey(new Date(iso));
+}
+
+// Every local date an event covers, for the day buckets.
+//
+// Only all-day events are spread across their span. For a date-only event
+// iCal's DTEND is EXCLUSIVE — a Monday-to-Friday half term carries a
+// Saturday end — so the last covered day is the one before it, and a
+// single-day event still yields exactly one key. Timed events stay filed
+// under their start day: the week/day timeline positions a block from its
+// start, and handing the same block to two columns would draw it twice.
+function coveredDayKeys(event: CalendarEvent): string[] {
+  const startKey = dayKey(event.start);
+  if (!event.allDay || !event.end) return [startKey];
+
+  const start = new Date(event.start);
+  const end = new Date(event.end);
+  const keys: string[] = [];
+  const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  // Guard the loop on a day count as well as the date comparison, so a
+  // malformed end date can't spin it forever.
+  for (let i = 0; i < 400 && cursor < end; i++) {
+    keys.push(isoDateKey(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return keys.length > 0 ? keys : [startKey];
 }
 
 function isoDateKey(d: Date): string {
@@ -476,10 +511,11 @@ export default function CalendarView({
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
     for (const event of events) {
-      const key = dayKey(event.start);
-      const list = map.get(key) ?? [];
-      list.push(event);
-      map.set(key, list);
+      for (const key of coveredDayKeys(event)) {
+        const list = map.get(key) ?? [];
+        list.push(event);
+        map.set(key, list);
+      }
     }
     return map;
   }, [events]);
