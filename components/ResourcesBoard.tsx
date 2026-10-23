@@ -111,18 +111,53 @@ function groupByCategory(resources: ResourceEntry[]): GroupedCategory[] {
   return Array.from(map.entries()).map(([category, items]) => ({ category, resources: items }));
 }
 
-type CategorySort = "count-desc" | "count-asc" | "alpha-asc" | "alpha-desc";
+type CategorySort =
+  | "recent-desc"
+  | "count-desc"
+  | "count-asc"
+  | "alpha-asc"
+  | "alpha-desc";
 
 const SORT_OPTIONS: { value: CategorySort; label: string }[] = [
+  { value: "recent-desc", label: "Recently added" },
   { value: "count-desc", label: "Most first" },
   { value: "count-asc", label: "Fewest first" },
   { value: "alpha-asc", label: "A → Z" },
   { value: "alpha-desc", label: "Z → A" },
 ];
 
+// A category's recency is its newest item: the category you last saved
+// something into should come first, however long it has been sitting there
+// otherwise. addResource writes addedAt as an ISO UTC timestamp, so
+// Date.parse is safe — but an absent or unparseable one is treated as the
+// epoch rather than fed to the comparator, because a single NaN makes the
+// whole comparison incoherent and sorts the list into an arbitrary order
+// instead of failing visibly.
+function newestAddedAt(group: GroupedCategory): number {
+  let newest = 0;
+  for (const resource of group.resources) {
+    const t = Date.parse(resource.addedAt);
+    if (Number.isFinite(t) && t > newest) newest = t;
+  }
+  return newest;
+}
+
 function sortGroups(groups: GroupedCategory[], sort: CategorySort): GroupedCategory[] {
   const sorted = [...groups];
   switch (sort) {
+    case "recent-desc": {
+      // Computed once per category rather than inside the comparator, which
+      // would re-scan every item on each comparison.
+      const newest = new Map(sorted.map((g) => [g.category, newestAddedAt(g)] as const));
+      sorted.sort(
+        (a, b) =>
+          (newest.get(b.category) ?? 0) - (newest.get(a.category) ?? 0) ||
+          // Two categories last touched in the same millisecond is vanishingly
+          // unlikely, but an explicit tiebreak keeps the order deterministic.
+          a.category.localeCompare(b.category)
+      );
+      break;
+    }
     case "count-desc":
       sorted.sort((a, b) => b.resources.length - a.resources.length);
       break;
