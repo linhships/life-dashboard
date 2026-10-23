@@ -164,29 +164,47 @@ Stored in `data/learning.json` (gitignored, personal data); see
 `sample-data/learning.json` for the fictional version shown instead when
 `USE_SAMPLE_DATA=true`.
 
-## Calendar & Reminders
+## Calendar
 
-The `/calendar` page is a read-only view of one iCloud calendar and one
-Reminders list (both named "Troettger AI" by default). Unlike every other
-page in this app, it doesn't read a local file — it connects live to
-Apple's CalDAV server (`https://caldav.icloud.com`) on every page load via
-[`tsdav`](https://github.com/natelindev/tsdav), and parses the returned
-iCalendar data with [`ical.js`](https://github.com/kewisch/ical.js)
+`/family/calendar` is a read-only week view of the shared **Social
+Troettger AI** iCloud calendar — social events, visits, half-terms and work
+trips. It lives in the family section rather than the private dashboard,
+which is what it is for: it's the page the family actually reads.
+
+Unlike every other page in this app, it reads no local file. It connects
+live to Apple's CalDAV server (`https://caldav.icloud.com`) on each page
+load via [`tsdav`](https://github.com/natelindev/tsdav) and parses the
+returned iCalendar data with [`ical.js`](https://github.com/kewisch/ical.js)
 (`lib/troettgerCalendar.ts`). Recurring events are expanded server-side by
 iCloud itself (`expand: true` on the CalDAV time-range query), so a yearly
-birthday just shows up as a normal event on the right day rather than
-needing its own recurrence-rule handling in this app.
+birthday arrives as a normal event on the right day instead of needing
+recurrence-rule handling here.
 
-Copy `.env.example` to `.env.local` and set `ICLOUD_CALDAV_USERNAME` /
-`ICLOUD_CALDAV_APP_PASSWORD` yourself — generate the app-specific password
-at appleid.apple.com → Sign-In and Security → App-Specific Passwords, and
-never reuse your real Apple ID password here. If unset, the page shows a
-"not connected" message instead of erroring. `ICLOUD_CALENDAR_NAME` /
-`ICLOUD_REMINDERS_LIST` are optional overrides if your calendar/list isn't
-literally named "Troettger AI" (both default to that).
+Set `ICLOUD_CALDAV_USERNAME` and `ICLOUD_CALDAV_APP_PASSWORD` in
+`.env.local` yourself — generate the app-specific password at
+appleid.apple.com → Sign-In and Security → App-Specific Passwords, and
+never reuse the real Apple ID password. If either is unset the page shows a
+"not connected" panel listing these steps rather than erroring.
+`ICLOUD_SOCIAL_CALENDAR_NAME` overrides the calendar name (default "Social
+Troettger AI"); iCloud matches on the calendar's **display name**, so
+renaming it in the Calendar app detaches it — the page says so instead of
+rendering an empty week.
 
-This module has no create/update/delete code paths — it only ever calls
-`fetchCalendars`/`fetchCalendarObjects` (read operations).
+The credentials stay server-side: this instance's Node process makes the
+CalDAV request and sends only the resulting events, so nothing about the
+Apple ID reaches a browser. That matters because the family section is the
+one instance shared outside the household.
+
+Two limits worth knowing. The fetch window is 30 days back and 120 ahead,
+so paging past that range shows empty weeks rather than loading more — it
+would need an `/api/family` route to refetch on navigation. And the module
+has no create/update/delete code path at all: it only ever calls
+`fetchCalendars`/`fetchCalendarObjects`.
+
+An earlier version of this (a private `/calendar` page with a Reminders
+sidebar, plus month/week/day views) was removed in `91f073f` as unused;
+`getReminders`/`getCalendarData` survive in the module from that era and are
+currently uncalled.
 
 ## How the retirement model works
 

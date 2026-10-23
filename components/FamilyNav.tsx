@@ -11,6 +11,7 @@ const FAMILY_LINKS: { href: string; label: string }[] = [
   { href: "/family/arlo", label: "Arlo's Nursery & Chiarline" },
   { href: "/family/gatehouse-info", label: "Gatehouse Info" },
   { href: "/family/gatehouse", label: "Gatehouse Comms" },
+  { href: "/family/calendar", label: "Calendar" },
 ];
 
 export function FamilyNav() {
