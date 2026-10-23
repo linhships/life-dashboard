@@ -737,8 +737,32 @@ html[data-theme="neobrutal"] h2 {
    already reads correctly against this theme's remapped crimson. */
 :where(html[data-theme="neobrutal"]) .event-chip {
   border-color: #000;
+  border-width: 2px;
+  border-style: solid;
   color: #000;
   font-weight: 700;
+}
+
+/* The soft themes drop the week/day timeline's lattice entirely — no hour
+   rules, no column dividers — and let the hour labels, the whitespace
+   between columns and each card's own shadow carry the reading. That is a
+   choice those themes can make; this one can't. A flat, hard-edged look
+   with no lines at all reads as unfinished rather than airy, so Neobrutal
+   draws the grid back on the hooks the markup leaves for it. Thinner on
+   the hours than the columns, so the day boundaries still dominate. */
+:where(html[data-theme="neobrutal"]) .calendar-hour-rule {
+  border-top: 1px solid #000;
+}
+:where(html[data-theme="neobrutal"]) .calendar-day-column,
+:where(html[data-theme="neobrutal"]) .calendar-day-divider {
+  border-left: 2px solid #000;
+}
+
+/* Same for the month grid, which now separates its days by whitespace
+   rather than a lattice. A hard border per cell plus the grid's gap reads
+   as a set of bold tiles, which is this theme's idiom anyway. */
+:where(html[data-theme="neobrutal"]) .calendar-day-cell {
+  border: 2px solid #000;
 }
 :where(html[data-theme="neobrutal"]) .calendar-day-number--today {
   border-radius: var(--radius-md);

@@ -208,9 +208,9 @@ function EventChip({ event, showTime }: { event: CalendarEvent; showTime: boolea
   return (
     <div
       title={event.title}
-      className={`event-chip ${accent.bg} ${accent.border} ${categoryColorClass(
+      className={`event-chip ${accent.bg} ${categoryColorClass(
         event.title
-      )} truncate rounded-md border-l-4 px-1.5 py-0.5 text-[11px] font-medium text-slate-800`}
+      )} truncate rounded-lg px-2 py-0.5 text-[11px] font-medium text-slate-800`}
     >
       {showTime && !event.allDay && (
         <span className="event-chip-time opacity-70">{formatTime(event.start)} </span>
@@ -311,9 +311,9 @@ function AllDayBar({ bar }: { bar: AllDayBarLayout }) {
   return (
     <div
       title={event.title}
-      className={`event-chip ${accent.bg} ${accent.border} ${categoryColorClass(
+      className={`event-chip ${accent.bg} ${categoryColorClass(
         event.title
-      )} ${rounding} truncate border-l-4 px-3 py-1 text-[12px] font-medium text-slate-800`}
+      )} ${rounding} truncate px-3 py-1 text-[12px] font-medium text-slate-800`}
     >
       {event.title}
     </div>
@@ -330,9 +330,9 @@ function TimelineEventBlock({ event, style }: { event: CalendarEvent; style: CSS
     <div
       style={style}
       title={event.title}
-      className={`event-chip ${accent.bg} ${accent.border} ${categoryColorClass(
+      className={`event-chip ${accent.bg} ${categoryColorClass(
         event.title
-      )} absolute overflow-hidden rounded-md border-l-4 px-2 py-1 text-slate-900`}
+      )} absolute overflow-hidden rounded-xl px-2.5 py-1.5 text-slate-900 shadow-sm`}
     >
       <p className="line-clamp-2 text-[12px] font-semibold leading-tight">{event.title}</p>
       {!event.allDay && (
@@ -378,8 +378,12 @@ function MonthGrid({
       </div>
 
       <div className="calendar-grid overflow-hidden rounded-lg">
-        <div className="grid grid-cols-7">
-          {cells.map((date, index) => {
+        {/* gap-1 instead of cell borders: the days separate by whitespace
+            and their own fill, the same way the week view dropped its
+            lattice. Neobrutal draws the borders back on .calendar-day-cell
+            in globals.css. */}
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((date) => {
             const key = isoDateKey(date);
             const inMonth = date.getMonth() === monthCursor.getMonth();
             const dayEvents = eventsByDay.get(key) ?? [];
@@ -390,10 +394,8 @@ function MonthGrid({
             return (
               <div
                 key={key}
-                className={`calendar-day-cell min-h-[92px] border-slate-200 p-1.5 ${
-                  index % 7 !== 0 ? "border-l" : ""
-                } border-b ${index < 7 ? "border-t" : ""} ${
-                  inMonth ? "bg-white" : "calendar-day-cell--muted bg-slate-50/60"
+                className={`calendar-day-cell min-h-[92px] rounded-xl p-1.5 ${
+                  inMonth ? "bg-white" : "calendar-day-cell--muted bg-slate-100/50"
                 }`}
               >
                 <button
@@ -402,7 +404,7 @@ function MonthGrid({
                   aria-label={`Open ${date.toDateString()} in day view`}
                   className={`calendar-day-number inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                     isToday
-                      ? "calendar-day-number--today bg-rose-500 text-white"
+                      ? "calendar-day-number--today bg-blue-600 text-white"
                       : inMonth
                         ? "text-slate-700 hover:bg-slate-100"
                         : "text-slate-300 hover:bg-slate-100"
@@ -491,30 +493,35 @@ function TimelineView({
   }, [days, includesToday, now]);
 
   return (
-    <div className="calendar-timeline overflow-hidden rounded-lg border border-slate-200">
-      <div className="grid border-b border-slate-200" style={{ gridTemplateColumns: gridCols }}>
+    <div className="calendar-timeline overflow-hidden rounded-lg">
+      <div className="grid" style={{ gridTemplateColumns: gridCols }}>
         <div />
         {days.map((d) => {
           const key = isoDateKey(d);
           const isToday = key === todayKey;
           return (
-            <div key={key} className="calendar-weekday-label border-l border-slate-200 py-2 text-center">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <div
+              key={key}
+              className={`calendar-weekday-label mx-1 mb-2 flex items-baseline justify-center gap-1.5 rounded-xl px-2 py-2 ${
+                isToday
+                  ? "calendar-day-number--today bg-blue-600 text-white"
+                  : "bg-slate-100 text-slate-500"
+              }`}
+            >
+              <span className="text-[11px] font-medium lowercase tracking-wide">
                 {d.toLocaleDateString("en-GB", { weekday: "short" })}
-              </div>
-              <div
-                className={`mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-sm font-semibold ${
-                  isToday ? "calendar-day-number--today bg-rose-500 text-white" : "text-slate-700"
-                }`}
+              </span>
+              <span
+                className={`text-lg font-semibold ${isToday ? "text-white" : "text-slate-900"}`}
               >
                 {d.getDate()}
-              </div>
+              </span>
             </div>
           );
         })}
       </div>
 
-      <div className="grid border-b border-slate-100" style={{ gridTemplateColumns: gridCols }}>
+      <div className="grid" style={{ gridTemplateColumns: gridCols }}>
         <div className="py-1.5 pr-2 text-right text-[10px] font-semibold uppercase tracking-wide text-slate-400">
           All day
         </div>
@@ -538,7 +545,7 @@ function TimelineView({
           {days.map((d, i) => (
             <div
               key={`divider-${isoDateKey(d)}`}
-              className="border-l border-slate-200"
+              className="calendar-day-divider"
               style={{ gridColumn: i + 1, gridRow: `1 / ${allDay.laneCount + 1}` }}
             />
           ))}
@@ -564,9 +571,13 @@ function TimelineView({
               <div
                 key={h}
                 style={{ height: HOUR_HEIGHT }}
-                className="border-t border-slate-100 pr-2 text-right text-[10px] text-slate-400"
+                className="calendar-hour-label pr-3 text-right text-[10px] font-medium text-slate-400"
               >
-                {formatHourLabel(h)}
+                {/* Nudged up so the label reads as marking the start of the
+                    hour. With the rules gone there is no line to sit under,
+                    and a label centred in its block drifts visually to the
+                    half hour. */}
+                <span className="relative -top-1.5">{formatHourLabel(h)}</span>
               </div>
             ))}
           </div>
@@ -577,11 +588,18 @@ function TimelineView({
             return (
               <div
                 key={key}
-                className="relative border-l border-slate-200"
+                className="calendar-day-column relative px-1"
                 style={{ height: HOUR_HEIGHT * 24 }}
               >
+                {/* The hour rules used to be drawn here, one bordered div
+                    per hour. They are gone: the hour labels and each card's
+                    own time carry the reading, and the columns separate by
+                    whitespace. Neobrutal puts the lattice back through
+                    .calendar-hour-rule / .calendar-day-column in
+                    globals.css, since hard borders are that theme's whole
+                    language. */}
                 {HOURS.map((h) => (
-                  <div key={h} style={{ height: HOUR_HEIGHT }} className="border-t border-slate-100" />
+                  <div key={h} style={{ height: HOUR_HEIGHT }} className="calendar-hour-rule" />
                 ))}
                 {laidOut.map(({ event, top, height, lane, laneCount, zIndex }) => (
                   <TimelineEventBlock
