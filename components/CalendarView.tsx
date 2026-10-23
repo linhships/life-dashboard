@@ -377,15 +377,34 @@ export default function CalendarView({
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [cursor]);
 
+  // The badge used to render `today`, so it sat at "OCT 23" while the
+  // heading beside it read "November 2026" — it looked broken, because
+  // nothing on screen explained why one number ignored the arrows. It now
+  // shows the first day of whatever is on screen, and marks itself when
+  // that happens to be today, which is the only thing the old behaviour was
+  // trying to convey.
+  const badgeDate = view === "week" ? weekDays[0] : cursor;
+  // Marked when the range ON SCREEN contains today, not when the badge's own
+  // date is today — the badge shows the first day of the week, so comparing
+  // that to today would only ever light up on a Monday.
+  const showingToday =
+    view === "week"
+      ? weekDays.some((d) => isoDateKey(d) === todayKey)
+      : isoDateKey(cursor) === todayKey;
+
   return (
     <section className="calendar-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="calendar-header flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div className="flex items-center gap-3">
-          <div className="calendar-date-badge flex w-14 flex-col items-center rounded-lg border border-slate-200 py-1">
+          <div
+            className={`calendar-date-badge flex w-14 flex-col items-center rounded-lg border py-1 ${
+              showingToday ? "border-blue-600 bg-blue-50" : "border-slate-200"
+            }`}
+          >
             <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              {today.toLocaleDateString("en-GB", { month: "short" })}
+              {badgeDate.toLocaleDateString("en-GB", { month: "short" })}
             </span>
-            <span className="text-lg font-bold text-slate-900">{today.getDate()}</span>
+            <span className="text-lg font-bold text-slate-900">{badgeDate.getDate()}</span>
           </div>
           <div>
             <h2 className="text-lg font-bold text-slate-900">{headerTitle}</h2>
