@@ -407,7 +407,7 @@ export default function CalendarView({
             <span className="text-lg font-bold text-slate-900">{badgeDate.getDate()}</span>
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900">{headerTitle}</h2>
+            <h2 className="text-2xl font-bold text-slate-900">{headerTitle}</h2>
             <p className="text-xs text-slate-400">{rangeLabel}</p>
           </div>
         </div>
