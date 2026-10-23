@@ -22,20 +22,36 @@ export interface PasscodeGate {
 
 export function createPasscodeGate(opts: {
   cookieName: string;
-  envVar: string;
+  // One env var, or several as a fallback chain: the first one that is set
+  // wins. The chain exists so a section can be moved onto a new, shared
+  // passcode variable without breaking an .env.local that still only has
+  // the old per-page ones — see lib/kidsPhotosAuth.ts.
+  envVar: string | string[];
   salt: string;
   maxAgeSeconds?: number;
 }): PasscodeGate {
   const maxAgeSeconds = opts.maxAgeSeconds ?? 10 * 60;
+  const envVars = Array.isArray(opts.envVar) ? opts.envVar : [opts.envVar];
+
+  // The single source of truth for "which passcode is this gate using?".
+  // Every other function below goes through it, so verifying, hashing and
+  // the enabled check can never disagree about which variable won.
+  function resolvePasscode(): string | null {
+    for (const name of envVars) {
+      const value = process.env[name];
+      if (value) return value;
+    }
+    return null;
+  }
 
   function expectedToken(): string | null {
-    const passcode = process.env[opts.envVar];
+    const passcode = resolvePasscode();
     if (!passcode) return null;
     return crypto.createHash("sha256").update(`${opts.salt}:${passcode}`).digest("hex");
   }
 
   function isGateEnabled(): boolean {
-    return Boolean(process.env[opts.envVar]);
+    return resolvePasscode() !== null;
   }
 
   function isAuthed(cookieValue: string | undefined): boolean {
@@ -49,14 +65,14 @@ export function createPasscodeGate(opts: {
   }
 
   function verifyPasscode(candidate: string): boolean {
-    const passcode = process.env[opts.envVar];
+    const passcode = resolvePasscode();
     if (!passcode) return false;
     return candidate === passcode;
   }
 
   function issueToken(): string {
     const token = expectedToken();
-    if (!token) throw new Error(`${opts.envVar} is not configured`);
+    if (!token) throw new Error(`${envVars.join(" / ")} is not configured`);
     return token;
   }
 

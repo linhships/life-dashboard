@@ -18,7 +18,7 @@ export default async function ToriPhotosPage() {
   if (!authed) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <PasscodePageGate authEndpoint="/api/tori-photos/auth" label="Tori & the boys" />
+        <PasscodePageGate authEndpoint="/api/tori-photos/auth" label="Milo &amp; Arlo" />
       </main>
     );
   }

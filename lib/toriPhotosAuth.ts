@@ -1,18 +1,13 @@
-import { createPasscodeGate } from "./passcodeGate";
-
-// Passcode gate for the /tori-photos page and its image API route. Same
-// mechanism as lib/resourcesAuth.ts / lib/financeAuth.ts, separate cookie and
-// env var so this section locks independently.
-const gate = createPasscodeGate({
-  cookieName: "tori_photos_auth",
-  envVar: "TORI_PHOTOS_PASSCODE",
-  salt: "life-dashboard-tori-photos-gate",
-});
-
-export const TORI_PHOTOS_AUTH_COOKIE = gate.cookieName;
-export const TORI_PHOTOS_AUTH_MAX_AGE_SECONDS = gate.maxAgeSeconds;
-export const isGateEnabled = gate.isGateEnabled;
-export const isAuthed = gate.isAuthed;
-export const isAuthedRequest = gate.isAuthedRequest;
-export const verifyPasscode = gate.verifyPasscode;
-export const issueToken = gate.issueToken;
+// /tori-photos now shares one gate with /milo-nursery and /arlo-nursery —
+// see lib/kidsPhotosAuth.ts. This module stays as the page's and its API
+// route's entry point so nothing else had to change; the old
+// TORI_PHOTOS_* names resolve to the shared cookie.
+export {
+  KIDS_PHOTOS_AUTH_COOKIE as TORI_PHOTOS_AUTH_COOKIE,
+  KIDS_PHOTOS_AUTH_MAX_AGE_SECONDS as TORI_PHOTOS_AUTH_MAX_AGE_SECONDS,
+  isGateEnabled,
+  isAuthed,
+  isAuthedRequest,
+  verifyPasscode,
+  issueToken,
+} from "./kidsPhotosAuth";

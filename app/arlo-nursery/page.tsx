@@ -24,7 +24,7 @@ export default async function ArloNurseryPage() {
   if (!authed) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <PasscodePageGate authEndpoint="/api/arlo-nursery/auth" label="Arlo's Nursery" />
+        <PasscodePageGate authEndpoint="/api/arlo-nursery/auth" label="Milo &amp; Arlo" />
       </main>
     );
   }

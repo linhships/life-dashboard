@@ -13,7 +13,7 @@ import { Eye, EyeOff, Lock } from "lucide-react";
 //    flips local state back to authed)
 export function PasscodeLockScreen({
   authEndpoint,
-  label = "This page",
+  label = "Locked page",
   onUnlocked,
 }: {
   authEndpoint: string;
@@ -53,7 +53,7 @@ export function PasscodeLockScreen({
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
         <Lock className="h-5 w-5 text-slate-400" />
       </div>
-      <h1 className="mt-3 text-base font-semibold text-slate-900">{label} is locked</h1>
+      <h1 className="mt-3 text-base font-semibold text-slate-900">{label} — locked</h1>
       <p className="mt-1 text-sm text-slate-500">Enter the passcode to continue.</p>
       <div className="relative mt-4">
         <input

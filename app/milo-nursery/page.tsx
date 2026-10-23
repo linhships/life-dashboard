@@ -18,7 +18,7 @@ export default async function MiloNurseryPage() {
   if (!authed) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <PasscodePageGate authEndpoint="/api/milo-nursery/auth" label="Milo's Nursery" />
+        <PasscodePageGate authEndpoint="/api/milo-nursery/auth" label="Milo &amp; Arlo" />
       </main>
     );
   }
