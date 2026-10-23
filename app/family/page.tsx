@@ -1,107 +1,93 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowRight, Baby, Heart, School, UtensilsCrossed } from "lucide-react";
-import { getMiloNurseryDays } from "@/lib/miloNurseryPhotos";
+import { ArrowRight, Baby, Backpack, School } from "lucide-react";
+
 import { getArloNurseryDays } from "@/lib/arloNurseryPhotos";
-import { getToriCareDays } from "@/lib/toriPhotos";
+import { getChiarlineDays } from "@/lib/chiarlineDays";
+import { getGatehouseClassInfo } from "@/lib/gatehouseClassInfo";
 import { getGatehouseReports } from "@/lib/gatehouseReports";
-import { getCurrentMealPlan, getNextMealPlan } from "@/lib/mealplan";
 import { PasscodePageGate } from "@/components/PasscodePageGate";
 import { FAMILY_AUTH_COOKIE, isAuthed } from "@/lib/familyAuth";
 
 export const dynamic = "force-dynamic";
 
+// The family landing page: one card per section, same pattern as before.
+// Note what it does NOT read — no credentials, no links. The cards only
+// ever count things, so nothing sensitive reaches this page either.
 export default async function FamilyHomePage() {
   const cookieStore = await cookies();
   if (!isAuthed(cookieStore.get(FAMILY_AUTH_COOKIE)?.value)) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-10">
-        <PasscodePageGate authEndpoint="/api/family/auth" label="Milo & Arlo" />
+        <PasscodePageGate authEndpoint="/api/family/auth" label="Milo &amp; Arlo" />
       </main>
     );
   }
 
-  const [miloDays, arloDays, toriDays] = [
-    await getMiloNurseryDays(),
-    getArloNurseryDays(),
-    getToriCareDays(),
-  ];
-  const reports = getGatehouseReports();
-  const mealPlan = getCurrentMealPlan();
-  const nextMealPlan = getNextMealPlan();
+  const nurseryDays = getArloNurseryDays();
+  const chiarlineDays = getChiarlineDays();
+  const arloDays = new Set([
+    ...nurseryDays.map((d) => d.date),
+    ...chiarlineDays.map((d) => d.date),
+  ]).size;
+  const arloMedia =
+    nurseryDays.reduce((sum, d) => sum + d.photos.length, 0) +
+    chiarlineDays.reduce((sum, d) => sum + d.media.length, 0);
 
-  const countPhotos = (days: { photos: unknown[] }[]) =>
-    days.reduce((sum, d) => sum + d.photos.length, 0);
+  const classInfo = getGatehouseClassInfo();
+  const reports = getGatehouseReports();
 
   const cards = [
     {
-      href: "/family/milo",
-      label: "Milo's nursery",
-      blurb: `${countPhotos(miloDays)} photos from ${miloDays.length} days`,
-      icon: Baby,
-      tint: "bg-blue-50 text-blue-600",
-    },
-    {
       href: "/family/arlo",
-      label: "Arlo's nursery",
-      blurb: `${countPhotos(arloDays)} photos, with the nursery's daily notes`,
+      label: "Arlo's Nursery and Chiarline Time",
+      blurb: `${arloMedia} photos across ${arloDays} days, with the nursery's notes and Chiarline's messages`,
       icon: Baby,
       tint: "bg-emerald-50 text-emerald-600",
     },
     {
-      href: "/family/tori",
-      label: "With Tori",
-      blurb: `${countPhotos(toriDays)} photos and videos from their days with Tori`,
-      icon: Heart,
-      tint: "bg-rose-50 text-rose-600",
+      href: "/family/gatehouse-info",
+      label: "Gatehouse — Class Info",
+      blurb: classInfo
+        ? `${classInfo.className} — teachers and term dates`
+        : "Milo's class, teachers and term dates",
+      icon: Backpack,
+      tint: "bg-amber-50 text-amber-600",
     },
     {
       href: "/family/gatehouse",
-      label: "Milo's school",
-      blurb:
-        reports.length > 0
-          ? "What's been happening at Gatehouse, week by week"
-          : "Dates and news from Gatehouse",
+      label: "Gatehouse — Communication",
+      blurb: `${reports.length} ${reports.length === 1 ? "week" : "weeks"} of school news, this week's lunches and what's coming up`,
       icon: School,
-      tint: "bg-purple-50 text-purple-600",
-    },
-    {
-      href: "/family/meals",
-      label: "Meals",
-      blurb: mealPlan
-        ? `Week of ${mealPlan.weekStart}${nextMealPlan ? " — next week's is up too" : ""}`
-        : "No meal plan published yet",
-      icon: UtensilsCrossed,
-      tint: "bg-amber-50 text-amber-600",
+      tint: "bg-blue-50 text-blue-600",
     },
   ];
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-        Milo &amp; Arlo
-      </h1>
-      <p className="mt-3 max-w-2xl text-base text-slate-600">
-        Photos from the boys&apos; nurseries, their days with Tori, and news from Milo&apos;s
-        school. Updated whenever there&apos;s something new.
-      </p>
+    <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+      <header>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Milo &amp; Arlo</h1>
+        <p className="mt-2 text-base text-slate-600">
+          Photos and news about the boys, kept up to date automatically.
+        </p>
+      </header>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         {cards.map(({ href, label, blurb, icon: Icon, tint }) => (
           <Link
             key={href}
             href={href}
-            className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+            className="pressable group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
           >
-            <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${tint}`}>
-              <Icon className="h-6 w-6" />
-            </div>
-            <p className="mt-4 text-xl font-bold text-slate-900 group-hover:text-blue-600">
-              {label}
-            </p>
-            <p className="mt-1 text-base text-slate-600">{blurb}</p>
-            <span className="mt-5 inline-flex items-center gap-1.5 text-base font-semibold text-blue-600">
-              Have a look <ArrowRight className="h-4 w-4" />
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tint}`}>
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-base font-semibold text-slate-900">
+                {label}
+                <ArrowRight className="h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-slate-500" />
+              </span>
+              <span className="mt-1 block text-sm text-slate-500">{blurb}</span>
             </span>
           </Link>
         ))}

@@ -8,11 +8,9 @@ import { usePathname } from "next/navigation";
 // of the dashboard (see the comment in components/Sidebar.tsx).
 const FAMILY_LINKS: { href: string; label: string }[] = [
   { href: "/family", label: "Home" },
-  { href: "/family/milo", label: "Milo's nursery" },
-  { href: "/family/arlo", label: "Arlo's nursery" },
-  { href: "/family/tori", label: "With Tori" },
-  { href: "/family/gatehouse", label: "Milo's school" },
-  { href: "/family/meals", label: "Meals" },
+  { href: "/family/arlo", label: "Arlo's Nursery & Chiarline" },
+  { href: "/family/gatehouse-info", label: "Gatehouse Info" },
+  { href: "/family/gatehouse", label: "Gatehouse Comms" },
 ];
 
 export function FamilyNav() {
@@ -21,10 +19,16 @@ export function FamilyNav() {
   return (
     <nav className="flex flex-wrap gap-2">
       {FAMILY_LINKS.map((link) => {
-        // "Home" is a prefix of every other href, so it only counts as
-        // active on an exact match.
-        const isActive =
-          link.href === "/family" ? pathname === "/family" : (pathname?.startsWith(link.href) ?? false);
+          // Match on a path BOUNDARY, not a bare prefix. Two of these hrefs
+          // are prefixes of each other — "/family/gatehouse" is a prefix of
+          // "/family/gatehouse-info" — so startsWith lit both tabs at once
+          // on the Info page. Requiring the next character to be "/" means
+          // a sibling route can never match, while a future sub-route of a
+          // section still keeps its parent tab active. "/family" is exact
+          // only, since every other href sits underneath it.
+          const isActive =
+            pathname === link.href ||
+            (link.href !== "/family" && (pathname?.startsWith(`${link.href}/`) ?? false));
         return (
           <Link
             key={link.href}

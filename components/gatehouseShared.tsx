@@ -98,13 +98,18 @@ export function linkifyText(text: string): ReactNode[] {
 export function MessageModal({
   message,
   onClose,
+  // Which route serves this message's attachments. The /family instance
+  // 404s everything outside /family and /api/family, so it passes its own
+  // equivalent; everywhere else the private route is right.
+  fileEndpoint = "/api/gatehouse/file",
 }: {
   message: GatehouseMessage;
   onClose: () => void;
+  fileEndpoint?: string;
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+      className="material-scrim fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
       onClick={onClose}
     >
       <div
@@ -154,12 +159,12 @@ export function MessageModal({
                     // eslint-disable-next-line @next/next/no-img-element
                     <a
                       key={rel}
-                      href={`/api/gatehouse/file?path=${encodeURIComponent(rel)}`}
+                      href={`${fileEndpoint}?path=${encodeURIComponent(rel)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       <img
-                        src={`/api/gatehouse/file?path=${encodeURIComponent(rel)}`}
+                        src={`${fileEndpoint}?path=${encodeURIComponent(rel)}`}
                         alt=""
                         className="h-28 w-28 rounded-lg border border-slate-200 object-cover hover:opacity-90"
                       />
@@ -167,7 +172,7 @@ export function MessageModal({
                   ) : (
                     <a
                       key={rel}
-                      href={`/api/gatehouse/file?path=${encodeURIComponent(rel)}`}
+                      href={`${fileEndpoint}?path=${encodeURIComponent(rel)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"

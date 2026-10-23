@@ -335,10 +335,13 @@ export function GatehouseWeeklyReports({
   reports,
   upcomingEvents = [],
   meals = null,
+  fileEndpoint,
 }: {
   reports: WeekReportData[];
   upcomingEvents?: UpcomingEventData[];
   meals?: GatehouseMealsData | null;
+  /** Overridden by the /family view, which serves attachments elsewhere. */
+  fileEndpoint?: string;
 }) {
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
   const monthGroups = buildMonthGroups(reports, upcomingEvents, meals?.weeks ?? []);
@@ -500,7 +503,13 @@ export function GatehouseWeeklyReports({
         );
       })}
 
-      {openMessage && <MessageModal message={openMessage} onClose={() => setOpenMessageId(null)} />}
+      {openMessage && (
+        <MessageModal
+          message={openMessage}
+          onClose={() => setOpenMessageId(null)}
+          fileEndpoint={fileEndpoint}
+        />
+      )}
     </div>
   );
 }
