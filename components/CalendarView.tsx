@@ -222,14 +222,98 @@ function EventChip({ event, showTime }: { event: CalendarEvent; showTime: boolea
 
 // Rounded pill for the all-day row in week/day view — roomier than the
 // month-grid chip since there's a whole row's height to use.
-function AllDayPill({ event }: { event: CalendarEvent }) {
+interface AllDayBarLayout {
+  event: CalendarEvent;
+  startIdx: number; // first visible column the event covers
+  span: number; // how many columns it covers
+  lane: number; // which stacked row of the all-day area it sits in
+  clippedStart: boolean; // runs back past the first visible day
+  clippedEnd: boolean; // runs on past the last visible day
+}
+
+// A multi-day all-day event draws as ONE bar across the days it covers,
+// which is how a span is read. Rendering it as a separate pill per day —
+// which is what this did before — repeats the title, truncates each copy to
+// something like "Half Ter…", and conveys nothing about where the span
+// begins or ends.
+//
+// Bars are packed into lanes: each goes in the first lane whose existing
+// bars end before this one starts, so concurrent events stack instead of
+// colliding. Within a start day the longest span is placed first, so the
+// bar reaching furthest sits in the top lane.
+function layoutAllDayBars(
+  days: Date[],
+  eventsByDay: Map<string, CalendarEvent[]>
+): { bars: AllDayBarLayout[]; laneCount: number } {
+  const dayKeys = days.map(isoDateKey);
+
+  // coveredDayKeys() files the same event object under every day it
+  // touches, so walk the visible days and collapse those back into one
+  // first/last column range per event.
+  const spans = new Map<string, { event: CalendarEvent; first: number; last: number }>();
+  dayKeys.forEach((key, idx) => {
+    for (const event of eventsByDay.get(key) ?? []) {
+      if (!event.allDay) continue;
+      const seen = spans.get(event.id);
+      if (seen) seen.last = idx;
+      else spans.set(event.id, { event, first: idx, last: idx });
+    }
+  });
+
+  const length = (s: { first: number; last: number }) => s.last - s.first;
+  const ordered = [...spans.values()].sort(
+    (a, b) =>
+      a.first - b.first ||
+      length(b) - length(a) ||
+      a.event.title.localeCompare(b.event.title)
+  );
+
+  const laneLastColumn: number[] = [];
+  const bars: AllDayBarLayout[] = [];
+  for (const span of ordered) {
+    let lane = laneLastColumn.findIndex((last) => last < span.first);
+    if (lane === -1) {
+      lane = laneLastColumn.length;
+      laneLastColumn.push(-1);
+    }
+    laneLastColumn[lane] = span.last;
+
+    // Does it carry on outside this week? Compared as ISO date strings,
+    // which sort lexicographically.
+    const covered = coveredDayKeys(span.event);
+    bars.push({
+      event: span.event,
+      startIdx: span.first,
+      span: span.last - span.first + 1,
+      lane,
+      clippedStart: covered[0] < dayKeys[0],
+      clippedEnd: covered[covered.length - 1] > dayKeys[dayKeys.length - 1],
+    });
+  }
+
+  return { bars, laneCount: Math.max(1, laneLastColumn.length) };
+}
+
+function AllDayBar({ bar }: { bar: AllDayBarLayout }) {
+  const { event, clippedStart, clippedEnd } = bar;
   const accent = chipAccent(event.title);
+  // An edge that runs past the visible week is squared off, so a span
+  // continuing into the previous or next week reads as cut rather than as
+  // beginning or ending here.
+  const rounding =
+    clippedStart && clippedEnd
+      ? "rounded-none"
+      : clippedStart
+        ? "rounded-l-none rounded-r-full"
+        : clippedEnd
+          ? "rounded-r-none rounded-l-full"
+          : "rounded-full";
   return (
     <div
       title={event.title}
       className={`event-chip ${accent.bg} ${accent.border} ${categoryColorClass(
         event.title
-      )} truncate rounded-full border-l-4 px-3 py-1 text-[12px] font-medium text-slate-800`}
+      )} ${rounding} truncate border-l-4 px-3 py-1 text-[12px] font-medium text-slate-800`}
     >
       {event.title}
     </div>
@@ -396,6 +480,7 @@ function TimelineView({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridCols = `${GUTTER_WIDTH}px repeat(${days.length}, minmax(0, 1fr))`;
+  const allDay = useMemo(() => layoutAllDayBars(days, eventsByDay), [days, eventsByDay]);
   const includesToday = days.some((d) => isoDateKey(d) === todayKey);
 
   useEffect(() => {
@@ -433,17 +518,43 @@ function TimelineView({
         <div className="py-1.5 pr-2 text-right text-[10px] font-semibold uppercase tracking-wide text-slate-400">
           All day
         </div>
-        {days.map((d) => {
-          const key = isoDateKey(d);
-          const allDayEvents = (eventsByDay.get(key) ?? []).filter((e) => e.allDay);
-          return (
-            <div key={key} className="space-y-1 border-l border-slate-200 p-1.5">
-              {allDayEvents.map((e) => (
-                <AllDayPill key={e.id} event={e} />
-              ))}
+        {/* One grid across all the day columns rather than a cell per day,
+            so a multi-day event can be a single element spanning several of
+            them. The outer columns are equal fractions and this spans all
+            of them, so the inner column edges line up with the day headers
+            and the timeline below. The per-day dividers are drawn as
+            background cells behind the bars instead of each day owning a
+            cell. */}
+        <div
+          className="grid"
+          style={{
+            gridColumn: `2 / span ${days.length}`,
+            gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
+            // Keeps the row's height when there is nothing on at all,
+            // which previously came from the empty per-day cells' padding.
+            minHeight: 34,
+          }}
+        >
+          {days.map((d, i) => (
+            <div
+              key={`divider-${isoDateKey(d)}`}
+              className="border-l border-slate-200"
+              style={{ gridColumn: i + 1, gridRow: `1 / ${allDay.laneCount + 1}` }}
+            />
+          ))}
+          {allDay.bars.map((bar) => (
+            <div
+              key={bar.event.id}
+              className="min-w-0 px-1.5 py-1"
+              style={{
+                gridColumn: `${bar.startIdx + 1} / span ${bar.span}`,
+                gridRow: bar.lane + 1,
+              }}
+            >
+              <AllDayBar bar={bar} />
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       <div ref={scrollRef} className="calendar-timeline-body relative max-h-[640px] overflow-y-auto">
