@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown, Images } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { PhotoCarousel } from "./PhotoCarousel";
 import type { ArloDayFacts, ArloNurseryDay, ArloNurseryPhoto } from "@/lib/arloNurseryPhotos";
 
 // The route that serves the photo bytes — configurable for the same reason
@@ -50,108 +51,11 @@ function DayCarousel({
   photos: ArloNurseryPhoto[];
   imageEndpoint: string;
 }) {
-  const n = photos.length;
-  const hasMultiple = n > 1;
-
-  const slides = hasMultiple ? [photos[n - 1], ...photos, photos[0]] : photos;
-  const [pos, setPos] = useState(hasMultiple ? 1 : 0);
-  const [withTransition, setWithTransition] = useState(true);
-  const index = hasMultiple ? (((pos - 1) % n) + n) % n : 0;
-
-  const step = (delta: number) => {
-    setWithTransition(true);
-    setPos((p) => p + delta);
-  };
-  const jumpTo = (i: number) => {
-    setWithTransition(true);
-    setPos(i + 1);
-  };
-
-  const handleTransitionEnd = () => {
-    if (!hasMultiple) return;
-    if (pos === n + 1) {
-      setWithTransition(false);
-      setPos(1);
-    } else if (pos === 0) {
-      setWithTransition(false);
-      setPos(n);
-    }
-  };
-  useEffect(() => {
-    if (withTransition) return;
-    const raf = requestAnimationFrame(() => setWithTransition(true));
-    return () => cancelAnimationFrame(raf);
-  }, [withTransition]);
-
-  useEffect(() => {
-    if (!hasMultiple) return;
-    const id = setInterval(() => step(1), 3500);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMultiple, n]);
-
   return (
-    // Fixed aspect ratio when stacked above the update on mobile (nothing
-    // to match height against there); on desktop it instead stretches to
-    // the update column's natural height, via md:h-full plus the parent
-    // row's default flex align-items: stretch — see DayCard.
-    <div className="relative aspect-[4/3] w-full overflow-hidden bg-white sm:aspect-[16/9] md:aspect-auto md:h-full">
-      <div
-        className={`flex h-full ${
-          withTransition ? "transition-transform duration-700 ease-in-out" : ""
-        }`}
-        style={{ transform: `translateX(-${pos * 100}%)` }}
-        onTransitionEnd={handleTransitionEnd}
-      >
-        {slides.map((p, i) => (
-          <div key={`${p.id}-${i}`} className="h-full w-full shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photoUrl(p, imageEndpoint)}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-contain"
-            />
-          </div>
-        ))}
-      </div>
-
-      {hasMultiple && (
-        <>
-          <button
-            type="button"
-            onClick={() => step(-1)}
-            aria-label="Previous photo"
-            className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => step(1)}
-            aria-label="Next photo"
-            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5">
-            {photos.map((p, i) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => jumpTo(i)}
-                aria-label={`Go to photo ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === index ? "w-5 bg-white" : "w-1.5 bg-white/60 hover:bg-white/80"
-                }`}
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+    <PhotoCarousel
+      slides={photos.map((p) => ({ id: p.id, src: photoUrl(p, imageEndpoint), type: "photo" }))}
+      ariaLabel="Nursery photos from this day"
+    />
   );
 }
 

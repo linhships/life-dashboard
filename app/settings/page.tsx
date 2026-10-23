@@ -24,7 +24,7 @@ export default function SettingsPage() {
       <section className="border-t border-slate-200 pt-6">
         <Link
           href="/settings/data-sources"
-          className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:bg-slate-50"
+          className="pressable flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:bg-slate-50"
         >
           <Activity className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
           <span>

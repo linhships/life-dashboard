@@ -343,7 +343,7 @@ function ResourceModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+      className="material-scrim fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
       onClick={onClose}
     >
       <div

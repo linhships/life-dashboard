@@ -249,7 +249,7 @@ export function Sidebar({ learningGuides = [] }: { learningGuides?: SidebarGuide
   return (
     <>
       {/* Mobile top bar */}
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+      <div className="material sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 px-4 py-3 md:hidden">
         <div className="flex items-center gap-2">
           <BrandMark className="h-7 w-7 text-base" />
           <span className="text-sm font-semibold text-slate-900">Life Dashboard</span>
@@ -267,13 +267,13 @@ export function Sidebar({ learningGuides = [] }: { learningGuides?: SidebarGuide
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-20 bg-slate-900/30 md:hidden"
+          className="material-scrim fixed inset-0 z-20 bg-slate-900/30 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 md:transition-[width] ${
+        className={`material-thick fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-slate-200 transition-transform duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 md:transition-[width] ${
           collapsed ? "md:w-20" : "md:w-64"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >

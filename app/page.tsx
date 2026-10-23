@@ -96,7 +96,7 @@ export default function Home() {
           <Link
             key={href}
             href={href}
-            className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+            className="pressable group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
           >
             <div
               className={`flex h-10 w-10 items-center justify-center rounded-xl ${ICON_BADGE[iconColor]}`}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown, Images } from "lucide-react";
 import type { MiloNurseryDay, MiloNurseryPhoto } from "@/lib/miloNurseryPhotos";
+import { PhotoCarousel } from "./PhotoCarousel";
 
 // The route that serves the photo bytes. Configurable because the
 // grandparent-facing /family view reuses this gallery but has to go
@@ -42,118 +43,27 @@ function formatMonthHeading(key: string): string {
 // for how the clone-slide technique avoids the "huge jump" when wrapping
 // from last photo back to first. This version drops all the video-specific
 // bits (refs, autoplay, onPause) since this folder is photos only.
+// The day's card: the pager (now components/PhotoCarousel.tsx, shared with
+// the other galleries and carrying the drag/flick gesture layer) plus the
+// date and count footer.
 function DayCarousel({ day, imageEndpoint }: { day: MiloNurseryDay; imageEndpoint: string }) {
-  const photos = day.photos;
-  const n = photos.length;
-  const hasMultiple = n > 1;
-
-  const slides = hasMultiple ? [photos[n - 1], ...photos, photos[0]] : photos;
-  const [pos, setPos] = useState(hasMultiple ? 1 : 0);
-  const [withTransition, setWithTransition] = useState(true);
-  const index = hasMultiple ? (((pos - 1) % n) + n) % n : 0;
-
-  const step = (delta: number) => {
-    setWithTransition(true);
-    setPos((p) => p + delta);
-  };
-  const jumpTo = (i: number) => {
-    setWithTransition(true);
-    setPos(i + 1);
-  };
-
-  const handleTransitionEnd = () => {
-    if (!hasMultiple) return;
-    if (pos === n + 1) {
-      setWithTransition(false);
-      setPos(1);
-    } else if (pos === 0) {
-      setWithTransition(false);
-      setPos(n);
-    }
-  };
-  useEffect(() => {
-    if (withTransition) return;
-    const raf = requestAnimationFrame(() => setWithTransition(true));
-    return () => cancelAnimationFrame(raf);
-  }, [withTransition]);
-
-  // Auto-play, same as the Tori gallery's photo slides — advances every
-  // few seconds while this day's carousel is mounted (i.e. its month is
-  // expanded).
-  useEffect(() => {
-    if (!hasMultiple) return;
-    const id = setInterval(() => step(1), 3500);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMultiple, n]);
-
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-white sm:aspect-[16/9]">
-        <div
-          className={`flex h-full ${
-            withTransition ? "transition-transform duration-700 ease-in-out" : ""
-          }`}
-          style={{ transform: `translateX(-${pos * 100}%)` }}
-          onTransitionEnd={handleTransitionEnd}
-        >
-          {slides.map((p, i) => (
-            <div key={`${p.id}-${i}`} className="h-full w-full shrink-0">
-              {/* object-contain so a portrait photo is shown in full,
-                  letterboxed with white margins, rather than cropped. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photoUrl(p, imageEndpoint)}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-contain"
-              />
-            </div>
-          ))}
-        </div>
-
-        {hasMultiple && (
-          <>
-            <button
-              type="button"
-              onClick={() => step(-1)}
-              aria-label="Previous photo"
-              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => step(1)}
-              aria-label="Next photo"
-              className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-
-            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5">
-              {photos.map((p, i) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => jumpTo(i)}
-                  aria-label={`Go to photo ${i + 1}`}
-                  className={`h-1.5 rounded-full transition-all ${
-                    i === index ? "w-5 bg-white" : "w-1.5 bg-white/60 hover:bg-white/80"
-                  }`}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      <PhotoCarousel
+        slides={day.photos.map((p) => ({
+          id: p.id,
+          src: photoUrl(p, imageEndpoint),
+          type: "photo" as const,
+        }))}
+        className="relative aspect-[4/3] w-full overflow-hidden bg-white sm:aspect-[16/9]"
+        ariaLabel={`Nursery photos from ${formatDayHeading(day.date)}`}
+      />
 
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">{formatDayHeading(day.date)}</p>
         <span className="flex shrink-0 items-center gap-1 text-xs text-slate-400">
           <Images className="h-3.5 w-3.5" />
-          {formatPhotoCount(photos.length)}
+          {formatPhotoCount(day.photos.length)}
         </span>
       </div>
     </div>

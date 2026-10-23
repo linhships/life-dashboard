@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Images } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown, Images } from "lucide-react";
 import type { ArloNurseryDay } from "@/lib/arloNurseryPhotos";
 import type { ChiarlineDay } from "@/lib/chiarlineDays";
 import { DayFacts, UpdateText } from "./ArloNurseryGallery";
+import { PhotoCarousel } from "./PhotoCarousel";
 
 // One timeline for Arlo's days, whichever kind of day it was: at nursery
 // (Bright Horizons app data + their photos) or with Chiarline (her photos
@@ -56,129 +57,11 @@ function formatSlideCount(slides: Slide[]): string {
 
 // Sliding-track carousel with clone slides at each end, so wrapping from
 // the last picture to the first doesn't visibly rewind the whole strip.
+// The pager itself now lives in components/PhotoCarousel.tsx, shared with
+// the three gallery pages — one gesture layer instead of four copies of
+// the same arrows-and-dots carousel.
 function MediaCarousel({ slides }: { slides: Slide[] }) {
-  const n = slides.length;
-  const hasMultiple = n > 1;
-
-  const track = hasMultiple ? [slides[n - 1], ...slides, slides[0]] : slides;
-  const [pos, setPos] = useState(hasMultiple ? 1 : 0);
-  const [withTransition, setWithTransition] = useState(true);
-  const [paused, setPaused] = useState(false);
-  const index = hasMultiple ? (((pos - 1) % n) + n) % n : 0;
-
-  const step = (delta: number) => {
-    setWithTransition(true);
-    setPos((p) => p + delta);
-  };
-
-  const handleTransitionEnd = () => {
-    if (!hasMultiple) return;
-    if (pos === n + 1) {
-      setWithTransition(false);
-      setPos(1);
-    } else if (pos === 0) {
-      setWithTransition(false);
-      setPos(n);
-    }
-  };
-  useEffect(() => {
-    if (withTransition) return;
-    const raf = requestAnimationFrame(() => setWithTransition(true));
-    return () => cancelAnimationFrame(raf);
-  }, [withTransition]);
-
-  // Autoplay, but not while a video is playing — sliding away mid-video is
-  // the one thing that makes these annoying.
-  useEffect(() => {
-    if (!hasMultiple || paused) return;
-    const id = setInterval(() => step(1), 3500);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMultiple, n, paused]);
-
-  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
-
-  return (
-    // Fixed aspect ratio on mobile, where it sits above the text and has
-    // nothing to match; on desktop it stretches to the text column's
-    // height via md:h-full plus the row's default align-items: stretch.
-    <div className="relative aspect-[4/3] w-full overflow-hidden bg-white sm:aspect-[16/9] md:aspect-auto md:h-full">
-      <div
-        className={`flex h-full ${
-          withTransition ? "transition-transform duration-700 ease-in-out" : ""
-        }`}
-        style={{ transform: `translateX(-${pos * 100}%)` }}
-        onTransitionEnd={handleTransitionEnd}
-      >
-        {track.map((s, i) => (
-          <div key={`${s.id}-${i}`} className="h-full w-full shrink-0">
-            {s.type === "video" ? (
-              <video
-                ref={(el) => {
-                  videoRefs.current[`${s.id}-${i}`] = el;
-                }}
-                src={s.src}
-                controls
-                playsInline
-                preload="metadata"
-                onPlay={() => setPaused(true)}
-                onPause={() => setPaused(false)}
-                onEnded={() => setPaused(false)}
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={s.src}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-contain"
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {hasMultiple && (
-        <>
-          <button
-            type="button"
-            onClick={() => step(-1)}
-            aria-label="Previous"
-            className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => step(1)}
-            aria-label="Next"
-            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5">
-            {slides.map((s, i) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => {
-                  setWithTransition(true);
-                  setPos(i + 1);
-                }}
-                aria-label={`Go to item ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === index ? "w-5 bg-white" : "w-1.5 bg-white/60 hover:bg-white/80"
-                }`}
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
+  return <PhotoCarousel slides={slides} ariaLabel="Photos and videos from this day" />;
 }
 
 // One source's half of a day: its pictures beside its words.
@@ -385,7 +268,7 @@ export function CareTimeline({
                   isCollapsed ? "-rotate-90" : ""
                 }`}
               />
-              <h3 className="text-lg font-bold text-slate-900">{formatMonthHeading(group.key)}</h3>
+              <h2 className="text-lg font-bold text-slate-900">{formatMonthHeading(group.key)}</h2>
               <span className="text-sm text-slate-400">
                 {group.days.length} {group.days.length === 1 ? "day" : "days"}
                 {nurseryCount > 0 ? ` · ${nurseryCount} nursery` : ""}
