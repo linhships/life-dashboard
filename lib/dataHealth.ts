@@ -230,16 +230,6 @@ function listUnnameable(
   return names.sort();
 }
 
-function countUnnameable(
-  dir: string | null,
-  candidate: RegExp,
-  accepted: RegExp[],
-  depth = 1,
-  skip: string[] = []
-): number {
-  return listUnnameable(dir, candidate, accepted, depth, skip).length;
-}
-
 // Arlo's photos are only visible to the reader when BOTH the month folder
 // and the filename match. A correctly-named photo inside a wrongly-named
 // month folder is invisible, which is exactly how a whole year of photos
@@ -317,7 +307,6 @@ interface Probe {
   hint?: string;
 }
 
-const PHOTO_RE = /\.jpe?g$/i;
 const MEDIA_RE = /\.(jpe?g|mp4)$/i;
 const MD_RE = /\.md$/i;
 
