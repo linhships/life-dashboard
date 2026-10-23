@@ -82,6 +82,20 @@
   --color-amber-600: #c1843a;
   --color-amber-700: #9f6a2c;
 
+  /* Orange: a 7th accent hue, used by the Gatehouse class-info category
+     boxes and the weekly-kit panel. It had been the ONLY colour family in
+     the app that no theme overrode, so those panels rendered in stock
+     Tailwind orange under all three looks - the one genuinely off-palette
+     colour in the dashboard. Here: a deeper, browner rust, kept clear of
+     the ochre amber and the pinker terracotta rose on either side of it
+     (the 50 wash is deliberately a touch stronger than amber's, because at
+     that lightness hue alone can't separate them). */
+  --color-orange-50: #f7dcc0;
+  --color-orange-100: #f6d4b0;
+  --color-orange-200: #e8a872;
+  --color-orange-600: #a65a22;
+  --color-orange-700: #86481a;
+
   /* Generously rounded cards and controls */
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
@@ -135,8 +149,26 @@ body {
 h1,
 h2 {
   font-family: var(--font-display);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.014em;
 }
+
+/* Tracking is size-specific, never one value for every size: letters read
+   too far apart as type grows, so display sizes want negative tracking,
+   while small text wants a touch positive for legibility. A single flat
+   value — which is what this rule used to be — is wrong at one end or the
+   other by definition.
+   These have to live here, next to the base rule, rather than with the
+   other foundations at the bottom of the file: this block is outside any
+   cascade layer, and unlayered CSS outranks everything in Tailwind's
+   layers whatever its specificity. A lower-specificity rule further down
+   would silently lose to the -0.014em above, on exactly the largest
+   headings where correct tracking matters most.
+   (Same reason a `tracking-*` utility on an h1/h2 has never had any
+   effect in this app — the base rule was already beating it.) */
+:is(h1, h2):is(.text-5xl, .text-4xl) { letter-spacing: -0.022em; }
+:is(h1, h2).text-3xl { letter-spacing: -0.019em; }
+:is(h1, h2).text-2xl { letter-spacing: -0.014em; }
+:is(h1, h2):is(.text-xl, .text-lg) { letter-spacing: -0.008em; }
 
 /* Haven theme: a second, warmer/rounder color scheme, toggled by setting
    data-theme=haven on the html element (see components/ThemePicker.tsx and
@@ -145,12 +177,21 @@ h2 {
    bg/text/border class repaints automatically, no markup changes needed.
    Without the attribute set, the look stays exactly as it is today. */
 html[data-theme="haven"] {
-  --background: #faf8f3;
+  /* Page sits deep enough below the card fill (--color-white) that a card
+     lifts off it unaided. It used to be #faf8f3 against an inherited
+     #fffdfb card - about 1.05:1, which is the flatness the Editorial theme
+     was explicitly rebuilt to fix; Haven never got the same treatment
+     because it defines no --color-white of its own. Now ~1.14:1, matching
+     Editorial's ~1.15:1. */
+  --background: #f2ede2;
   --foreground: #26231d;
 
-  /* Neutrals: cool slate -> warm cream/sage */
-  --color-slate-50: #f7f5f0;
-  --color-slate-100: #efece3;
+  /* Neutrals: cool slate -> warm cream/sage. 50 has to equal --background
+     (the Editorial block explains why: bg-slate-50 panels are meant to be
+     the page shade); Haven had them 1.5% apart, so every bg-slate-50
+     surface was a slightly different cream from the page behind it. */
+  --color-slate-50: #f2ede2;
+  --color-slate-100: #e9e3d4;
   --color-slate-200: #e2ddd0;
   --color-slate-300: #cec7b4;
   --color-slate-400: #a9a08a;
@@ -183,11 +224,22 @@ html[data-theme="haven"] {
   --color-rose-600: #e2694f;
   --color-rose-700: #c04f38;
 
-  /* Purple -> lavender */
+  /* Purple -> lavender. 200 was missing, so anything using purple-200
+     under Haven fell through to the Editorial theme's plum - off this
+     ramp entirely. */
   --color-purple-50: #f5f1fb;
   --color-purple-100: #e8def5;
+  --color-purple-200: #d0bfed;
   --color-purple-600: #8b6cc9;
   --color-purple-700: #7152a8;
+
+  /* Orange: the 7th accent hue (see the :root block) - a warm apricot,
+     held clear of this theme's peach amber and coral rose. */
+  --color-orange-50: #fbe4c8;
+  --color-orange-100: #f7d4a9;
+  --color-orange-200: #f0b878;
+  --color-orange-600: #c2762a;
+  --color-orange-700: #9d5c1d;
 
   /* Amber -> peach */
   --color-amber-50: #fef6ec;
@@ -196,7 +248,12 @@ html[data-theme="haven"] {
   --color-amber-600: #d98f3b;
   --color-amber-700: #b8722a;
 
-  /* Softer, rounder corners throughout */
+  /* Cards are this theme's own warm near-white, not the Editorial
+     theme's #fffdfb that it used to inherit - which is also the value the
+     theme picker's preview swatch has always advertised. */
+  --color-white: #fdfcf8;
+
+  /* Slightly tighter corners than the Editorial default */
   --radius-md: 0.625rem;
   --radius-lg: 0.875rem;
   --radius-xl: 1.125rem;
@@ -267,6 +324,16 @@ html[data-theme="neobrutal"] {
   --color-amber-600: #b8880a;
   --color-amber-700: #8f6900;
 
+  /* Orange: the 7th accent hue (see the :root block) - bright marigold.
+     Held clear of BOTH this theme's lemon amber and its coral primary
+     (the blue slot, which is itself orange here), so a category box can't
+     be mistaken for a primary action. */
+  --color-orange-50: #ffe8cc;
+  --color-orange-100: #ffd9a8;
+  --color-orange-200: #ffb14d;
+  --color-orange-600: #e07000;
+  --color-orange-700: #b35a00;
+
   /* Sharp, minimal corners */
   --radius-md: 0.1875rem;
   --radius-lg: 0.1875rem;
@@ -292,7 +359,18 @@ html[data-theme="neobrutal"] {
 html[data-theme="neobrutal"] h1,
 html[data-theme="neobrutal"] h2 {
   font-family: var(--font-sans);
-  letter-spacing: normal;
+  /* Only the family is reset here. This rule used to also set
+     `letter-spacing: normal`, and because it outranks the size-specific
+     tracking rules above (an attribute selector plus two type selectors
+     against a class plus one), it switched tracking OFF for every heading
+     in this theme - a 48px h1 at 0 tracking, while a text-4xl div beside
+     it still got -0.022em from the rules at the foot of this file. So the
+     theme's headings were set looser than its own body text at the same
+     size, which is the one thing size-specific tracking exists to
+     prevent. Dropping the declaration lets the shared scale apply, and
+     that scale is right for this theme without adjustment: Neobrutal's
+     headings are the same grotesque as its body text, so they want the
+     same size-to-tracking mapping. */
 }
 
 /* From here down, every selector wraps the theme condition in :where(),
@@ -750,3 +828,210 @@ html[data-theme="neobrutal"] h2 {
   padding: 1.25rem;
   background: var(--color-slate-50);
 }
+
+/* ---------------------------------------------------------------------
+   Apple-style interface foundations
+   ---------------------------------------------------------------------
+   Three things the app had none of: instant press feedback, size-specific
+   tracking, and any response to the accessibility motion/transparency
+   settings. All of it uses :where() so specificity stays at 0 and any
+   component or theme can still override — same convention as the theme
+   blocks above.
+   --------------------------------------------------------------------- */
+
+/* Response — the foundation everything else is built on.
+   Feedback belongs on pointer-DOWN, not on release: waiting for the click
+   to show anything feels dead, and the moment lag appears the sense of
+   directness falls off a cliff. Buttons get this for free; card-shaped
+   links opt in with .pressable, because text links inside a paragraph
+   shouldn't react like controls.
+
+   It is deliberately NOT a scale. A scale on a wide control moves its
+   edges: at 0.97 on the 1104px-wide month headers in CareTimeline the left
+   edge travels 16.6px inward — further than the 16px chevron that sits at
+   x=0 — so pressing the chevron shrinks the button out from under the
+   cursor, mouseup lands outside it, and the browser never fires a click.
+   Silently: the press animates, nothing happens, and the control looks
+   broken. Opacity is just as instant, just as physical, and moves no hit
+   target. */
+:where(button:not(:disabled), [role="button"], .pressable):active {
+  opacity: 0.6;
+}
+
+:where(button, [role="button"], .pressable) {
+  /* Only opacity/transform — compositor-friendly, so the press can't drop
+     a frame on a page full of photos. */
+  transition: opacity 100ms ease-out, transform 100ms ease-out;
+  /* Kills the ~300ms tap delay and the grey flash on iOS, both of which
+     are pure latency on the input path. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scale still earns its place on a small, fixed-size control, where the
+   edge movement is a fraction of a pixel and the squash reads as real.
+   Opt in with .press-scale rather than applying it by default, so a
+   control can never shrink past its own hit target.
+
+   The standalone `scale` property, NOT `transform: scale()`: these
+   controls are routinely centred with a translate utility, and a
+   `transform` declaration here would replace that translate outright,
+   dropping a vertically-centred control by half its height the moment
+   it's pressed. `scale` composes with whatever transform/translate the
+   element already carries. */
+:where(.press-scale):active {
+  scale: 0.92;
+}
+
+/* Anything the finger drags horizontally: let the browser keep vertical
+   scrolling, and stop the OS hijacking the drag as a back-swipe or an
+   image drag. */
+:where(.draggable-x) {
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Typography: tracking is size-specific, never one value for everything.
+   Large text reads too far apart as it grows and wants negative tracking;
+   small text wants a touch positive for legibility. A single fixed
+   letter-spacing is wrong somewhere by definition. Leading is deliberately
+   left alone here — Tailwind's per-size line-heights are load-bearing for
+   this layout, and changing them globally would be a layout change wearing
+   a typography costume. */
+:where(:not(h1, h2)).text-5xl,
+:where(:not(h1, h2)).text-4xl { letter-spacing: -0.022em; }
+:where(:not(h1, h2)).text-3xl { letter-spacing: -0.019em; }
+:where(:not(h1, h2)).text-2xl { letter-spacing: -0.014em; }
+:where(:not(h1, h2)).text-xl { letter-spacing: -0.009em; }
+:where(.text-xs, .text-\[11px\], .text-\[10px\]) { letter-spacing: 0.006em; }
+
+/* Materials and depth.
+
+   Translucency is only honest where something is actually behind the
+   surface. On desktop the sidebar is md:sticky inside its own flex column,
+   so nothing ever passes under it — frosting it would reveal a flat page
+   colour and read as a tint, not a material. These classes are therefore
+   applied only to the surfaces that genuinely overlap content: the mobile
+   top bar (content scrolls under it), the mobile drawer and its scrim, the
+   four modal scrims, and the carousel's arrow chips, which sit on top of
+   photographs.
+
+   .material      — thin chrome (a bar). Lighter blur, higher transparency.
+   .material-thick — a large panel (the drawer). Stronger blur and a deeper
+                     shadow, because weight should scale with the surface.
+   .material-scrim — blurs only what is BEHIND it; the tint stays on the
+                     element's own bg-* utility so hover variants still win.
+   .material-chip  — same, for a small control over arbitrary content.
+
+   The two media blocks below already referenced .material/.material-thick
+   and --material-solid before any of them existed; defining them here is
+   what finally makes those fallbacks do something. */
+:root {
+  /* Resolves per theme, since --color-white is redefined by each. */
+  --material-solid: var(--color-white);
+}
+
+/* Opaque baseline: what every browser gets, and what the reduced-
+   transparency / more-contrast blocks below fall back to. */
+.material,
+.material-thick {
+  background: var(--material-solid);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .material {
+    background: color-mix(in srgb, var(--material-solid) 72%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  /* Only below md, where the drawer is `fixed` and overlays the page. At
+     md and up the same element becomes the sticky desktop column with
+     nothing behind it, so it stays solid. */
+  @media (max-width: 767.98px) {
+    .material-thick {
+      background: color-mix(in srgb, var(--material-solid) 82%, transparent);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      backdrop-filter: blur(30px) saturate(180%);
+      box-shadow: 0 8px 32px -8px rgb(31 41 35 / 0.18);
+    }
+  }
+
+  /* A chip sits directly on a photograph, so it needs enough blur to
+     separate its glyph from whatever is underneath. */
+  .material-chip {
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    backdrop-filter: blur(10px) saturate(140%);
+  }
+
+  /* A scrim only has to push the page back behind a dialog — heavy blur
+     there costs a lot of compositing for little gain. */
+  .material-scrim {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+}
+
+/* Neobrutal keeps flat, opaque surfaces with hard edges — translucency and
+   soft blur are the opposite of its language, so it opts out of the two
+   SURFACE materials the same way it opts out of the serif display face.
+   The scrim and chip blurs stay: those aren't theme surfaces, they're
+   legibility over a photograph or a dimmed page, which every theme wants.
+   Placed after the @supports block so it wins at equal specificity. */
+:where(html[data-theme="neobrutal"]) .material,
+:where(html[data-theme="neobrutal"]) .material-thick {
+  background: var(--material-solid);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+/* Reduced motion — a gentler equivalent, not the absence of feedback.
+   Springs, slides and parallax go; opacity and colour changes stay,
+   because those aid comprehension without moving anything through space.
+   Overshoot goes entirely: bounce is the vestibular part. */
+@media (prefers-reduced-motion: reduce) {
+  /* The opacity press is already non-vestibular, so it stays; only the
+     scale on small controls goes. */
+  :where(.press-scale):active {
+    scale: none;
+  }
+
+  :where(*, *::before, *::after) {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Reduced transparency — frostier and more solid, not just less blurry. */
+@media (prefers-reduced-transparency: reduce) {
+  :where(.material, .material-thick) {
+    background: var(--material-solid, var(--color-card, #fff));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+  :where(.material-scrim, .material-chip) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+/* More contrast — near-solid surfaces with a defined, contrasting edge. */
+@media (prefers-contrast: more) {
+  :where(.material, .material-thick) {
+    background: var(--material-solid, var(--color-card, #fff));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: currentColor;
+  }
+}
+
+  :where(.material-scrim, .material-chip) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }

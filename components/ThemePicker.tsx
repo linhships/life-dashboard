@@ -25,8 +25,8 @@ const SWATCHES: Record<ThemeId, Swatch> = {
     radius: "1.25rem",
   },
   haven: {
-    bg: "#faf8f3",
-    card: "#fcfaf7",
+    bg: "#f2ede2",
+    card: "#fdfcf8",
     accent: "#1f9c8a",
     accent2: "#8b6cc9",
     radius: "1.125rem",
@@ -36,7 +36,10 @@ const SWATCHES: Record<ThemeId, Swatch> = {
     card: "#ffffff",
     accent: "#e8703a",
     accent2: "#b478d9",
-    radius: "0.1875rem",
+    // --radius-xl, the same token the other two swatches preview; this had
+    // been 0.1875rem (--radius-md/lg), so the preview showed sharper
+    // corners than the theme's cards actually have.
+    radius: "0.3125rem",
     border: "2px solid #000",
     shadow: "3px 3px 0 0 #000",
   },

@@ -13,7 +13,10 @@ export const THEMES: { id: ThemeId; label: string; description: string }[] = [
   {
     id: "haven",
     label: "Haven",
-    description: "A warmer palette — cream, teal and lavender, rounder corners.",
+    // Describes what this theme actually is: it used to claim "rounder
+    // corners", but its radii are smaller than the Editorial default at
+    // every step (md 0.625 vs 0.75, lg 0.875 vs 1, xl 1.125 vs 1.25).
+    description: "Calmer cream and sage — teal and lavender accents, slightly tighter corners.",
   },
   {
     id: "neobrutal",
