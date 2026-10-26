@@ -16,6 +16,7 @@ import {
   PanelLeftOpen,
   School,
   Settings,
+  ShoppingBag,
   UtensilsCrossed,
   X,
   type LucideIcon,
@@ -112,6 +113,18 @@ const ROUTE_GROUPS: RouteGroup[] = [
       { href: "/gatehouse-info", label: "Class Info" },
       { href: "/gatehouse-comms", label: "Communication" },
       { href: "/gatehouse-notes", label: "Notes" },
+    ],
+  },
+  {
+    key: "shopping",
+    label: "Shopping",
+    icon: ShoppingBag,
+    items: [
+      // "/shopping" is a path-prefix of its sibling, so it needs exact
+      // matching or both items light up on the Vouchers page — the same
+      // reason the Learning group's Overview carries this flag.
+      { href: "/shopping", label: "Overview", exact: true },
+      { href: "/shopping/vouchers", label: "Vouchers" },
     ],
   },
 ];

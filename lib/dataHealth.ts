@@ -37,6 +37,7 @@ import {
   PHOTO_FILENAME_RE as CHIARLINE_PHOTO_RE,
   VIDEO_FILENAME_RE as CHIARLINE_VIDEO_RE,
 } from "./chiarlineDays";
+import { readVouchers, vouchersDirPath } from "./vouchers";
 
 // Every failure this app has had in practice looked the same from the
 // outside: a page that loads fine and shows nothing. A folder moved, an env
@@ -534,6 +535,34 @@ const PROBES: Probe[] = [
       label: "with unrecognised filenames",
     }),
     hint: "Must point at the folder CONTAINING both updates.md and the export's _chat.txt - see CHIARLINE-UPDATES-FORMAT.md.",
+  },
+  {
+    label: "Vouchers",
+    page: "/shopping/vouchers",
+    envVar: "VOUCHERS_DIR",
+    resolve: () => vouchersDirPath(),
+    read: () => {
+      const report = readVouchers();
+      const dated = report.vouchers.filter((v) => v.expiry).length;
+      return {
+        found: report.vouchers.length
+          ? `${report.vouchers.length} codes · ${dated} with a readable date · ${report.files.join(", ")}`
+          : "no codes",
+        surfaced: report.vouchers.length,
+      };
+    },
+    // Not a filename convention here but a ROW one: table rows the parser
+    // saw and could not get a code out of. Those are the rows that would
+    // otherwise just be missing from the page.
+    unparsed: () => {
+      const report = readVouchers();
+      return {
+        count: report.skippedRows.length,
+        label: "table rows without a readable code",
+        examples: report.skippedRows.slice(0, 3),
+      };
+    },
+    hint: "Expects markdown table(s) with a voucher-code column; columns are matched by header name. A row that yields no code is counted above rather than silently dropped.",
   },
 ];
 

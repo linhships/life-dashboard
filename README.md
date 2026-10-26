@@ -164,6 +164,50 @@ Stored in `data/learning.json` (gitignored, personal data); see
 `sample-data/learning.json` for the fictional version shown instead when
 `USE_SAMPLE_DATA=true`.
 
+## Shopping
+
+`/shopping` is a small section whose one page so far is
+`/shopping/vouchers`: discount codes read from `VOUCHERS_DIR`, soonest to
+expire first, each with a tap-to-copy code.
+
+The codes are collected into that folder by something else (they arrive by
+email) and this app only ever reads them. The source is one or more
+markdown files holding a table:
+
+```
+| Webpage | Voucher code | Expiry date | Notes |
+|---|---|---|---|
+| cewe.co.uk | 4UEXPRESS | 31/12/2026 (11pm) | Max 5 uses; UK only. |
+```
+
+Two deliberate choices in `lib/vouchers.ts`, both because the rows are
+written upstream rather than here:
+
+- Columns are matched by header **name**, not position, so a column added
+  or reordered later doesn't silently shift every value sideways. An
+  unrecognised column is ignored rather than fatal.
+- The expiry cell stays free text. Real entries include
+  `31/12/2026 (11pm)` and `~02/11/2026 (email of 26/10 says "expires in 7
+  days")`. A date is extracted where one can be found — in UK order, so
+  `02/11/2026` is 2 November — for the sort and the countdown, but the
+  original string is what gets shown whenever it says more than the
+  countdown does. Dropping the `~` would drop the part that tells you how
+  much to trust the date.
+
+Rows that yield no code are counted rather than dropped, and surface on
+`/settings/data-sources` as "table rows without a readable code".
+
+`lib/voucherShared.ts` holds the `Voucher` shape and the date maths
+separately from the reader, because `components/VouchersList.tsx` is a
+client component (it copies to the clipboard) and importing them from the
+reader pulled `fs` into the browser bundle.
+
+Note on copying: the dashboard is normally reached over plain http on its
+Tailscale address, which is not a secure context, so `navigator.clipboard`
+doesn't exist there. The copy button tries it and falls back to
+`document.execCommand("copy")`, which does work; failing both, the code is
+still selectable text.
+
 ## Calendar
 
 `/family/calendar` is a read-only week view of the shared **Social
