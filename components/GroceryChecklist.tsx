@@ -3,6 +3,18 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import type { GrocerySection } from "@/lib/mealplan";
+import ReactMarkdown from "react-markdown";
+
+
+// These notes come straight out of the plan's markdown and contain bold,
+// italics and links, so rendering them as text printed the "**" on screen.
+// Inline, with the <p> wrapper removed, because they sit inside an existing
+// <p> or <li> and a block element there would break the line.
+const INLINE_MD = { p: ({ children }: { children?: React.ReactNode }) => <>{children}</> };
+
+function NoteMarkdown({ children }: { children: string }) {
+  return <ReactMarkdown components={INLINE_MD}>{children}</ReactMarkdown>;
+}
 
 export function GroceryChecklist({
   weekStart,
@@ -43,7 +55,11 @@ export function GroceryChecklist({
                     {sub.subheading}
                   </h3>
                 )}
-                {sub.note && <p className="mb-2 text-xs text-slate-500">{sub.note}</p>}
+                {sub.note && (
+                  <p className="mb-2 text-xs text-slate-500">
+                    <NoteMarkdown>{sub.note}</NoteMarkdown>
+                  </p>
+                )}
                 {sub.items.length > 0 && (
                   <ul className="space-y-1.5">
                     {sub.items.map((item) => {
@@ -71,7 +87,7 @@ export function GroceryChecklist({
                                 isChecked ? "text-slate-400 line-through" : "text-slate-700"
                               }`}
                             >
-                              {item.text}
+                              <NoteMarkdown>{item.text}</NoteMarkdown>
                             </span>
                           </button>
                         </li>
@@ -86,7 +102,9 @@ export function GroceryChecklist({
                     }`}
                   >
                     {sub.trailingNotes.map((note, i) => (
-                      <li key={i}>{note}</li>
+                      <li key={i}>
+                        <NoteMarkdown>{note}</NoteMarkdown>
+                      </li>
                     ))}
                   </ul>
                 )}

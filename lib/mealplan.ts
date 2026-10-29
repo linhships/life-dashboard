@@ -196,7 +196,13 @@ export function parsePlan(markdown: string, weekStart: string): MealPlan {
       continue;
     }
     if (trimmed.startsWith("| Day")) break;
-    if (trimmed) introLines.push(trimmed);
+    // Blank lines are KEPT. The intro is markdown — paragraphs, a numbered
+    // list, a bulleted list — and in markdown the blank line is what
+    // separates a paragraph from the next and a list from the prose above
+    // it. Dropping them (and joining on " ", as this used to) flattened the
+    // whole thing into one unreadable wall with stray "**" and "- " in the
+    // middle of sentences.
+    introLines.push(trimmed);
     i++;
   }
 
@@ -256,7 +262,9 @@ export function parsePlan(markdown: string, weekStart: string): MealPlan {
   return {
     weekStart,
     title: title || weekStart,
-    intro: introLines.join(" "),
+    // Joined on newlines so the markdown survives to be rendered, with the
+    // leading/trailing blanks the loop collected trimmed off.
+    intro: introLines.join("\n").replace(/^\n+/, "").replace(/\n+$/, ""),
     rows,
     otherSections,
     grocerySections,

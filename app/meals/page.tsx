@@ -16,6 +16,13 @@ import { UtensilsCrossed } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+// Shared by the week's two prose surfaces — the plan's own extra
+// sections and the "About this week" notes below them — so they read as
+// the same kind of box instead of two near-identical class lists drifting
+// apart.
+const PROSE_BOX =
+  "prose-slate max-w-none rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-700 shadow-sm [&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:first:mt-0 [&_h3]:mb-1 [&_h3]:mt-4 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-slate-800 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-2 [&_p]:first:mt-0 [&_a]:text-blue-600 [&_a:hover]:underline [&_strong]:font-semibold [&_strong]:text-slate-900";
+
 export default async function MealsPage() {
   const thisWeek = getCurrentMealPlan();
   const nextWeek = getNextMealPlan();
@@ -55,7 +62,6 @@ export default async function MealsPage() {
           <span>Week of {plan.weekStart}</span>
         </div>
         <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-900">{plan.title}</h1>
-        {plan.intro && <p className="mt-2 text-sm text-slate-500">{plan.intro}</p>}
       </header>
 
       <SkipWeekSwitch weekStart={plan.weekStart} skipped={skipped} />
@@ -89,7 +95,7 @@ export default async function MealsPage() {
       />
 
       {plan.otherSections.length > 0 && (
-        <div className="prose-slate max-w-none rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-700 shadow-sm [&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:first:mt-0 [&_h3]:mb-1 [&_h3]:mt-4 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-slate-800 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_a]:text-blue-600 [&_a:hover]:underline [&_strong]:font-semibold [&_strong]:text-slate-900">
+        <div className={PROSE_BOX}>
           {plan.otherSections.map((section) => (
             <div key={section.heading}>
               <h2>{section.heading}</h2>
@@ -105,6 +111,18 @@ export default async function MealsPage() {
           sections={plan.grocerySections}
           initialChecked={groceryChecks}
         />
+      )}
+
+      {/* Last, and in a box. This is the planner's commentary on the week —
+          why these dishes, what has to happen early, which labels to read.
+          Useful, but it is the longest text on the page and reading it is
+          never the reason you opened the plan, so it sits after the grid and
+          the shopping rather than between the title and the food. */}
+      {plan.intro && (
+        <section className={PROSE_BOX}>
+          <h2>About this week</h2>
+          <ReactMarkdown>{plan.intro}</ReactMarkdown>
+        </section>
       )}
         </div>
       </div>
