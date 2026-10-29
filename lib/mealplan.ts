@@ -343,3 +343,110 @@ export function readLatestGroceryChecks(): Record<string, boolean> {
   }
   return map;
 }
+
+// --- Skipped weeks -------------------------------------------------------
+//
+// Some weeks there is no appetite for planning, and the plan that exists
+// shouldn't be treated as what was eaten. The dashboard's "Skip this week"
+// switch records that here.
+//
+// Deliberately a markdown DOCUMENT rather than a third .jsonl alongside
+// meal-feedback/grocery-checked: those two are private to this app, but
+// this file has a second reader. Weekly_Plan_Instructions.md tells the
+// planning task to log the previous week into Food_list.md's Eaten log and
+// add its meals to Times Eaten — and the whole point of the switch is that
+// a skipped week must not be logged or counted. That task reads markdown,
+// and Linh needs to be able to read and correct this by hand, so a table
+// it can both parse and edit beats a line-delimited JSON log it can't.
+
+const SKIPPED_WEEKS_FILE = "Skipped_Weeks.md";
+
+// Rewritten in full on every toggle, so this preamble is the contract with
+// the planning task and lives in one place.
+const SKIPPED_WEEKS_PREAMBLE = `# Skipped weeks
+
+Weeks where the household decided not to meal-plan. Written by the "Not
+planning this week" switch on the dashboard's /meals page — toggling it off
+removes the week again.
+
+**For the weekly planning task:** a week listed below was *not* planned and
+was *not* eaten to a plan. When you update the eaten tracking, do NOT add a
+\`### Week of <that date>\` section to the Eaten log in Food_list.md, and do
+NOT add anything from that week to any dish's *Times Eaten* or *Last Eaten*.
+There is nothing to count for it. Carry on with the surrounding weeks as
+normal.
+
+| Week of | Skipped on | Note |
+|---|---|---|`;
+
+export interface SkippedWeek {
+  weekStart: string; // ISO yyyy-mm-dd, the Monday the plan starts
+  skippedOn: string; // ISO yyyy-mm-dd the switch was flipped
+  note: string;
+}
+
+function skippedWeeksPath(): string {
+  return path.join(mealsDir(), SKIPPED_WEEKS_FILE);
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function readSkippedWeeks(): SkippedWeek[] {
+  const file = skippedWeeksPath();
+  let text: string;
+  try {
+    text = fs.readFileSync(file, "utf-8");
+  } catch {
+    return []; // no file yet means nothing has ever been skipped
+  }
+
+  const weeks: SkippedWeek[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim().startsWith("|")) continue;
+    const cells = line
+      .trim()
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split("|")
+      .map((c) => c.trim());
+    // Skips the header and the |---| separator by requiring a real date in
+    // the first cell, so a hand-edited file with extra prose is still read.
+    if (!ISO_DATE_RE.test(cells[0] ?? "")) continue;
+    weeks.push({
+      weekStart: cells[0],
+      skippedOn: cells[1] ?? "",
+      note: cells[2] && cells[2] !== "—" ? cells[2] : "",
+    });
+  }
+  return weeks;
+}
+
+export function isWeekSkipped(weekStart: string): boolean {
+  return readSkippedWeeks().some((w) => w.weekStart === weekStart);
+}
+
+function writeSkippedWeeks(weeks: SkippedWeek[]): void {
+  const dir = mealsDir();
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const rows = [...weeks]
+    .sort((a, b) => b.weekStart.localeCompare(a.weekStart))
+    .map((w) => `| ${w.weekStart} | ${w.skippedOn} | ${w.note || "—"} |`);
+  const body = rows.length > 0 ? rows.join("\n") : "";
+  fs.writeFileSync(
+    skippedWeeksPath(),
+    `${SKIPPED_WEEKS_PREAMBLE}\n${body}\n`,
+    "utf-8"
+  );
+}
+
+export function setWeekSkipped(weekStart: string, skipped: boolean, note = ""): void {
+  const weeks = readSkippedWeeks().filter((w) => w.weekStart !== weekStart);
+  if (skipped) {
+    weeks.push({
+      weekStart,
+      skippedOn: new Date().toISOString().slice(0, 10),
+      note,
+    });
+  }
+  writeSkippedWeeks(weeks);
+}

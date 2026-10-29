@@ -3,10 +3,12 @@ import ReactMarkdown from "react-markdown";
 import {
   getCurrentMealPlan,
   getNextMealPlan,
+  isWeekSkipped,
   readLatestGroceryChecks,
   readLatestMealFeedback,
   type MealPlan,
 } from "@/lib/mealplan";
+import { SkipWeekSwitch } from "@/components/SkipWeekSwitch";
 import { MealPlanGrid } from "@/components/MealPlanGrid";
 import { GroceryChecklist } from "@/components/GroceryChecklist";
 import { SimpleTabs } from "@/components/SimpleTabs";
@@ -40,7 +42,12 @@ export default async function MealsPage() {
   const groceryChecks = readLatestGroceryChecks();
   const today = new Date().toISOString().slice(0, 10);
 
-  const renderPlan = (plan: MealPlan): ReactNode => (
+  const renderPlan = (plan: MealPlan): ReactNode => {
+    // Read per week rather than once: the two tabs are different weeks and
+    // either can be skipped on its own.
+    const skipped = isWeekSkipped(plan.weekStart);
+
+    return (
     <div className="space-y-8">
       <header>
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
@@ -51,6 +58,29 @@ export default async function MealsPage() {
         {plan.intro && <p className="mt-2 text-sm text-slate-500">{plan.intro}</p>}
       </header>
 
+      <SkipWeekSwitch weekStart={plan.weekStart} skipped={skipped} />
+
+      {skipped && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700">
+          <span className="font-semibold text-slate-900">
+            This week is marked as not planned.
+          </span>{" "}
+          It&apos;s recorded in <code className="text-xs">Skipped_Weeks.md</code> next to the
+          plans, so the weekly task leaves it out of the Eaten log and adds nothing to any
+          dish&apos;s <em>Times Eaten</em>. Ratings and the grocery checklist are switched off
+          below for the same reason. Turn the switch off to plan it after all.
+        </p>
+      )}
+
+      {/* inert, not merely faded: a greyed-out plan you can still tap would
+          go on recording ratings and grocery ticks for a week that is meant
+          to count for nothing. It takes the whole subtree out of pointer,
+          keyboard and accessibility reach in one attribute. */}
+      <div
+        inert={skipped || undefined}
+        className={skipped ? "opacity-40 saturate-50 transition-opacity" : "transition-opacity"}
+      >
+        <div className="space-y-8">
       <MealPlanGrid
         weekStart={plan.weekStart}
         today={today}
@@ -76,8 +106,11 @@ export default async function MealsPage() {
           initialChecked={groceryChecks}
         />
       )}
+        </div>
+      </div>
     </div>
-  );
+    );
+  };
 
   const tabs = [{ label: "This week", content: renderPlan(thisWeek) }];
   if (nextWeek) tabs.push({ label: "Next week", content: renderPlan(nextWeek) });

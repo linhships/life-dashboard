@@ -164,6 +164,35 @@ Stored in `data/learning.json` (gitignored, personal data); see
 `sample-data/learning.json` for the fictional version shown instead when
 `USE_SAMPLE_DATA=true`.
 
+## Skipping a meal-plan week
+
+The `/meals` page carries a **"Not planning this week"** switch, one per
+week tab. Turning it on does two things:
+
+- The plan below goes `inert` and fades. Not merely faded: a greyed-out
+  plan you could still tap would go on recording kid ratings and grocery
+  ticks for a week that is meant to count for nothing, so the whole subtree
+  leaves pointer, keyboard and accessibility reach.
+- The week is written into `MEAL_PLAN_DIR/Skipped_Weeks.md` as a row in a
+  small table, with the date the switch was flipped.
+
+That file is a markdown **document**, not a third `.jsonl` alongside
+`meal-feedback` / `grocery-checked`, because it has a second reader.
+`Weekly_Plan_Instructions.md` in the Food-Planning folder now opens its
+"Updating the eaten tracking" section by checking it: a week listed there
+gets **no** `### Week of <date>` section in `Food_list.md`'s Eaten log and
+adds **nothing** to any dish's *Times Eaten* or *Last Eaten*. A plan file
+may still exist for that week — it just wasn't what got eaten.
+
+So the switch reaches the counter through that document rather than through
+any code in this app; the app's part is writing the row and refusing to
+collect feedback for the week. Turning the switch off removes the row.
+
+The file is rewritten in full on each toggle, so the preamble (which is the
+contract with the planning task) lives in one place in `lib/mealplan.ts`.
+Rows are parsed by requiring an ISO date in the first cell, so hand-editing
+the file or adding prose to it doesn't break the read.
+
 ## Shopping
 
 `/shopping` is a small section whose one page so far is
